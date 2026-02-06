@@ -1,5 +1,3 @@
-import type { NextConfig } from "next";
-// @ts-ignore: 라이브러리 타입 에러 무시
 import withPWAInit from "next-pwa";
 
 const withPWA = withPWAInit({
@@ -9,7 +7,8 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
 });
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // 여기에 다른 설정이 있다면 추가
 };
 
