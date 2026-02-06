@@ -1,24 +1,24 @@
 /** @type {import('next').NextConfig} */
-const withPWA = require("next-pwa")({
+const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
-  register: true,
-  skipWaiting: true,
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  swcMinify: true,
   disable: process.env.NODE_ENV === "development",
+  workboxOptions: {
+    disableDevLogs: true,
+  },
 });
 
 const nextConfig = {
-  // ✅ 1. 에러 무시 설정 (강제 통과)
+  // 빌드 에러 무시 (강제 통과 설정)
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // ✅ 2. 이미지 최적화 (혹시 모를 에러 방지)
-  images: {
-    unoptimized: true,
-  },
 };
 
-// ✅ 3. 옛날 방식(CommonJS)으로 내보내기
 module.exports = withPWA(nextConfig);
