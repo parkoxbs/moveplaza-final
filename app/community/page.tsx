@@ -1,11 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '../supabase';
+import { createClient } from "@supabase/supabase-js"; 
 import { useRouter } from 'next/navigation';
 
-// ✅ [설정] 여기에 본인 이메일을 입력하세요! (이 사람만 공지를 쓸 수 있음)
+// 👇 1. Supabase 주소와 키를 입력하세요!
+const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
+const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+// ✅ [설정] 관리자 이메일
 const ADMIN_EMAIL = "agricb83@gmail.com"; 
+
+// 🚫 [설정] 차단할 단어 리스트
+const BAD_WORDS = [
+  "시발", "씨발", "병신", "개새끼", "지랄", "존나", "섹스", "미친", 
+  "ㅅㅂ", "ㅂㅅ", "ㅈㄹ", "살인", "자살", "변태"
+];
+
+const containsBadWord = (text: string) => {
+  return BAD_WORDS.some(word => text.includes(word));
+};
 
 type Profile = { 
   id: string; 
@@ -18,7 +33,16 @@ type Profile = {
   color?: string;
 };
 
-type Comment = { id: number; content: string; user_id: string; created_at: string; profile?: Profile; };
+// 👇 [수정] 댓글 타입에 좋아요 관련 필드 추가
+type Comment = { 
+  id: number; 
+  content: string; 
+  user_id: string; 
+  created_at: string; 
+  profile?: Profile;
+  like_count: number; // 좋아요 수
+  is_liked: boolean;  // 내가 좋아요 눌렀는지
+};
 
 type Log = { 
   id: string; 
@@ -37,9 +61,7 @@ type Log = {
   comments: Comment[]; 
 };
 
-// 공지사항 타입
 type Notice = { id: number; title: string; content: string; created_at: string; };
-
 type RankedUser = Profile & { logCount: number; rank: number; };
 
 const getLevel = (count: number) => {
@@ -53,12 +75,13 @@ export default function CommunityPage() {
   const router = useRouter();
   const [logs, setLogs] = useState<Log[]>([]);
   const [ranking, setRanking] = useState<RankedUser[]>([]);
-  const [notices, setNotices] = useState<Notice[]>([]); // 공지사항 상태
+  const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  
   const [commentInputs, setCommentInputs] = useState<{[key: string]: string}>({});
+  const [expandedComments, setExpandedComments] = useState<{[key: string]: boolean}>({});
 
-  // 공지사항 입력용
   const [showNoticeForm, setShowNoticeForm] = useState(false);
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeContent, setNoticeContent] = useState('');
@@ -69,16 +92,17 @@ export default function CommunityPage() {
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
 
-    // 1. 공지사항 가져오기
+    // 공지사항
     const { data: noticesData } = await supabase.from('notices').select('*').order('created_at', { ascending: false });
     if (noticesData) setNotices(noticesData);
 
-    // 2. 로그 가져오기
+    // 로그 목록
     const { data: logsData } = await supabase.from('logs').select('*').eq('is_public', true).order('created_at', { ascending: false });
     const { data: allLogs } = await supabase.from('logs').select('user_id');
 
     if (!logsData || !allLogs) { setLoading(false); return; }
 
+    // 유저 랭킹 계산
     const counts: {[key: string]: number} = {};
     allLogs.forEach(l => { counts[l.user_id] = (counts[l.user_id] || 0) + 1; });
     
@@ -93,17 +117,41 @@ export default function CommunityPage() {
 
     setRanking(rankedUsers);
 
+    // 로그 관련 데이터 (좋아요, 댓글, 댓글좋아요) 가져오기
     const logIds = logsData.map(l => l.id);
-    const { data: likes } = await supabase.from('likes').select('*').in('log_id', logIds);
-    const { data: comments } = await supabase.from('comments').select('*').in('log_id', logIds).order('created_at', { ascending: true });
+    const { data: postLikes } = await supabase.from('likes').select('*').in('log_id', logIds);
+    const { data: comments } = await supabase.from('comments').select('*').in('log_id', logIds);
     
+    // 👇 [추가] 댓글 좋아요 데이터 가져오기
+    const commentIds = comments?.map(c => c.id) || [];
+    const { data: commentLikes } = await supabase.from('comment_likes').select('*').in('comment_id', commentIds);
+
     const commentUserIds = comments ? Array.from(new Set(comments.map(c => c.user_id))) : [];
     const { data: commentProfiles } = await supabase.from('profiles').select('*').in('id', commentUserIds);
 
     const combinedLogs = logsData.map(log => {
-      const logLikes = likes?.filter(l => l.log_id === log.id) || [];
+      const logLikes = postLikes?.filter(l => l.log_id === log.id) || [];
       const logComments = comments?.filter(c => c.log_id === log.id) || [];
-      const enrichedComments = logComments.map(c => ({ ...c, profile: commentProfiles?.find(p => p.id === c.user_id) }));
+      
+      const enrichedComments = logComments.map(c => {
+        // 댓글 좋아요 계산
+        const likesForThisComment = commentLikes?.filter(cl => cl.comment_id === c.id) || [];
+        return { 
+            ...c, 
+            profile: commentProfiles?.find(p => p.id === c.user_id),
+            like_count: likesForThisComment.length,
+            is_liked: user ? likesForThisComment.some(cl => cl.user_id === user.id) : false
+        };
+      });
+
+      // 👇 [정렬 로직] 좋아요 많은 순 -> 그 다음 최신순
+      enrichedComments.sort((a, b) => {
+        if (b.like_count !== a.like_count) {
+            return b.like_count - a.like_count; // 좋아요 많은 게 위로
+        }
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); // 그 다음엔 오래된 게 위로 (대화 흐름)
+      });
+
       const authorCount = counts[log.user_id] || 0;
       const authorLevel = getLevel(authorCount);
 
@@ -125,25 +173,54 @@ export default function CommunityPage() {
     setLoading(false);
   }
 
-  // 공지사항 등록 함수
+  // 게시글 좋아요
+  const toggleLike = async (logId: string, currentLiked: boolean) => { 
+    if (!currentUser) { alert('로그인 필요'); return; } 
+    if (currentLiked) await supabase.from('likes').delete().match({ user_id: currentUser.id, log_id: logId }); 
+    else await supabase.from('likes').insert({ user_id: currentUser.id, log_id: logId }); 
+    fetchData(); 
+  };
+
+  // 👇 [추가] 댓글 좋아요 토글 함수
+  const toggleCommentLike = async (commentId: number, currentLiked: boolean) => {
+    if (!currentUser) { alert('로그인 필요'); return; }
+    if (currentLiked) {
+        await supabase.from('comment_likes').delete().match({ user_id: currentUser.id, comment_id: commentId });
+    } else {
+        await supabase.from('comment_likes').insert({ user_id: currentUser.id, comment_id: commentId });
+    }
+    fetchData(); // 데이터 갱신 (정렬 반영됨)
+  };
+
+  // 댓글 등록
+  const addComment = async (logId: string) => { 
+    if (!currentUser) { alert('로그인 필요'); return; } 
+    const content = commentInputs[logId]; 
+    if (!content?.trim()) return; 
+
+    if (containsBadWord(content)) {
+      return alert("🚫 댓글에 부적절한 단어가 포함되어 있습니다. 바른 말을 사용해주세요!");
+    }
+
+    await supabase.from('comments').insert({ content, log_id: logId, user_id: currentUser.id }); 
+    setCommentInputs({ ...commentInputs, [logId]: '' }); 
+    fetchData(); 
+  };
+
+  const deleteComment = async (commentId: number) => { if (!confirm('삭제하시겠습니까?')) return; await supabase.from('comments').delete().eq('id', commentId); fetchData(); };
+  const toggleCommentView = (logId: string) => { setExpandedComments(prev => ({ ...prev, [logId]: !prev[logId] })); };
+
+  // 공지사항 관련 함수들
   const handleAddNotice = async () => {
     if (!noticeTitle.trim() || !noticeContent.trim()) return alert("내용을 입력하세요!");
+    if (containsBadWord(noticeTitle) || containsBadWord(noticeContent)) return alert("🚫 부적절한 단어가 포함되어 있습니다.");
     await supabase.from('notices').insert({ title: noticeTitle, content: noticeContent });
     alert("공지 등록 완료! 📢");
     setNoticeTitle(''); setNoticeContent(''); setShowNoticeForm(false);
     fetchData();
   };
+  const handleDeleteNotice = async (id: number) => { if (!confirm("삭제?")) return; await supabase.from('notices').delete().eq('id', id); fetchData(); };
 
-  // 공지사항 삭제 함수
-  const handleDeleteNotice = async (id: number) => {
-    if (!confirm("이 공지를 삭제할까요?")) return;
-    await supabase.from('notices').delete().eq('id', id);
-    fetchData();
-  };
-
-  const toggleLike = async (logId: string, currentLiked: boolean) => { if (!currentUser) { alert('로그인 필요'); return; } if (currentLiked) await supabase.from('likes').delete().match({ user_id: currentUser.id, log_id: logId }); else await supabase.from('likes').insert({ user_id: currentUser.id, log_id: logId }); fetchData(); };
-  const addComment = async (logId: string) => { if (!currentUser) { alert('로그인 필요'); return; } const content = commentInputs[logId]; if (!content?.trim()) return; await supabase.from('comments').insert({ content, log_id: logId, user_id: currentUser.id }); setCommentInputs({ ...commentInputs, [logId]: '' }); fetchData(); };
-  const deleteComment = async (commentId: number) => { if (!confirm('삭제하시겠습니까?')) return; await supabase.from('comments').delete().eq('id', commentId); fetchData(); };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-xl font-bold animate-pulse text-blue-600">로딩 중...</p></div>;
 
@@ -166,15 +243,12 @@ export default function CommunityPage() {
                     <h1 className="text-3xl font-black text-slate-900">광장 📢</h1>
                     <p className="text-slate-500 font-bold mt-1">서로 응원하고 꿀팁을 나눠보세요!</p>
                 </div>
-                {/* 🔒 관리자만 보이는 공지 쓰기 버튼 */}
                 {currentUser?.email === ADMIN_EMAIL && (
-                    <button onClick={() => setShowNoticeForm(!showNoticeForm)} className="bg-slate-900 text-white text-xs px-3 py-2 rounded-lg font-bold">
-                        📢 공지 쓰기
-                    </button>
+                    <button onClick={() => setShowNoticeForm(!showNoticeForm)} className="bg-slate-900 text-white text-xs px-3 py-2 rounded-lg font-bold">📢 공지 쓰기</button>
                 )}
             </div>
 
-            {/* 📢 공지사항 섹션 (관리자 입력 폼 포함) */}
+            {/* 공지 입력창 */}
             {currentUser?.email === ADMIN_EMAIL && showNoticeForm && (
                 <div className="bg-white p-6 rounded-3xl shadow-lg border-2 border-slate-900">
                     <h3 className="font-black text-lg mb-4">새 공지사항 작성</h3>
@@ -184,7 +258,7 @@ export default function CommunityPage() {
                 </div>
             )}
 
-            {/* 공지사항 리스트 */}
+            {/* 공지 리스트 */}
             {notices.length > 0 && (
                 <div className="bg-slate-100 p-5 rounded-3xl border border-slate-200 space-y-3">
                     <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Notice</h3>
@@ -196,70 +270,33 @@ export default function CommunityPage() {
                             </div>
                             <p className="text-slate-600 text-sm pl-7 whitespace-pre-wrap">{notice.content}</p>
                             <span className="text-[10px] text-slate-400 pl-7 font-bold">{new Date(notice.created_at).toLocaleDateString()}</span>
-                            
-                            {/* 관리자만 삭제 가능 */}
-                            {currentUser?.email === ADMIN_EMAIL && (
-                                <button onClick={() => handleDeleteNotice(notice.id)} className="absolute top-4 right-4 text-xs text-slate-300 hover:text-red-500 font-bold">삭제</button>
-                            )}
+                            {currentUser?.email === ADMIN_EMAIL && <button onClick={() => handleDeleteNotice(notice.id)} className="absolute top-4 right-4 text-xs text-slate-300 hover:text-red-500 font-bold">삭제</button>}
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* 🏆 명예의 전당 (Ranking) */}
+            {/* 랭킹 */}
             {ranking.length > 0 && (
                 <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
                     <h2 className="text-xl font-black mb-6 flex items-center gap-2">🏆 명예의 전당 (TOP 3)</h2>
                     <div className="flex justify-around items-end gap-2">
-                        {/* 2등 */}
-                        {ranking[1] && (
-                            <div className="flex flex-col items-center gap-2 mb-4">
-                                <div className="w-16 h-16 rounded-full border-4 border-slate-400 overflow-hidden bg-slate-200">
-                                    {ranking[1].avatar_url ? <img src={ranking[1].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-2xl">👤</div>}
-                                </div>
-                                <div className="text-center">
-                                    <span className="bg-slate-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full">2ND</span>
-                                    <p className="font-bold text-sm mt-1">{ranking[1].username}</p>
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${ranking[1].color} inline-block mt-1`}>{ranking[1].emoji} {ranking[1].level}</span>
-                                </div>
-                            </div>
-                        )}
-                        {/* 1등 */}
-                        {ranking[0] && (
-                            <div className="flex flex-col items-center gap-2 z-10">
-                                <div className="text-4xl absolute -mt-10">👑</div>
-                                <div className="w-24 h-24 rounded-full border-4 border-yellow-400 overflow-hidden bg-yellow-100 shadow-lg shadow-yellow-500/30">
-                                    {ranking[0].avatar_url ? <img src={ranking[0].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-4xl">👤</div>}
-                                </div>
-                                <div className="text-center">
-                                    <span className="bg-yellow-400 text-yellow-900 text-xs font-black px-3 py-1 rounded-full">1ST</span>
-                                    <p className="font-black text-lg mt-1">{ranking[0].username}</p>
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${ranking[0].color} inline-block mt-1`}>{ranking[0].emoji} {ranking[0].level}</span>
-                                    <p className="text-xs text-yellow-200 font-bold mt-1">{ranking[0].logCount}회 기록</p>
-                                </div>
-                            </div>
-                        )}
-                        {/* 3등 */}
-                        {ranking[2] && (
-                            <div className="flex flex-col items-center gap-2 mb-2">
-                                <div className="w-16 h-16 rounded-full border-4 border-orange-700 overflow-hidden bg-slate-200">
-                                    {ranking[2].avatar_url ? <img src={ranking[2].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-2xl">👤</div>}
-                                </div>
-                                <div className="text-center">
-                                    <span className="bg-orange-700 text-orange-100 text-[10px] font-black px-2 py-0.5 rounded-full">3RD</span>
-                                    <p className="font-bold text-sm mt-1">{ranking[2].username}</p>
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${ranking[2].color} inline-block mt-1`}>{ranking[2].emoji} {ranking[2].level}</span>
-                                </div>
-                            </div>
-                        )}
+                        {ranking[1] && (<div className="flex flex-col items-center gap-2 mb-4"><div className="w-16 h-16 rounded-full border-4 border-slate-400 overflow-hidden bg-slate-200">{ranking[1].avatar_url ? <img src={ranking[1].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-2xl">👤</div>}</div><div className="text-center"><span className="bg-slate-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full">2ND</span><p className="font-bold text-sm mt-1">{ranking[1].username}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${ranking[1].color} inline-block mt-1`}>{ranking[1].emoji} {ranking[1].level}</span></div></div>)}
+                        {ranking[0] && (<div className="flex flex-col items-center gap-2 z-10"><div className="text-4xl absolute -mt-10">👑</div><div className="w-24 h-24 rounded-full border-4 border-yellow-400 overflow-hidden bg-yellow-100 shadow-lg shadow-yellow-500/30">{ranking[0].avatar_url ? <img src={ranking[0].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-4xl">👤</div>}</div><div className="text-center"><span className="bg-yellow-400 text-yellow-900 text-xs font-black px-3 py-1 rounded-full">1ST</span><p className="font-black text-lg mt-1">{ranking[0].username}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${ranking[0].color} inline-block mt-1`}>{ranking[0].emoji} {ranking[0].level}</span><p className="text-xs text-yellow-200 font-bold mt-1">{ranking[0].logCount}회 기록</p></div></div>)}
+                        {ranking[2] && (<div className="flex flex-col items-center gap-2 mb-2"><div className="w-16 h-16 rounded-full border-4 border-orange-700 overflow-hidden bg-slate-200">{ranking[2].avatar_url ? <img src={ranking[2].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-2xl">👤</div>}</div><div className="text-center"><span className="bg-orange-700 text-orange-100 text-[10px] font-black px-2 py-0.5 rounded-full">3RD</span><p className="font-bold text-sm mt-1">{ranking[2].username}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${ranking[2].color} inline-block mt-1`}>{ranking[2].emoji} {ranking[2].level}</span></div></div>)}
                     </div>
                 </div>
             )}
 
-            {/* 게시글 목록 */}
+            {/* 피드 목록 */}
             <div className="space-y-6">
-            {logs.map((log) => (
+            {logs.map((log) => {
+                const isExpanded = expandedComments[log.id];
+                const visibleComments = isExpanded ? log.comments : log.comments.slice(0, 3);
+                const hiddenCount = log.comments.length - 3;
+
+                return (
                 <div key={log.id} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
                 <div className="flex items-center gap-3 mb-5 border-b border-slate-100 pb-4">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
@@ -291,22 +328,39 @@ export default function CommunityPage() {
 
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
                     <div className="space-y-3 mb-4">
-                    {log.comments.map(comment => (
-                        <div key={comment.id} className="flex gap-2 items-start text-sm">
-                        <span className="font-bold text-slate-900 shrink-0">{comment.profile?.username || '익명'}:</span>
-                        <span className="text-slate-600 font-medium break-all">{comment.content}</span>
-                        {currentUser?.id === comment.user_id && <button onClick={() => deleteComment(comment.id)} className="text-slate-400 hover:text-red-500 font-bold ml-auto px-2 text-xs">x</button>}
+                    {visibleComments.map(comment => (
+                        <div key={comment.id} className="flex gap-2 items-start text-sm group">
+                            <span className="font-bold text-slate-900 shrink-0">{comment.profile?.username || '익명'}:</span>
+                            <span className="text-slate-600 font-medium break-all flex-1">{comment.content}</span>
+                            
+                            {/* 👇 [추가] 댓글 좋아요 버튼 */}
+                            <button onClick={() => toggleCommentLike(comment.id, comment.is_liked)} className={`text-xs flex items-center gap-1 font-bold ${comment.is_liked ? 'text-red-500' : 'text-slate-300 hover:text-red-400'}`}>
+                                <span>{comment.is_liked ? '❤️' : '🤍'}</span>
+                                {comment.like_count > 0 && <span>{comment.like_count}</span>}
+                            </button>
+
+                            {currentUser?.id === comment.user_id && <button onClick={() => deleteComment(comment.id)} className="text-slate-300 hover:text-red-500 font-bold px-1 text-xs">✕</button>}
                         </div>
                     ))}
                     {log.comments.length === 0 && <p className="text-xs text-slate-400 font-bold opacity-50">첫 댓글을 남겨보세요!</p>}
+                    
+                    {log.comments.length > 3 && (
+                        <button 
+                            onClick={() => toggleCommentView(log.id)}
+                            className="text-xs font-bold text-blue-600 hover:text-blue-800 mt-2 block w-full text-left"
+                        >
+                            {isExpanded ? '댓글 접기 ▲' : `댓글 ${hiddenCount}개 더 보기 ▼`}
+                        </button>
+                    )}
                     </div>
+
                     <div className="flex gap-2">
                     <input type="text" value={commentInputs[log.id] || ''} onChange={(e) => setCommentInputs({...commentInputs, [log.id]: e.target.value})} onKeyDown={(e) => e.key === 'Enter' && addComment(log.id)} placeholder="댓글 입력..." className="flex-1 px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm" />
                     <button onClick={() => addComment(log.id)} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-800">등록</button>
                     </div>
                 </div>
                 </div>
-            ))}
+            )})}
             </div>
         </div>
     </div>
