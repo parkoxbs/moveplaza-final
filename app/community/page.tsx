@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { useRouter } from 'next/navigation';
 
-// ✅ 타입 수정 완료
+// ✅ [설정] 여기에 본인 이메일을 입력하세요! (이 사람만 공지를 쓸 수 있음)
+const ADMIN_EMAIL = "agricb83@gmail.com"; 
+
 type Profile = { 
   id: string; 
   username: string; 
@@ -35,7 +37,9 @@ type Log = {
   comments: Comment[]; 
 };
 
-// 🏆 랭킹용 유저 타입
+// 공지사항 타입
+type Notice = { id: number; title: string; content: string; created_at: string; };
+
 type RankedUser = Profile & { logCount: number; rank: number; };
 
 const getLevel = (count: number) => {
@@ -49,9 +53,15 @@ export default function CommunityPage() {
   const router = useRouter();
   const [logs, setLogs] = useState<Log[]>([]);
   const [ranking, setRanking] = useState<RankedUser[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]); // 공지사항 상태
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [commentInputs, setCommentInputs] = useState<{[key: string]: string}>({});
+
+  // 공지사항 입력용
+  const [showNoticeForm, setShowNoticeForm] = useState(false);
+  const [noticeTitle, setNoticeTitle] = useState('');
+  const [noticeContent, setNoticeContent] = useState('');
 
   useEffect(() => { fetchData(); }, []);
 
@@ -59,6 +69,11 @@ export default function CommunityPage() {
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
 
+    // 1. 공지사항 가져오기
+    const { data: noticesData } = await supabase.from('notices').select('*').order('created_at', { ascending: false });
+    if (noticesData) setNotices(noticesData);
+
+    // 2. 로그 가져오기
     const { data: logsData } = await supabase.from('logs').select('*').eq('is_public', true).order('created_at', { ascending: false });
     const { data: allLogs } = await supabase.from('logs').select('user_id');
 
@@ -70,7 +85,6 @@ export default function CommunityPage() {
     const userIds = Array.from(new Set([...logsData.map(l => l.user_id), ...Object.keys(counts)]));
     const { data: profiles } = await supabase.from('profiles').select('*').in('id', userIds);
 
-    // 랭킹 리스트 생성
     const rankedUsers: RankedUser[] = (profiles || []).map(p => {
         const count = counts[p.id] || 0;
         const lvl = getLevel(count);
@@ -79,7 +93,6 @@ export default function CommunityPage() {
 
     setRanking(rankedUsers);
 
-    // 로그 데이터 조립
     const logIds = logsData.map(l => l.id);
     const { data: likes } = await supabase.from('likes').select('*').in('log_id', logIds);
     const { data: comments } = await supabase.from('comments').select('*').in('log_id', logIds).order('created_at', { ascending: true });
@@ -91,7 +104,6 @@ export default function CommunityPage() {
       const logLikes = likes?.filter(l => l.log_id === log.id) || [];
       const logComments = comments?.filter(c => c.log_id === log.id) || [];
       const enrichedComments = logComments.map(c => ({ ...c, profile: commentProfiles?.find(p => p.id === c.user_id) }));
-      
       const authorCount = counts[log.user_id] || 0;
       const authorLevel = getLevel(authorCount);
 
@@ -113,6 +125,22 @@ export default function CommunityPage() {
     setLoading(false);
   }
 
+  // 공지사항 등록 함수
+  const handleAddNotice = async () => {
+    if (!noticeTitle.trim() || !noticeContent.trim()) return alert("내용을 입력하세요!");
+    await supabase.from('notices').insert({ title: noticeTitle, content: noticeContent });
+    alert("공지 등록 완료! 📢");
+    setNoticeTitle(''); setNoticeContent(''); setShowNoticeForm(false);
+    fetchData();
+  };
+
+  // 공지사항 삭제 함수
+  const handleDeleteNotice = async (id: number) => {
+    if (!confirm("이 공지를 삭제할까요?")) return;
+    await supabase.from('notices').delete().eq('id', id);
+    fetchData();
+  };
+
   const toggleLike = async (logId: string, currentLiked: boolean) => { if (!currentUser) { alert('로그인 필요'); return; } if (currentLiked) await supabase.from('likes').delete().match({ user_id: currentUser.id, log_id: logId }); else await supabase.from('likes').insert({ user_id: currentUser.id, log_id: logId }); fetchData(); };
   const addComment = async (logId: string) => { if (!currentUser) { alert('로그인 필요'); return; } const content = commentInputs[logId]; if (!content?.trim()) return; await supabase.from('comments').insert({ content, log_id: logId, user_id: currentUser.id }); setCommentInputs({ ...commentInputs, [logId]: '' }); fetchData(); };
   const deleteComment = async (commentId: number) => { if (!confirm('삭제하시겠습니까?')) return; await supabase.from('comments').delete().eq('id', commentId); fetchData(); };
@@ -121,8 +149,6 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
-        
-        {/* 헤더 */}
         <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm transition-all duration-300">
             <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/dashboard')}>
@@ -135,13 +161,50 @@ export default function CommunityPage() {
 
         <div className="pt-24 pb-20 px-4 md:px-8 max-w-2xl mx-auto space-y-8 animate-slide-up">
             
-            {/* 📢 제목 */}
             <div className="flex justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-            <div>
-                <h1 className="text-3xl font-black text-slate-900">광장 📢</h1>
-                <p className="text-slate-500 font-bold mt-1">서로 응원하고 꿀팁을 나눠보세요!</p>
+                <div>
+                    <h1 className="text-3xl font-black text-slate-900">광장 📢</h1>
+                    <p className="text-slate-500 font-bold mt-1">서로 응원하고 꿀팁을 나눠보세요!</p>
+                </div>
+                {/* 🔒 관리자만 보이는 공지 쓰기 버튼 */}
+                {currentUser?.email === ADMIN_EMAIL && (
+                    <button onClick={() => setShowNoticeForm(!showNoticeForm)} className="bg-slate-900 text-white text-xs px-3 py-2 rounded-lg font-bold">
+                        📢 공지 쓰기
+                    </button>
+                )}
             </div>
-            </div>
+
+            {/* 📢 공지사항 섹션 (관리자 입력 폼 포함) */}
+            {currentUser?.email === ADMIN_EMAIL && showNoticeForm && (
+                <div className="bg-white p-6 rounded-3xl shadow-lg border-2 border-slate-900">
+                    <h3 className="font-black text-lg mb-4">새 공지사항 작성</h3>
+                    <input type="text" value={noticeTitle} onChange={(e) => setNoticeTitle(e.target.value)} placeholder="공지 제목" className="w-full p-3 mb-2 bg-slate-50 rounded-xl font-bold border border-slate-200" />
+                    <textarea value={noticeContent} onChange={(e) => setNoticeContent(e.target.value)} placeholder="공지 내용" className="w-full p-3 mb-4 bg-slate-50 rounded-xl h-24 font-medium border border-slate-200" />
+                    <button onClick={handleAddNotice} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">등록하기</button>
+                </div>
+            )}
+
+            {/* 공지사항 리스트 */}
+            {notices.length > 0 && (
+                <div className="bg-slate-100 p-5 rounded-3xl border border-slate-200 space-y-3">
+                    <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Notice</h3>
+                    {notices.map((notice) => (
+                        <div key={notice.id} className="bg-white p-4 rounded-xl shadow-sm flex flex-col gap-1 relative">
+                            <div className="flex items-center gap-2">
+                                <span className="text-red-500 text-lg">📢</span>
+                                <h4 className="font-bold text-slate-900">{notice.title}</h4>
+                            </div>
+                            <p className="text-slate-600 text-sm pl-7 whitespace-pre-wrap">{notice.content}</p>
+                            <span className="text-[10px] text-slate-400 pl-7 font-bold">{new Date(notice.created_at).toLocaleDateString()}</span>
+                            
+                            {/* 관리자만 삭제 가능 */}
+                            {currentUser?.email === ADMIN_EMAIL && (
+                                <button onClick={() => handleDeleteNotice(notice.id)} className="absolute top-4 right-4 text-xs text-slate-300 hover:text-red-500 font-bold">삭제</button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* 🏆 명예의 전당 (Ranking) */}
             {ranking.length > 0 && (
@@ -205,7 +268,6 @@ export default function CommunityPage() {
                     <div>
                     <div className="flex items-center gap-1.5">
                         <p className="font-black text-slate-900 text-lg">{log.profile?.username || '이름 없음'}</p>
-                        {/* 🏅 레벨 뱃지 */}
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${log.profile?.color || 'bg-gray-100 text-gray-500'}`}>
                             {log.profile?.emoji} {log.profile?.level}
                         </span>
@@ -217,13 +279,8 @@ export default function CommunityPage() {
 
                 <div className="mb-5">
                     <div className="mb-2"> <span className={`text-[10px] px-2 py-1 rounded-md font-black tracking-wide uppercase ${log.log_type === 'workout' ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'}`}> {log.log_type === 'workout' ? 'WORKOUT' : 'REHAB'} </span> </div>
-                    
-                    {/* ✅ [수정됨] 제목이 길면 자동으로 줄바꿈 (break-all 추가) */}
                     {log.title && <h2 className="text-xl font-bold text-slate-900 mb-2 break-all">{log.title}</h2>}
-                    
-                    {/* ✅ [수정됨] 본문이 길면 자동으로 줄바꿈 (break-all 추가) */}
                     <p className="text-slate-700 font-medium text-lg whitespace-pre-wrap break-all mb-4">{log.content}</p>
-                    
                     {log.image_url && ( <div className="mb-4 rounded-2xl overflow-hidden border border-slate-200 shadow-sm"> {log.media_type === 'video' ? ( <video src={log.image_url} controls className="w-full h-auto" /> ) : ( <img src={log.image_url} alt="인증샷" className="w-full h-auto object-cover" /> )} </div> )}
                 </div>
 

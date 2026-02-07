@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { supabase } from '../supabase';
 import { useRouter } from 'next/navigation';
-import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
-} from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import toast from 'react-hot-toast';
@@ -13,6 +11,40 @@ import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
 import BodyMapSelector from '../components/BodyMapSelector';
 
+// --- [새로 추가된 히트맵 컴포넌트] ---
+type HeatmapProps = { logs: Log[] };
+function InjuryHeatmap({ logs }: HeatmapProps) {
+  const injuryLogs = useMemo(() => logs.filter(l => l.log_type === 'rehab' || l.pain_score >= 4), [logs]);
+  const partCounts = useMemo(() => {
+    const counts: { [key: string]: number } = {};
+    injuryLogs.forEach(l => {
+      const match = l.content.match(/^\[(.*?)\]/);
+      if (match) match[1].split(', ').forEach(p => counts[p] = (counts[p] || 0) + 1);
+    });
+    return counts;
+  }, [injuryLogs]);
+
+  const getColor = (c: number) => c === 0 ? 'bg-slate-50 text-slate-300 border-slate-100' : c <= 2 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : c <= 5 ? 'bg-orange-100 text-orange-700 border-orange-200 font-bold' : 'bg-red-500 text-white border-red-600 font-black shadow-md animate-pulse';
+
+  const bodyGroups = [
+    { title: "상체", parts: ["목", "승모근", "어깨", "가슴", "등", "허리", "복근"] },
+    { title: "팔", parts: ["이두", "삼두", "전완근", "손목"] },
+    { title: "하체", parts: ["엉덩이", "고관절", "허벅지(앞)", "허벅지(뒤)", "무릎", "종아리", "발목", "발바닥"] }
+  ];
+
+  return (
+    <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 animate-slide-up">
+      <div className="flex items-center justify-between mb-6">
+        <div><h2 className="text-xl font-black text-slate-800 flex items-center gap-2">🏥 부상 히트맵</h2><p className="text-sm text-slate-500 font-bold mt-1">최근 통증 부위 분석</p></div>
+        <div className="text-right"><span className="text-3xl font-black text-red-500">{injuryLogs.length}</span><span className="text-xs font-bold text-slate-400 block">건의 기록</span></div>
+      </div>
+      <div className="space-y-6">{bodyGroups.map((g, i) => (<div key={i}><h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-100 pb-1">{g.title}</h4><div className="flex flex-wrap gap-2">{g.parts.map(p => { const c = partCounts[p] || 0; return (<div key={p} className={`px-3 py-2 rounded-xl text-xs border transition-all duration-300 flex items-center gap-1.5 ${getColor(c)}`}>{p}{c > 0 && <span className="bg-white/30 px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center">{c}</span>}</div>); })}</div></div>))}</div>
+      <div className="mt-6 flex justify-center gap-4 text-[10px] font-bold text-slate-400 bg-slate-50 p-3 rounded-xl"><div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-slate-200"></div>안전</div><div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-yellow-200"></div>주의</div><div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-orange-200"></div>경고</div><div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-red-500 animate-pulse"></div>위험</div></div>
+    </div>
+  );
+}
+
+// --- [대시보드 메인 컴포넌트] ---
 type Log = { id: string; title?: string; content: string; created_at: string; pain_score: number; user_id: string; is_public: boolean; image_url?: string; log_type: 'workout' | 'rehab'; media_type: 'image' | 'video'; };
 type Template = { id: number; name: string; title: string; content: string; parts: string[]; log_type: 'workout' | 'rehab'; };
 type Goal = { id: number; title: string; target_date: string; };
@@ -44,7 +76,7 @@ export default function Dashboard() {
   const [content, setContent] = useState('');
   const [selectedParts, setSelectedParts] = useState<string[]>([]);
   const [score, setScore] = useState(5);
-  const [isPublic, setIsPublic] = useState(false); // 공유 여부 상태
+  const [isPublic, setIsPublic] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   
@@ -58,7 +90,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [advice, setAdvice] = useState('');
-  
   const [streak, setStreak] = useState(0);
   const [myLevel, setMyLevel] = useState<any>(getLevel(0));
 
@@ -129,33 +160,40 @@ export default function Dashboard() {
   
   const handleAddLog = async (e: React.FormEvent) => { 
     e.preventDefault(); 
-    if (!title.trim()) { toast('제목 입력!'); return; } 
-    if (!agreed) { toast.error('동의 필요!'); return; } 
-    const { data: { user } } = await supabase.auth.getUser(); 
-    if (!user) return; 
+    if (!title.trim()) { alert('⚠️ 제목을 입력해주세요!'); return; } 
+    if (!agreed) { alert('⚠️ 맨 아래 면책 조항에 동의해주세요!'); return; } 
+    
     setUploading(true); 
     const t = toast.loading('저장 중...'); 
+
     try { 
+        const { data: { user } } = await supabase.auth.getUser(); 
+        if (!user) { alert("로그인이 풀렸습니다."); router.push('/login'); return; }
+
         let mediaUrl = null; 
         let mediaType = 'image'; 
+
         if (mediaFile) { 
             mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image'; 
             const fileExt = mediaFile.name.split('.').pop(); 
             const filePath = `${user.id}/${Date.now()}.${fileExt}`; 
-            await supabase.storage.from('images').upload(filePath, mediaFile); 
+            const { error: uploadError } = await supabase.storage.from('images').upload(filePath, mediaFile); 
+            if (uploadError) throw uploadError;
             const { data } = supabase.storage.from('images').getPublicUrl(filePath); 
             mediaUrl = data.publicUrl; 
         } 
+
         const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''; 
-        // ✅ isPublic 상태가 여기서 DB로 전송됩니다.
-        await supabase.from('logs').insert([{ title, content: partsString + content, pain_score: score, user_id: user.id, is_public: isPublic, image_url: mediaUrl, log_type: logType, media_type: mediaType }]); 
-        toast.success('저장 완료!', { id: t }); 
+        const { error: dbError } = await supabase.from('logs').insert([{ title, content: partsString + content, pain_score: score, user_id: user.id, is_public: isPublic, image_url: mediaUrl, log_type: logType, media_type: mediaType }]); 
+        if (dbError) throw dbError;
+
+        toast.success('저장 성공! 🎉', { id: t }); 
+        alert("저장이 완료되었습니다! 🎉"); 
         setTitle(''); setContent(''); setSelectedParts([]); setScore(5); setIsPublic(false); setMediaFile(null); setAgreed(false); fetchLogs(); 
+
     } catch (e: any) { 
-        toast.error(e.message, { id: t }); 
-    } finally { 
-        setUploading(false); 
-    } 
+        console.error(e); toast.error(`저장 실패: ${e.message}`, { id: t }); alert(`저장 실패! 에러 내용: ${e.message}`);
+    } finally { setUploading(false); } 
   };
   
   const filteredLogs = logs.filter(l => (selectedDate ? new Date(l.created_at).toDateString() === selectedDate.toDateString() : true) && (filterPart === '전체' || l.content.includes(filterPart)) && ((l.title && l.title.includes(searchTerm)) || l.content.includes(searchTerm)));
@@ -220,16 +258,11 @@ export default function Dashboard() {
             </div>
             <div className="text-6xl opacity-20 rotate-12 absolute right-4 bottom-[-10px]">🏆</div>
         </div>
+        
+        {/* ✅ [추가됨] 부상 히트맵 */}
+        <InjuryHeatmap logs={logs} />
 
         <div ref={reportRef} className="space-y-8">
-            <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-8 rounded-3xl shadow-xl text-white flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
-               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-               <div className="relative z-10 flex-1 text-center md:text-left w-full">
-                 {goal && !isEditingGoal ? ( <> <div className="inline-block px-3 py-1 rounded-full bg-white/10 text-xs font-bold text-blue-200 mb-3 border border-white/10">CURRENT GOAL</div> <h2 className="text-4xl md:text-5xl font-black mb-2 tracking-tight">{goal.title}</h2> <p className="text-slate-400 font-bold text-lg">{goal.target_date} 까지</p> </> ) : ( <div className="flex flex-col gap-3 w-full"> <p className="text-xl font-bold text-white mb-2">🏆 새로운 목표 설정</p> <input type="text" placeholder="목표 (예: 3대 500)" value={goalTitle} onChange={(e) => setGoalTitle(e.target.value)} className="w-full p-4 rounded-xl bg-white/10 border border-white/20 text-white font-bold placeholder-white/30 focus:outline-none focus:bg-white/20 backdrop-blur-sm" /> <input type="date" value={goalDate} onChange={(e) => setGoalDate(e.target.value)} className="w-full p-4 rounded-xl bg-white/10 border border-white/20 text-white font-bold focus:outline-none focus:bg-white/20 backdrop-blur-sm" /> </div> )}
-               </div>
-               <div className="relative z-10 flex flex-col items-center"> {goal && !isEditingGoal ? ( <> <div className="text-7xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-blue-300 to-blue-600 drop-shadow-lg mb-4">{calculateDday(goal.target_date)}</div> <div className="flex gap-2"> <button onClick={() => { setIsEditingGoal(true); setGoalTitle(goal.title); setGoalDate(goal.target_date); }} className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-bold backdrop-blur-sm transition">수정</button> <button onClick={handleDeleteGoal} className="px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-300 text-sm font-bold backdrop-blur-sm transition">삭제</button> </div> </> ) : ( <button onClick={handleSaveGoal} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg shadow-blue-900/50 transition transform hover:scale-105 w-full md:w-auto mt-4 md:mt-0">{goal ? '수정 완료' : '목표 등록하기'}</button> )} </div>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition"> <p className="text-slate-400 font-extrabold text-xs tracking-wider uppercase">Total Workouts</p> <p className="text-4xl font-black text-slate-900 mt-2">{totalWorkout}<span className="text-lg text-slate-400 ml-1">회</span></p> </div>
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition"> <p className="text-slate-400 font-extrabold text-xs tracking-wider uppercase">Avg. Intensity</p> <p className="text-4xl font-black text-slate-900 mt-2">{avgScore}<span className="text-lg text-slate-400 ml-1">점</span></p> </div>
@@ -258,9 +291,7 @@ export default function Dashboard() {
                     </div> 
                   </div> 
                   <div> 
-                    {/* ✅ [수정됨] 제목 글자 밀림 방지 */}
                     <h3 className="font-bold text-lg text-slate-900 break-all">{log.title || '제목 없음'}</h3> 
-                    {/* ✅ [수정됨] 본문 글자 밀림 방지 및 줄바꿈 허용 */}
                     <p className="text-slate-600 mt-1 line-clamp-2 break-all whitespace-pre-wrap">{log.content}</p> 
                   </div> 
                 </div> 
@@ -272,6 +303,7 @@ export default function Dashboard() {
         <section className={`bg-white p-6 md:p-8 rounded-3xl shadow-xl border-2 transition-colors ${logType === 'workout' ? 'border-blue-100' : 'border-red-100'}`}>
            <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"> <div className="flex justify-between items-center mb-3"><h3 className="text-sm font-extrabold text-gray-600">⚡ 내 루틴</h3><button onClick={handleSaveTemplate} className="text-xs bg-black text-white px-3 py-1.5 rounded-lg font-bold hover:bg-gray-800 transition shadow-sm">+ 현재 저장</button></div> {templates.length > 0 ? (<div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">{templates.map(tpl => (<div key={tpl.id} className="flex items-center gap-1 bg-white border border-gray-300 rounded-lg px-2 py-1 shadow-sm shrink-0"><button onClick={() => handleLoadTemplate(tpl)} className="font-bold text-sm text-gray-700 hover:text-blue-600 px-1">{tpl.name}</button><button onClick={(e) => handleDeleteTemplate(tpl.id, e)} className="text-gray-400 hover:text-red-500 text-xs px-1">×</button></div>))}</div>) : (<p className="text-xs text-gray-400 font-bold">저장된 루틴이 없어요.</p>)} </div>
            <div className="flex gap-2 mb-6 bg-slate-100 p-1.5 rounded-xl w-fit"> <button onClick={() => setLogType('workout')} className={`px-6 py-2 rounded-lg font-extrabold text-sm transition ${logType === 'workout' ? 'bg-white text-blue-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>💪 운동</button> <button onClick={() => setLogType('rehab')} className={`px-6 py-2 rounded-lg font-extrabold text-sm transition ${logType === 'rehab' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>🏥 재활</button> </div>
+          
           <form onSubmit={handleAddLog} className="space-y-6"> 
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full text-2xl font-black placeholder:text-slate-300 border-none focus:ring-0 p-0 text-slate-900" placeholder="제목을 입력하세요..." />
             
@@ -283,7 +315,6 @@ export default function Dashboard() {
             
             <div className={`p-4 rounded-xl border text-center text-sm font-bold transition-colors ${score <= 3 ? 'bg-green-50 border-green-100 text-green-700' : score <= 6 ? 'bg-yellow-50 border-yellow-100 text-yellow-700' : 'bg-red-50 border-red-100 text-red-700'}`}> <p className="mb-1">🤖 AI Coach: {advice}</p> {logType === 'rehab' && score > 6 && <a href="https://map.naver.com/p/search/정형외과" target="_blank" className="inline-block mt-2 bg-red-600 text-white px-3 py-1 rounded-md text-xs hover:bg-red-700">🏥 병원 찾기</a>} </div> 
             
-            {/* ✅ [수정됨] 광장 공유하기 체크박스 부활! */}
             <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl">
                <input type="checkbox" id="public-share" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500" />
                <label htmlFor="public-share" className="text-sm font-bold text-blue-800 cursor-pointer select-none">
