@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { useRouter } from 'next/navigation';
 
-// ✅ 타입 수정 (여기가 문제였음!)
+// ✅ 타입 수정 완료
 type Profile = { 
   id: string; 
   username: string; 
   sport: string; 
   position: string; 
   avatar_url?: string;
-  // 👇 이 3줄을 추가해서 컴퓨터에게 알려줍니다.
   level?: string;
   emoji?: string;
   color?: string;
@@ -30,7 +29,7 @@ type Log = {
   image_url?: string; 
   log_type?: 'workout' | 'rehab'; 
   media_type?: 'image' | 'video'; 
-  profile?: Profile; // 이제 Profile 안에 level, color 등이 들어갈 수 있음
+  profile?: Profile; 
   like_count: number; 
   is_liked: boolean; 
   comments: Comment[]; 
@@ -75,7 +74,6 @@ export default function CommunityPage() {
     const rankedUsers: RankedUser[] = (profiles || []).map(p => {
         const count = counts[p.id] || 0;
         const lvl = getLevel(count);
-        // 여기서 Profile 타입에 정의된 필드에 값을 넣어줍니다.
         return { ...p, logCount: count, rank: 0, level: lvl.name, emoji: lvl.emoji, color: lvl.color };
     }).sort((a, b) => b.logCount - a.logCount).slice(0, 3);
 
@@ -104,7 +102,7 @@ export default function CommunityPage() {
             level: authorLevel.name, 
             emoji: authorLevel.emoji, 
             color: authorLevel.color 
-        } as Profile, // Profile 타입으로 강제 변환 (이제 에러 안 남)
+        } as Profile, 
         like_count: logLikes.length,
         is_liked: user ? logLikes.some(l => l.user_id === user.id) : false,
         comments: enrichedComments
@@ -207,7 +205,7 @@ export default function CommunityPage() {
                     <div>
                     <div className="flex items-center gap-1.5">
                         <p className="font-black text-slate-900 text-lg">{log.profile?.username || '이름 없음'}</p>
-                        {/* 🏅 레벨 뱃지 (이제 에러 안 남) */}
+                        {/* 🏅 레벨 뱃지 */}
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${log.profile?.color || 'bg-gray-100 text-gray-500'}`}>
                             {log.profile?.emoji} {log.profile?.level}
                         </span>
@@ -219,8 +217,13 @@ export default function CommunityPage() {
 
                 <div className="mb-5">
                     <div className="mb-2"> <span className={`text-[10px] px-2 py-1 rounded-md font-black tracking-wide uppercase ${log.log_type === 'workout' ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'}`}> {log.log_type === 'workout' ? 'WORKOUT' : 'REHAB'} </span> </div>
-                    {log.title && <h2 className="text-xl font-bold text-slate-900 mb-2">{log.title}</h2>}
-                    <p className="text-slate-700 font-medium text-lg whitespace-pre-wrap mb-4">{log.content}</p>
+                    
+                    {/* ✅ [수정됨] 제목이 길면 자동으로 줄바꿈 (break-all 추가) */}
+                    {log.title && <h2 className="text-xl font-bold text-slate-900 mb-2 break-all">{log.title}</h2>}
+                    
+                    {/* ✅ [수정됨] 본문이 길면 자동으로 줄바꿈 (break-all 추가) */}
+                    <p className="text-slate-700 font-medium text-lg whitespace-pre-wrap break-all mb-4">{log.content}</p>
+                    
                     {log.image_url && ( <div className="mb-4 rounded-2xl overflow-hidden border border-slate-200 shadow-sm"> {log.media_type === 'video' ? ( <video src={log.image_url} controls className="w-full h-auto" /> ) : ( <img src={log.image_url} alt="인증샷" className="w-full h-auto object-cover" /> )} </div> )}
                 </div>
 
@@ -234,7 +237,7 @@ export default function CommunityPage() {
                     {log.comments.map(comment => (
                         <div key={comment.id} className="flex gap-2 items-start text-sm">
                         <span className="font-bold text-slate-900 shrink-0">{comment.profile?.username || '익명'}:</span>
-                        <span className="text-slate-600 font-medium">{comment.content}</span>
+                        <span className="text-slate-600 font-medium break-all">{comment.content}</span>
                         {currentUser?.id === comment.user_id && <button onClick={() => deleteComment(comment.id)} className="text-slate-400 hover:text-red-500 font-bold ml-auto px-2 text-xs">x</button>}
                         </div>
                     ))}

@@ -11,7 +11,6 @@ import 'react-calendar/dist/Calendar.css';
 import toast from 'react-hot-toast';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
-// 👇 1. 새로운 인체지도 컴포넌트 import
 import BodyMapSelector from '../components/BodyMapSelector';
 
 type Log = { id: string; title?: string; content: string; created_at: string; pain_score: number; user_id: string; is_public: boolean; image_url?: string; log_type: 'workout' | 'rehab'; media_type: 'image' | 'video'; };
@@ -45,7 +44,7 @@ export default function Dashboard() {
   const [content, setContent] = useState('');
   const [selectedParts, setSelectedParts] = useState<string[]>([]);
   const [score, setScore] = useState(5);
-  const [isPublic, setIsPublic] = useState(false);
+  const [isPublic, setIsPublic] = useState(false); // 공유 여부 상태
   const [agreed, setAgreed] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   
@@ -62,8 +61,6 @@ export default function Dashboard() {
   
   const [streak, setStreak] = useState(0);
   const [myLevel, setMyLevel] = useState<any>(getLevel(0));
-
-  // 👇 2. 기존 bodyChart 배열 삭제함 (더 이상 안 씀)
 
   useEffect(() => {
     if (logType === 'rehab') {
@@ -110,7 +107,6 @@ export default function Dashboard() {
     setStreak(currentStreak);
   };
 
-  // ... (기존 함수들 유지: fetchTemplates, fetchGoal, fetchTodayCondition, handleConditionCheck, handleShare, handleSaveGoal, handleDeleteGoal, calculateDday, handleSaveTemplate, handleLoadTemplate, handleDeleteTemplate, analyzeData, handleDownloadPDF, handleLogout, formatDate)
   const fetchTemplates = async (userId: string) => { const { data } = await supabase.from('templates').select('*').order('created_at', { ascending: true }); if (data) setTemplates(data); };
   const fetchGoal = async (userId: string) => { const { data } = await supabase.from('goals').select('*').eq('user_id', userId).single(); if (data) setGoal(data); };
   const fetchTodayCondition = async (userId: string) => { const today = new Date().toISOString().split('T')[0]; const { data } = await supabase.from('daily_conditions').select('*').eq('user_id', userId).gte('created_at', `${today}T00:00:00`).lte('created_at', `${today}T23:59:59`).order('created_at', { ascending: false }).limit(1); if (data && data.length > 0) setTodayCondition(data[0].status as any); };
@@ -130,7 +126,38 @@ export default function Dashboard() {
   const hasLogOnDate = (d: Date) => logs.some(l => new Date(l.created_at).toDateString() === d.toDateString());
   const togglePart = (part: string) => { if (selectedParts.includes(part)) setSelectedParts(selectedParts.filter(p => p !== part)); else setSelectedParts([...selectedParts, part]); };
   const handleDeleteLog = async (id: string) => { if (!confirm('정말 삭제하시겠습니까? 🗑️')) return; const { error } = await supabase.from('logs').delete().eq('id', id); if (error) { toast.error('삭제 실패 ㅠ'); } else { toast.success('기록 삭제 완료!'); const newLogs = logs.filter(l => l.id !== id); setLogs(newLogs); analyzeData(newLogs); setMyLevel(getLevel(newLogs.length)); } };
-  const handleAddLog = async (e: React.FormEvent) => { e.preventDefault(); if (!title.trim()) { toast('제목 입력!'); return; } if (!agreed) { toast.error('동의 필요!'); return; } const { data: { user } } = await supabase.auth.getUser(); if (!user) return; setUploading(true); const t = toast.loading('저장 중...'); try { let mediaUrl = null; let mediaType = 'image'; if (mediaFile) { mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image'; const fileExt = mediaFile.name.split('.').pop(); const filePath = `${user.id}/${Date.now()}.${fileExt}`; await supabase.storage.from('images').upload(filePath, mediaFile); const { data } = supabase.storage.from('images').getPublicUrl(filePath); mediaUrl = data.publicUrl; } const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''; await supabase.from('logs').insert([{ title, content: partsString + content, pain_score: score, user_id: user.id, is_public: isPublic, image_url: mediaUrl, log_type: logType, media_type: mediaType }]); toast.success('저장 완료!', { id: t }); setTitle(''); setContent(''); setSelectedParts([]); setScore(5); setIsPublic(false); setMediaFile(null); setAgreed(false); fetchLogs(); } catch (e: any) { toast.error(e.message, { id: t }); } finally { setUploading(false); } };
+  
+  const handleAddLog = async (e: React.FormEvent) => { 
+    e.preventDefault(); 
+    if (!title.trim()) { toast('제목 입력!'); return; } 
+    if (!agreed) { toast.error('동의 필요!'); return; } 
+    const { data: { user } } = await supabase.auth.getUser(); 
+    if (!user) return; 
+    setUploading(true); 
+    const t = toast.loading('저장 중...'); 
+    try { 
+        let mediaUrl = null; 
+        let mediaType = 'image'; 
+        if (mediaFile) { 
+            mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image'; 
+            const fileExt = mediaFile.name.split('.').pop(); 
+            const filePath = `${user.id}/${Date.now()}.${fileExt}`; 
+            await supabase.storage.from('images').upload(filePath, mediaFile); 
+            const { data } = supabase.storage.from('images').getPublicUrl(filePath); 
+            mediaUrl = data.publicUrl; 
+        } 
+        const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''; 
+        // ✅ isPublic 상태가 여기서 DB로 전송됩니다.
+        await supabase.from('logs').insert([{ title, content: partsString + content, pain_score: score, user_id: user.id, is_public: isPublic, image_url: mediaUrl, log_type: logType, media_type: mediaType }]); 
+        toast.success('저장 완료!', { id: t }); 
+        setTitle(''); setContent(''); setSelectedParts([]); setScore(5); setIsPublic(false); setMediaFile(null); setAgreed(false); fetchLogs(); 
+    } catch (e: any) { 
+        toast.error(e.message, { id: t }); 
+    } finally { 
+        setUploading(false); 
+    } 
+  };
+  
   const filteredLogs = logs.filter(l => (selectedDate ? new Date(l.created_at).toDateString() === selectedDate.toDateString() : true) && (filterPart === '전체' || l.content.includes(filterPart)) && ((l.title && l.title.includes(searchTerm)) || l.content.includes(searchTerm)));
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-100"><p className="text-xl font-bold animate-pulse text-blue-600">로딩 중...</p></div>;
@@ -221,18 +248,20 @@ export default function Dashboard() {
                 <div key={log.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition flex flex-col gap-3 group"> 
                   <div className="flex justify-between items-start"> 
                     <div className="flex items-center gap-3"> 
-                       <span className={`px-2.5 py-1 rounded-md text-[10px] font-black tracking-wide uppercase ${log.log_type === 'workout' ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'}`}>{log.log_type === 'workout' ? 'WORKOUT' : 'REHAB'}</span> 
-                       <span className="text-sm text-slate-400 font-bold">{new Date(log.created_at).toLocaleString()}</span> 
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black tracking-wide uppercase ${log.log_type === 'workout' ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'}`}>{log.log_type === 'workout' ? 'WORKOUT' : 'REHAB'}</span> 
+                        <span className="text-sm text-slate-400 font-bold">{new Date(log.created_at).toLocaleString()}</span> 
                     </div> 
                     <div className="flex items-center gap-2"> 
-                       <button onClick={() => handleShare(log)} className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs bg-slate-100 hover:bg-pink-50 hover:text-pink-600 text-slate-600 font-bold px-3 py-1.5 rounded-lg transition" title="인스타 공유">📸 공유</button> 
-                       <button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 text-xs bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 font-bold px-3 py-1.5 rounded-lg transition" title="삭제">🗑️ 삭제</button>
-                       <span className={`font-black text-xl ml-2 ${log.pain_score > 7 ? 'text-red-500' : 'text-slate-900'}`}>{log.pain_score}</span> 
+                        <button onClick={() => handleShare(log)} className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs bg-slate-100 hover:bg-pink-50 hover:text-pink-600 text-slate-600 font-bold px-3 py-1.5 rounded-lg transition" title="인스타 공유">📸 공유</button> 
+                        <button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 text-xs bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 font-bold px-3 py-1.5 rounded-lg transition" title="삭제">🗑️ 삭제</button>
+                        <span className={`font-black text-xl ml-2 ${log.pain_score > 7 ? 'text-red-500' : 'text-slate-900'}`}>{log.pain_score}</span> 
                     </div> 
                   </div> 
                   <div> 
-                    <h3 className="font-bold text-lg text-slate-900">{log.title || '제목 없음'}</h3> 
-                    <p className="text-slate-600 mt-1 line-clamp-2">{log.content}</p> 
+                    {/* ✅ [수정됨] 제목 글자 밀림 방지 */}
+                    <h3 className="font-bold text-lg text-slate-900 break-all">{log.title || '제목 없음'}</h3> 
+                    {/* ✅ [수정됨] 본문 글자 밀림 방지 및 줄바꿈 허용 */}
+                    <p className="text-slate-600 mt-1 line-clamp-2 break-all whitespace-pre-wrap">{log.content}</p> 
                   </div> 
                 </div> 
                ))}
@@ -246,14 +275,30 @@ export default function Dashboard() {
           <form onSubmit={handleAddLog} className="space-y-6"> 
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full text-2xl font-black placeholder:text-slate-300 border-none focus:ring-0 p-0 text-slate-900" placeholder="제목을 입력하세요..." />
             
-            {/* 🧍 3. 새로운 인체지도 컴포넌트 적용 (그리드 삭제됨) */}
             <BodyMapSelector selectedParts={selectedParts} togglePart={togglePart} logType={logType} />
 
-            <textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full h-32 p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-100 resize-none font-medium text-slate-700" placeholder="오늘의 훈련 내용은..." /> <div className="flex items-center gap-4"> <label className="flex-shrink-0 font-extrabold text-slate-900">{logType === 'workout' ? '강도' : '통증'} {score}</label> <input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900" /> </div> <div className={`p-4 rounded-xl border text-center text-sm font-bold transition-colors ${score <= 3 ? 'bg-green-50 border-green-100 text-green-700' : score <= 6 ? 'bg-yellow-50 border-yellow-100 text-yellow-700' : 'bg-red-50 border-red-100 text-red-700'}`}> <p className="mb-1">🤖 AI Coach: {advice}</p> {logType === 'rehab' && score > 6 && <a href="https://map.naver.com/p/search/정형외과" target="_blank" className="inline-block mt-2 bg-red-600 text-white px-3 py-1 rounded-md text-xs hover:bg-red-700">🏥 병원 찾기</a>} </div> <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-xl"> <input type="checkbox" id="agree" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" /> <label htmlFor="agree" className="text-xs text-slate-500 font-bold cursor-pointer select-none">본 앱은 의료기기가 아님을 확인하며, 면책 조항에 동의합니다.</label> </div> <button type="submit" disabled={uploading} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-lg shadow-xl transition disabled:opacity-50">{uploading ? '저장 중...' : '기록 저장하기 ✨'}</button> </form>
+            <textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full h-32 p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-100 resize-none font-medium text-slate-700" placeholder="오늘의 훈련 내용은..." /> 
+            
+            <div className="flex items-center gap-4"> <label className="flex-shrink-0 font-extrabold text-slate-900">{logType === 'workout' ? '강도' : '통증'} {score}</label> <input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900" /> </div> 
+            
+            <div className={`p-4 rounded-xl border text-center text-sm font-bold transition-colors ${score <= 3 ? 'bg-green-50 border-green-100 text-green-700' : score <= 6 ? 'bg-yellow-50 border-yellow-100 text-yellow-700' : 'bg-red-50 border-red-100 text-red-700'}`}> <p className="mb-1">🤖 AI Coach: {advice}</p> {logType === 'rehab' && score > 6 && <a href="https://map.naver.com/p/search/정형외과" target="_blank" className="inline-block mt-2 bg-red-600 text-white px-3 py-1 rounded-md text-xs hover:bg-red-700">🏥 병원 찾기</a>} </div> 
+            
+            {/* ✅ [수정됨] 광장 공유하기 체크박스 부활! */}
+            <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+               <input type="checkbox" id="public-share" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500" />
+               <label htmlFor="public-share" className="text-sm font-bold text-blue-800 cursor-pointer select-none">
+                 광장에 기록 공유하기 <span className="text-xs font-normal text-blue-600 ml-1">(다른 유저와 소통할 수 있어요)</span>
+               </label>
+            </div>
+
+            <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-xl"> <input type="checkbox" id="agree" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" /> <label htmlFor="agree" className="text-xs text-slate-500 font-bold cursor-pointer select-none">본 앱은 의료기기가 아님을 확인하며, 면책 조항에 동의합니다.</label> </div> 
+            
+            <button type="submit" disabled={uploading} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-lg shadow-xl transition disabled:opacity-50">{uploading ? '저장 중...' : '기록 저장하기 ✨'}</button> 
+          </form>
         </section>
       </main>
 
       <footer className="bg-white border-t border-slate-200 py-8 mt-12"> <div className="max-w-6xl mx-auto px-4 text-center"> <p className="font-black text-slate-900 tracking-tight text-lg mb-2">MOVEPLAZA</p> <p className="text-slate-500 text-sm font-medium">Physical Therapy & Athlete Performance System</p> <p className="text-slate-400 text-xs mt-4">Copyright © 2026. All rights reserved.</p> </div> </footer>
     </div>
-  );
+  );  
 }
