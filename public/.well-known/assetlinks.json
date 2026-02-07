@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.moveplaza_final.twa",
+        "sha256_cert_fingerprints": ["D2:48:FB:38:D1:52:B7:CA:5D:88:F6:FB:EA:67:E1:E5:A5:34:7E:0F:47:4F:41:2C:C4:15:03:A5:CC:D2:97:DB"]
+      }
+    }]
