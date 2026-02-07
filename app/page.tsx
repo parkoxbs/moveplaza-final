@@ -41,7 +41,7 @@ export default function LandingPage() {
           Moveplaza가 당신의 성장을 체계적으로 관리합니다.
         </p>
         <div className="flex flex-col md:flex-row gap-4 justify-center animate-slide-up" style={{ animationDelay: '0.3s' }}>
-          <button onClick={() => router.push('/signup')} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold text-lg transition shadow-lg shadow-blue-600/30 transform hover:scale-105">
+          <button onClick={() => router.push('/login')} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold text-lg transition shadow-lg shadow-blue-600/30 transform hover:scale-105">
             지금 무료로 시작하기
           </button>
           <button onClick={() => router.push('/login')} className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-xl font-bold text-lg transition border border-slate-700">
