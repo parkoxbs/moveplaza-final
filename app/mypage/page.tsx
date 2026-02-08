@@ -1,9 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '../supabase';
+import { createClient } from "@supabase/supabase-js"; // 👈 여기 수정됨
 import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast'; // 👈 알림창 추가
+
+// 👇 1. Supabase 주소와 키를 여기에 붙여넣으세요! (대시보드랑 똑같이)
+const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
+const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
+
+// 👈 파일 내부에서 직접 생성 (에러 방지)
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default function MyPage() {
   const router = useRouter();
@@ -21,7 +28,7 @@ export default function MyPage() {
 
   useEffect(() => {
     getProfile();
-  }, [router]);
+  }, []);
 
   // 📥 내 정보 불러오기
   const getProfile = async () => {
@@ -35,11 +42,6 @@ export default function MyPage() {
       .select('*')
       .eq('id', user.id)
       .single();
-
-    if (error && error.code !== 'PGRST116') {
-      console.error(error);
-      toast.error("프로필을 못 불러왔어요 ㅠ");
-    }
 
     if (data) {
       setUsername(data.username || '');
@@ -116,10 +118,13 @@ export default function MyPage() {
     setAvatarUrl(URL.createObjectURL(file));
   };
 
-  if (loading) return <div className="p-10 text-center font-bold">로딩 중... ⏳</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold">로딩 중... ⏳</div>;
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8 flex items-center justify-center">
+      {/* 알림창 표시용 */}
+      <Toaster position="top-center" />
+
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-200">
         
         {/* 상단 배경 (꾸밈용) */}
