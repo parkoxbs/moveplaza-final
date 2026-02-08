@@ -28,7 +28,8 @@ const Icons = {
   Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
   Camera: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
   Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
-  Chart: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+  Chart: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>,
+  Info: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>
 }
 
 const getLevel = (count: number) => {
@@ -51,6 +52,7 @@ export default function Dashboard() {
   const [isResultOpen, setIsResultOpen] = useState(false)
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
   const [analysisData, setAnalysisData] = useState<any>(null)
+  const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false) // 🆕 면책 조항 모달 상태
 
   const [streak, setStreak] = useState(0)
   const [myLevel, setMyLevel] = useState<any>(getLevel(0))
@@ -238,7 +240,7 @@ export default function Dashboard() {
   const filteredLogs = selectedDate ? logs.filter(l => new Date(l.created_at).toDateString() === selectedDate.toDateString()) : logs
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-white pb-24 selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       {shareData && (<div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-1] opacity-0 pointer-events-none"><div ref={shareCardRef} className="w-[500px] h-[500px] bg-slate-900 p-8 flex flex-col justify-between text-white relative overflow-hidden font-sans">{shareData.image_url ? (<><img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" /><div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 z-0"></div></>) : (<><div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 z-0"></div><div className="absolute top-[-50px] right-[-50px] w-[200px] h-[200px] bg-blue-600 rounded-full blur-[90px] opacity-60 z-0"></div><div className="absolute bottom-[-50px] left-[-50px] w-[200px] h-[200px] bg-red-600 rounded-full blur-[90px] opacity-50 z-0"></div></>)}<div className="z-10 relative"><div className="flex justify-between items-start mb-4"><span className={`px-4 py-1.5 rounded-full text-sm font-black tracking-wide ${shareData.log_type === 'workout' ? 'bg-blue-600' : 'bg-red-600'}`}>{shareData.log_type === 'workout' ? 'WORKOUT LOG' : 'REHAB LOG'}</span><p className="text-white/80 font-bold text-sm">{new Date(shareData.created_at).toLocaleDateString()}</p></div><h1 className="text-4xl font-black leading-tight mb-4 tracking-tight drop-shadow-lg">{shareData.title}</h1><p className="text-white/90 text-lg font-medium leading-relaxed line-clamp-4 drop-shadow-md">{shareData.content}</p></div><div className="z-10 relative border-t border-white/20 pt-6 flex justify-between items-end"><div><p className="text-white/70 text-xs font-black tracking-widest mb-1">INTENSITY</p><p className="text-5xl font-black text-white drop-shadow-lg">{shareData.pain_score}<span className="text-xl text-white/60 ml-1">/ 10</span></p></div><div className="text-right"><p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg">MOVEPLAZA</p><p className="text-[10px] text-white/70 font-bold tracking-widest uppercase">Athlete Performance System</p></div></div></div></div>)}
 
@@ -291,11 +293,55 @@ export default function Dashboard() {
           <div className="flex justify-between items-center mb-4 px-1"><h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3><div className="flex gap-2"><button onClick={handleDownloadPDF} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700">📄 리포트 저장</button>{selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}</div></div>
           <div className="space-y-3">{loading ? (<div className="text-center py-10 font-bold text-slate-600 animate-pulse">로딩 중...</div>) : filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { const isWorkout = log.log_type === 'workout' || (log.pain_score && !log.content.includes('통증')); return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group"><div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isWorkout ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>{log.image_url ? <img src={log.image_url} alt="인증" className="w-full h-full object-cover" /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />)}</div><div><div className="font-black text-white text-sm mb-0.5">{log.title}</div><div className="text-xs font-bold text-slate-500 line-clamp-1">{log.content}</div></div></div><div className="flex items-center gap-3"><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-500">점</div></div></div></div>) }))}</div>
         </section>
+
+        {/* 🆕 면책 조항 버튼 추가 (맨 아래) */}
+        <section className="mt-8 mb-4 text-center">
+            <button 
+                onClick={() => setIsDisclaimerOpen(true)} 
+                className="text-[10px] text-slate-600 font-bold hover:text-slate-400 flex items-center justify-center gap-1 mx-auto transition"
+            >
+                <Icons.Info /> 서비스 이용 약관 및 면책 조항
+            </button>
+        </section>
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 p-6 pointer-events-none flex justify-end max-w-md mx-auto z-40"><button onClick={() => setIsModalOpen(true)} className="pointer-events-auto w-16 h-16 bg-blue-600 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center justify-center text-white hover:bg-blue-500 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
       
-      {/* 🆕 분석 리포트 모달 (다크 모드) */}
+      {/* 🆕 면책 조항 모달 (상세 내용 포함) */}
+      {isDisclaimerOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsDisclaimerOpen(false)}>
+            <div className="bg-slate-900 border border-white/10 w-full max-w-sm max-h-[80vh] overflow-y-auto rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setIsDisclaimerOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
+                <h3 className="text-lg font-black text-white mb-4 flex items-center gap-2">⚖️ 서비스 이용 약관 및 면책 조항</h3>
+                
+                <div className="space-y-4 text-xs text-slate-300 leading-relaxed font-medium">
+                    <div className="bg-slate-950 p-4 rounded-xl border border-white/5">
+                        <h4 className="font-bold text-white mb-1">1. 의료 행위 아님 (비의료 건강관리 서비스)</h4>
+                        <p className="text-slate-400">본 서비스 'Moveplaza'에서 제공하는 모든 데이터, 분석 결과, 조언 및 정보는 사용자의 자가 건강 관리를 돕기 위한 참고용 자료일 뿐입니다. 이는 의사나 물리치료사의 전문적인 진단, 진료, 치료를 대체할 수 없으며, 의료 행위에 해당하지 않습니다.</p>
+                    </div>
+
+                    <div className="bg-slate-950 p-4 rounded-xl border border-white/5">
+                        <h4 className="font-bold text-white mb-1">2. 사용자의 책임 및 주의사항</h4>
+                        <p className="text-slate-400">서비스 이용 중 통증이 발생하거나 악화될 경우 즉시 운동을 중단하고 전문 의료 기관을 방문해야 합니다. 본 서비스의 정보를 따라 하다가 발생한 부상이나 건강 상의 문제에 대해 개발자는 법적 책임을 지지 않습니다.</p>
+                    </div>
+
+                    <div className="bg-slate-950 p-4 rounded-xl border border-white/5">
+                        <h4 className="font-bold text-white mb-1">3. AI 분석 및 데이터의 한계</h4>
+                        <p className="text-slate-400">제공되는 'AI 분석' 및 '통증 리포트'는 사용자가 입력한 데이터를 바탕으로 한 알고리즘적 통계일 뿐입니다. 개인의 신체적 특성이나 기저 질환을 완벽하게 반영하지 못할 수 있습니다.</p>
+                    </div>
+
+                    <div className="bg-slate-950 p-4 rounded-xl border border-white/5">
+                        <h4 className="font-bold text-white mb-1">4. 개발자 신분 고지</h4>
+                        <p className="text-slate-400">본 서비스는 물리치료학과 재학생이 개발 및 운영하는 프로젝트이며, 개발자는 현재 면허를 소지한 전문 물리치료사가 아님을 명시합니다.</p>
+                    </div>
+                </div>
+
+                <button onClick={() => setIsDisclaimerOpen(false)} className="mt-6 w-full py-3 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-500 transition shadow-lg">확인했습니다</button>
+            </div>
+        </div>
+      )}
+
+      {/* 분석 리포트 모달 */}
       {isAnalysisOpen && analysisData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsAnalysisOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
@@ -316,8 +362,10 @@ export default function Dashboard() {
                         <p className="text-xs font-bold text-slate-400 mb-2">🤖 AI 분석 피드백</p>
                         <p className="font-bold leading-relaxed text-slate-200">{analysisData.advice}</p>
                     </div>
+                    {/* 👇 분석 모달 안에도 면책 조항 링크 추가 (중요) */}
+                    <button onClick={() => { setIsAnalysisOpen(false); setIsDisclaimerOpen(true); }} className="text-[10px] text-slate-500 underline text-center w-full hover:text-slate-300">⚠️ 분석 결과는 의료적 진단이 아닙니다. (면책 조항 보기)</button>
                 </div>
-                <button onClick={() => setIsAnalysisOpen(false)} className="mt-6 w-full py-3 bg-slate-800 text-white border border-white/10 font-bold rounded-xl hover:bg-slate-700 transition">닫기</button>
+                <button onClick={() => setIsAnalysisOpen(false)} className="mt-4 w-full py-3 bg-slate-800 text-white border border-white/10 font-bold rounded-xl hover:bg-slate-700 transition">닫기</button>
             </div>
         </div>
       )}
