@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import toast, { Toaster } from 'react-hot-toast'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
+import { LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend } from 'recharts'
 import { toPng } from 'html-to-image'
 import jsPDF from 'jspdf'
 import BodyMap from "..//components/BodyMap" 
@@ -33,14 +33,23 @@ const Icons = {
   Copy: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
   Map: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
   MessageSquare: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>,
-  Bulb: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+  Bulb: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>,
+  Star: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
 }
+
+// 🆕 등급 시스템 정의
+const LEVEL_SYSTEM = [
+  { name: 'Rookie', rank: '루키', emoji: '🐣', min: 0, color: 'bg-green-500', desc: '운동을 막 시작한 신인 선수' },
+  { name: 'Semi-Pro', rank: '세미 프로', emoji: '🏃', min: 10, color: 'bg-blue-500', desc: '꾸준함이 몸에 배기 시작한 단계' },
+  { name: 'Pro', rank: '프로', emoji: '🔥', min: 30, color: 'bg-red-500', desc: '자기 관리가 확실한 프로급 선수' },
+  { name: 'World Class', rank: '월드 클래스', emoji: '👑', min: 50, color: 'bg-purple-600', desc: '모두가 인정하는 레전드' }
+];
 
 // 꿀팁 리스트
 const REHAB_TIPS = [
   "🤕 발목 삐끗(염좌) 직후엔 RICE! 휴식(Rest), 냉찜질(Ice), 압박(Compression), 거상(Elevation)을 기억하세요.",
   "🦵 햄스트링은 다치기 쉽습니다. 운동 전 폼롤러보다 동적 스트레칭(다리 흔들기 등)이 훨씬 효과적입니다.",
-  "💊 통증 점수 6점 이상이면 '근성'이 아니라 '미련'입니다. 즉시 운동을 멈추세요.",
+  "💊 통증 점수 5점 이상이면 '근성'이 아니라 '미련'입니다. 즉시 운동을 멈추세요.",
   "💧 근육 경련이 자주 난다면 마그네슘 부족일 수 있습니다. 물과 이온음료를 충분히 드세요.",
   "🏋️‍♂️ 스쿼트 할 때 무릎 소리가 나면서 아프다면? 자세보다 고관절 유연성부터 체크해보세요.",
   "🛌 잠이 보약입니다. 근육은 헬스장이 아니라 침대에서 자랍니다. 7시간 이상 주무세요!",
@@ -49,10 +58,19 @@ const REHAB_TIPS = [
 ];
 
 const getLevel = (count: number) => {
-  if (count >= 50) return { name: 'World Class', rank: '월드 클래스', emoji: '👑', color: 'bg-purple-600 text-white', next: 1000 };
-  if (count >= 30) return { name: 'Pro', rank: '프로', emoji: '🔥', color: 'bg-red-500 text-white', next: 50 };
-  if (count >= 10) return { name: 'Semi-Pro', rank: '세미 프로', emoji: '🏃', color: 'bg-blue-500 text-white', next: 30 };
-  return { name: 'Rookie', rank: '루키', emoji: '🐣', color: 'bg-green-500 text-white', next: 10 };
+  // 배열을 역순으로 돌면서 조건에 맞는 가장 높은 등급을 찾음
+  for (let i = LEVEL_SYSTEM.length - 1; i >= 0; i--) {
+    if (count >= LEVEL_SYSTEM[i].min) {
+        // 다음 레벨 찾기
+        const nextLevel = LEVEL_SYSTEM[i + 1];
+        return { 
+            ...LEVEL_SYSTEM[i], 
+            next: nextLevel ? nextLevel.min : 9999,
+            nextName: nextLevel ? nextLevel.rank : '만렙 달성!'
+        };
+    }
+  }
+  return { ...LEVEL_SYSTEM[0], next: 10, nextName: '세미 프로' };
 };
 
 export default function Dashboard() {
@@ -73,12 +91,14 @@ export default function Dashboard() {
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false)
   const [suggestionText, setSuggestionText] = useState("")
   const [todayTip, setTodayTip] = useState("")
+  const [isLevelModalOpen, setIsLevelModalOpen] = useState(false) // 🆕 등급 모달 상태
 
   const [streak, setStreak] = useState(0)
   const [myLevel, setMyLevel] = useState<any>(getLevel(0))
   const [todayCondition, setTodayCondition] = useState<'good' | 'normal' | 'bad' | null>(null)
   const [stats, setStats] = useState<any[]>([]) 
   const [heatmapRange, setHeatmapRange] = useState<'1w' | '1m' | '6m' | '1y' | 'all'>('all')
+  const [chartData, setChartData] = useState<any[]>([]) 
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [logType, setLogType] = useState<'workout' | 'rehab'>('workout')
@@ -104,21 +124,56 @@ export default function Dashboard() {
     if (!user) { router.push('/login'); return }
     const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single()
     setUserName(profile?.username || user.email?.split("@")[0] || "선수")
-    const { data } = await supabase.from('logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-    if (data) { 
-        setLogs(data); 
-        setMyLevel(getLevel(data.length)); 
-        calculateStreak(data); 
-        analyzeLogs(data); 
-        calculateStats(data); 
+    
+    const { data: logData } = await supabase.from('logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+    const { data: condData } = await supabase.from('daily_conditions').select('*').eq('user_id', user.id).order('created_at', { ascending: true })
+
+    if (logData) { 
+        setLogs(logData); 
+        setMyLevel(getLevel(logData.length)); 
+        calculateStreak(logData); 
+        analyzeLogs(logData); 
+        calculateStats(logData); 
+        processChartData(logData, condData || []); 
     }
+    
     const today = new Date().toISOString().split('T')[0]
-    const { data: conditionData } = await supabase.from('daily_conditions').select('*').eq('user_id', user.id).gte('created_at', `${today}T00:00:00`).limit(1)
-    if (conditionData && conditionData.length > 0) setTodayCondition(conditionData[0].status)
+    const { data: todayCond } = await supabase.from('daily_conditions').select('*').eq('user_id', user.id).gte('created_at', `${today}T00:00:00`).limit(1)
+    if (todayCond && todayCond.length > 0) setTodayCondition(todayCond[0].status)
     setLoading(false)
   }
 
-  // 📊 육각형 스탯 계산 (강도는 workout 기록만!)
+  const processChartData = (logs: any[], conditions: any[]) => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        return d.toISOString().split('T')[0];
+    });
+
+    const processed = last7Days.map(date => {
+        const dayLogs = logs.filter(l => l.created_at.startsWith(date));
+        const avgScore = dayLogs.length > 0 
+            ? dayLogs.reduce((acc, cur) => acc + cur.pain_score, 0) / dayLogs.length 
+            : 0;
+
+        const dayCond = conditions.filter(c => c.created_at.startsWith(date)).pop();
+        let condScore = 0; 
+        if (dayCond) {
+            if (dayCond.status === 'good') condScore = 10;
+            else if (dayCond.status === 'normal') condScore = 6;
+            else if (dayCond.status === 'bad') condScore = 3;
+        }
+
+        return {
+            date: date.slice(5),
+            score: Number(avgScore.toFixed(1)),
+            condition: condScore
+        };
+    });
+
+    setChartData(processed);
+  };
+
   const calculateStats = (data: any[]) => {
     if (!data || data.length === 0) {
         setStats([
@@ -131,38 +186,28 @@ export default function Dashboard() {
         ]);
         return;
     }
-
-    // 1. 열정 (Consistency)
     const uniqueDays = new Set(data.map(l => new Date(l.created_at).toDateString())).size;
     const consistency = Math.min(uniqueDays * 5, 100); 
-
-    // 2. 강도 (Intensity) - 🚨 수정됨: workout 기록만 사용
+    
     const workoutLogs = data.filter(l => l.log_type === 'workout');
     const avgScore = workoutLogs.length > 0 
         ? workoutLogs.reduce((acc, cur) => acc + cur.pain_score, 0) / workoutLogs.length 
         : 0;
     const intensity = Math.min(avgScore * 12, 100);
 
-    // 3. 활동량 (Volume)
     const volume = Math.min(data.length * 2, 100);
-
-    // 4. 밸런스 (Balance)
     const usedParts = new Set();
     data.forEach(l => {
         const match = (l.content || '').match(/^\[(.*?)\]/);
         if(match) match[1].split(', ').forEach((p: string) => usedParts.add(p));
     });
     const balance = Math.min(usedParts.size * 8, 100);
-
-    // 5. 관리 (Care)
     const rehabCount = data.filter(l => l.log_type === 'rehab').length;
     const rehabRatio = rehabCount / data.length;
     let care = 50;
     if (rehabRatio > 0 && rehabRatio < 0.4) care = 95; 
     else if (rehabRatio === 0) care = 60; 
     else care = 80; 
-
-    // 6. 컨디션 (Condition)
     const physical = 75 + (data.length > 5 ? 10 : 0);
 
     setStats([
@@ -175,14 +220,9 @@ export default function Dashboard() {
     ]);
   };
 
-  // 🚨 AI 분석 로직 (평균 통증 점수는 rehab 기록만!)
   const analyzeLogs = (data: any[]) => {
     if (data.length === 0) return;
-    
-    // 1. 재활 기록만 필터링
     const rehabLogs = data.filter(l => l.log_type === 'rehab');
-    
-    // 2. 부위별 통증 빈도 및 총 통증 점수 계산 (재활 기록 기준)
     const partCounts: {[key: string]: number} = {};
     let totalPain = 0;
     
@@ -194,13 +234,10 @@ export default function Dashboard() {
 
     const sortedParts = Object.entries(partCounts).sort((a, b) => b[1] - a[1]);
     const worstPart = sortedParts.length > 0 ? sortedParts[0][0] : '없음';
-    
-    // 3. 평균 통증 점수 계산 (재활 기록이 없으면 0)
     const avgPain = rehabLogs.length > 0 ? (totalPain / rehabLogs.length).toFixed(1) : '0';
 
     let advice = "부상 없이 건강하게 운동하고 계시네요! 👍";
     
-    // 재활 기록이 있을 때만 통증 관련 조언
     if (rehabLogs.length > 0) {
         if (Number(avgPain) >= 8) {
             advice = "🚨 평균 통증 점수가 매우 높습니다! 무리한 운동은 멈추고, 전문 의료기관 방문을 강력히 권장합니다.";
@@ -216,11 +253,9 @@ export default function Dashboard() {
             advice = "🙆‍♂️ 어깨 충돌을 조심하세요. 회전근개 강화와 흉추 가동성 운동을 추천합니다.";
         }
     } else {
-        // 재활 기록이 하나도 없을 때
         advice = "🔥 부상 기록이 없습니다! 아주 훌륭합니다. 이대로 꾸준히 득근하세요!";
     }
 
-    // totalLogs는 전체 활동량을 보여주기 위해 유지
     setAnalysisData({ worstPart, avgPain, advice, totalLogs: data.length });
   };
 
@@ -431,7 +466,28 @@ export default function Dashboard() {
                 <div><h2 className="font-extrabold text-white text-sm mb-1">오늘 컨디션 👋</h2><p className="text-slate-400 font-bold text-xs">부상 방지 체크!</p></div>
                 <div className="flex gap-2">{['good', 'normal', 'bad'].map((status) => (<button key={status} onClick={() => handleConditionCheck(status as any)} className={`flex items-center justify-center w-10 h-10 rounded-xl border-2 transition-all ${todayCondition === status ? (status === 'good' ? 'bg-green-500/20 border-green-500 scale-110' : status === 'normal' ? 'bg-yellow-500/20 border-yellow-500 scale-110' : 'bg-red-500/20 border-red-500 scale-110') : 'bg-slate-800 border-slate-700 hover:border-slate-500'}`}><span className="text-lg">{status === 'good' ? '😆' : status === 'normal' ? '🙂' : '😷'}</span></button>))}</div>
             </div>
-            <div className={`rounded-3xl p-6 shadow-lg border-2 border-white/10 relative overflow-hidden text-white ${myLevel.color}`}><div className="relative z-10 flex justify-between items-end"><div><div className="flex items-center gap-2 mb-1"><span className="text-2xl">{myLevel.emoji}</span><span className="font-black text-xl uppercase italic tracking-wider">{myLevel.name}</span></div><p className="font-bold text-white/90 text-xs mb-3">현재 등급: {myLevel.rank}</p><div className="flex items-center gap-2"><span className="text-3xl font-black">{streak}</span><span className="text-sm font-bold opacity-80">일 연속! 🔥</span></div></div><div className="text-right"><p className="text-xs font-bold opacity-70 mb-1">다음 등급까지</p><p className="text-lg font-black">{myLevel.next - logs.length}회</p></div></div></div>
+            
+            {/* 🆕 등급 가이드 버튼 추가됨 */}
+            <div className={`rounded-3xl p-6 shadow-lg border-2 border-white/10 relative overflow-hidden text-white ${myLevel.color}`}>
+                <div className="relative z-10 flex justify-between items-end">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-2xl">{myLevel.emoji}</span>
+                            <span className="font-black text-xl uppercase italic tracking-wider">{myLevel.name}</span>
+                        </div>
+                        <p className="font-bold text-white/90 text-xs mb-3">현재 등급: {myLevel.rank}</p>
+                        <div className="flex items-center gap-2">
+                            <span className="text-3xl font-black">{streak}</span>
+                            <span className="text-sm font-bold opacity-80">일 연속! 🔥</span>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <button onClick={() => setIsLevelModalOpen(true)} className="absolute top-0 right-0 p-2 text-white/70 hover:text-white"><Icons.Info /></button>
+                        <p className="text-xs font-bold opacity-70 mb-1">다음 {myLevel.nextName}까지</p>
+                        <p className="text-lg font-black">{Math.max(0, myLevel.next - logs.length)}회</p>
+                    </div>
+                </div>
+            </div>
         </section>
 
         {logs.length > 0 && (
@@ -500,19 +556,32 @@ export default function Dashboard() {
         </section>
 
         <section className="bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5">
-           <h3 className="font-extrabold text-white mb-4">활동 흐름</h3>
-           <div className="h-40 mb-6">
+           <div className="flex items-center justify-between mb-4">
+             <h3 className="font-extrabold text-white">컨디션 & 운동부하 분석 📉</h3>
+             <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-1 rounded">최근 7일</span>
+           </div>
+           <div className="h-56 w-full">
              <ResponsiveContainer width="100%" height="100%">
-               <LineChart data={logs.slice(0, 7).reverse()}>
+               <ComposedChart data={chartData}>
                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
-                 <XAxis dataKey="created_at" tickFormatter={(d) => new Date(d).getDate() + '일'} tick={{fontSize:10, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
-                 <Tooltip position={{ y: 0 }} contentStyle={{ backgroundColor: 'rgba(30, 41, 59, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)', fontSize: '12px', padding: '6px 10px', fontWeight: 'bold', color: '#fff' }} labelStyle={{ display: 'none' }} formatter={(value, name, props) => [`${value}점`, `${new Date(props.payload.created_at).getDate()}일 기록`]} />
-                 <Line type="monotone" dataKey="pain_score" stroke="#3b82f6" strokeWidth={3} dot={{r:3, fill:'#3b82f6', strokeWidth:0}} activeDot={{r:6, fill:'#60a5fa'}} isAnimationActive={false} />
-               </LineChart>
+                 <XAxis dataKey="date" tick={{fontSize:10, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                 <YAxis yAxisId="left" orientation="left" domain={[0, 12]} hide />
+                 <YAxis yAxisId="right" orientation="right" domain={[0, 12]} hide />
+                 <Tooltip 
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} 
+                    labelStyle={{ color: '#cbd5e1', fontWeight: 'bold' }}
+                    formatter={(value: any, name: any) => {
+                        if (name === '컨디션') return [value === 10 ? '좋음' : value === 6 ? '보통' : '나쁨', name];
+                        return [`${value}점`, name];
+                    }}
+                 />
+                 <Legend verticalAlign="top" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                 <Bar yAxisId="left" dataKey="condition" name="컨디션" barSize={20} fill="#facc15" radius={[4, 4, 0, 0]} fillOpacity={0.3} />
+                 <Line yAxisId="right" type="monotone" dataKey="score" name="운동강도/통증" stroke="#3b82f6" strokeWidth={3} dot={{r:3, fill:'#3b82f6'}} activeDot={{r:6, fill:'#fff'}} />
+               </ComposedChart>
              </ResponsiveContainer>
            </div>
-           <style jsx global>{` .react-calendar { background: transparent !important; border: none; width: 100%; font-family: inherit; color: #fff; } .react-calendar__tile { color: #cbd5e1; } .react-calendar__navigation button { color: #fff; font-weight: bold; font-size: 16px; } .react-calendar__tile:enabled:hover, .react-calendar__tile:enabled:focus { background-color: #334155; border-radius: 8px; } .react-calendar__tile--active { background: #3b82f6 !important; color: white !important; border-radius: 8px; box-shadow: 0 0 10px rgba(59,130,246,0.5); } .react-calendar__tile--now { background: #1e293b !important; color: #60a5fa !important; border-radius: 8px; font-weight: bold; border: 1px solid #3b82f6; } .react-calendar__month-view__days__day--weekend { color: #f87171; } `}</style>
-           <Calendar onClickDay={setSelectedDate} value={selectedDate} tileContent={({ date }) => logs.some(l => new Date(l.created_at).toDateString() === date.toDateString()) ? <div className="flex justify-center mt-1"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_5px_#3b82f6]"></div></div> : null} />
+           <p className="text-[10px] text-slate-500 mt-2 text-center">💡 컨디션(노란색)이 낮을 때 운동강도(파란선)가 높으면 부상 위험!</p>
         </section>
 
         <section>
@@ -528,7 +597,6 @@ export default function Dashboard() {
                 <Icons.Info /> 서비스 이용 약관 및 면책 조항
             </button>
             <span className="text-slate-700 text-[10px] mx-2">|</span>
-            {/* 🆕 건의함 버튼 */}
             <button 
                 onClick={() => setIsSuggestionOpen(true)} 
                 className="text-[10px] text-slate-500 font-bold hover:text-blue-400 flex items-center justify-center gap-1 transition"
@@ -540,7 +608,38 @@ export default function Dashboard() {
 
       <div className="fixed bottom-0 left-0 right-0 p-6 pointer-events-none flex justify-end max-w-md mx-auto z-40"><button onClick={() => setIsModalOpen(true)} className="pointer-events-auto w-16 h-16 bg-blue-600 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center justify-center text-white hover:bg-blue-500 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
       
-      {/* 🆕 건의함 모달 */}
+      {/* 🆕 등급 가이드 모달 */}
+      {isLevelModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsLevelModalOpen(false)}>
+            <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setIsLevelModalOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
+                <h3 className="text-xl font-black text-white mb-6 flex items-center gap-2">🏆 등급 시스템 가이드</h3>
+                
+                <div className="space-y-3">
+                    {LEVEL_SYSTEM.map((level) => (
+                        <div key={level.name} className={`p-4 rounded-2xl border flex items-center justify-between ${myLevel.name === level.name ? 'bg-slate-800 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'bg-slate-900/50 border-white/5 opacity-60'}`}>
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-lg ${level.color} text-white`}>{level.emoji}</div>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h4 className={`font-black text-sm ${myLevel.name === level.name ? 'text-blue-400' : 'text-white'}`}>{level.rank}</h4>
+                                        {myLevel.name === level.name && <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-md font-bold">ME</span>}
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 font-bold">{level.desc}</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] font-bold text-slate-500">필요 기록</p>
+                                <p className="text-sm font-black text-white">{level.min}회+</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <button onClick={() => setIsLevelModalOpen(false)} className="mt-6 w-full py-3 bg-slate-800 text-white font-extrabold rounded-xl hover:bg-slate-700 transition">확인했습니다</button>
+            </div>
+        </div>
+      )}
+
       {isSuggestionOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsSuggestionOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
@@ -558,7 +657,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 면책 조항 모달 */}
       {isDisclaimerOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsDisclaimerOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm max-h-[80vh] overflow-y-auto rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
@@ -592,7 +690,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 분석 리포트 모달 */}
       {isAnalysisOpen && analysisData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsAnalysisOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
@@ -613,7 +710,6 @@ export default function Dashboard() {
                         <p className="text-xs font-bold text-slate-400 mb-2">🤖 AI 분석 피드백</p>
                         <p className="font-bold leading-relaxed text-slate-200">{analysisData.advice}</p>
                     </div>
-                    {/* 👇 병원 찾기 버튼 (8점 이상일 때 표시) */}
                     {Number(analysisData.avgPain) >= 8 && (
                         <a href="https://map.naver.com/p/search/정형외과" target="_blank" rel="noreferrer" className="block w-full py-3 mt-2 bg-red-600 hover:bg-red-500 text-white font-bold text-center rounded-xl animate-pulse shadow-lg transition flex items-center justify-center gap-2">
                             <Icons.Map /> 🏥 근처 정형외과 찾기 (네이버)
@@ -635,12 +731,10 @@ export default function Dashboard() {
                <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 placeholder-slate-600" placeholder="제목 입력" /></div>
                <div><label className="block text-sm font-bold text-slate-400 mb-2">사진/영상 추가</label><div className="flex items-center gap-3"><label className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-500/10 transition overflow-hidden text-slate-500">{mediaPreview ? <img src={mediaPreview} className="w-full h-full object-cover" /> : <Icons.Camera />}<input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} /></label><span className="text-xs text-slate-500 font-bold">{mediaFile ? "파일 선택됨 ✅" : "운동 인증샷이나 통증 부위를 찍어보세요."}</span></div></div>
                
-               {/* 👇 여기에 BodyMap 추가됨! */}
                <div>
                  <label className="block text-sm font-bold text-slate-400 mb-2">관련 부위 (터치)</label>
                  <BodyMap selectedParts={selectedParts} togglePart={togglePart} type={logType} />
                  
-                 {/* 👇 버튼 리스트 추가: BodyMap 아래에 위치 */}
                  <div className="mt-4 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                    {bodyParts.map((part) => (
                      <button
