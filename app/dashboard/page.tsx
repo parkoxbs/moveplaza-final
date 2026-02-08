@@ -10,7 +10,10 @@ import 'react-calendar/dist/Calendar.css'
 import { LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend } from 'recharts'
 import { toPng } from 'html-to-image'
 import jsPDF from 'jspdf'
-import BodyMap from "..//components/BodyMap" 
+import BodyMap from "..//components/BodyMap"
+// 👇 애니메이션 라이브러리
+import { motion, AnimatePresence } from "framer-motion"
+import confetti from 'canvas-confetti'
 
 // 👇 1. Supabase 주소와 키 입력
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
@@ -34,11 +37,11 @@ const Icons = {
   Map: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
   MessageSquare: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>,
   Bulb: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>,
-  Star: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+  Star: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  Trophy: () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
 }
 
-// 🆕 확 바뀐 레벨 시스템 (난이도 상향 & 디자인 강화)
-// color: 배경 그라데이션, text: 텍스트 색상, glow: 그림자/후광 효과
+// 레벨 시스템 정의
 const LEVEL_SYSTEM = [
   { name: 'Rookie', rank: '루키', emoji: '🐣', min: 0, color: 'bg-gradient-to-br from-slate-700 to-slate-600', glow: 'shadow-none', desc: '운동의 세계에 첫 발을 내딛은 신인' },
   { name: 'Beginner', rank: '비기너', emoji: '🌱', min: 15, color: 'bg-gradient-to-br from-emerald-600 to-teal-500', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.4)]', desc: '기초 체력을 다지며 성장하는 단계' },
@@ -73,6 +76,25 @@ const getLevel = (count: number) => {
   return { ...LEVEL_SYSTEM[0], next: 15, nextName: '비기너' };
 };
 
+// 스켈레톤 로딩 UI
+const DashboardSkeleton = () => (
+  <div className="space-y-6 animate-pulse">
+    <div className="h-20 bg-slate-900/50 rounded-2xl"></div>
+    <div className="flex justify-between items-end">
+        <div className="space-y-2">
+            <div className="h-8 w-48 bg-slate-900/50 rounded-lg"></div>
+            <div className="h-4 w-32 bg-slate-900/50 rounded-lg"></div>
+        </div>
+        <div className="h-10 w-24 bg-slate-900/50 rounded-xl"></div>
+    </div>
+    <div className="h-24 bg-slate-900/50 rounded-3xl"></div>
+    <div className="h-40 bg-slate-900/50 rounded-3xl"></div>
+    <div className="h-72 bg-slate-900/50 rounded-3xl"></div>
+    <div className="h-56 bg-slate-900/50 rounded-3xl"></div>
+    <div className="h-64 bg-slate-900/50 rounded-3xl"></div>
+  </div>
+)
+
 export default function Dashboard() {
   const router = useRouter()
   const [logs, setLogs] = useState<any[]>([])
@@ -95,6 +117,9 @@ export default function Dashboard() {
 
   const [streak, setStreak] = useState(0)
   const [myLevel, setMyLevel] = useState<any>(getLevel(0))
+  const [prevLevelName, setPrevLevelName] = useState<string | null>(null) 
+  const [isLevelUpCelebrationOpen, setIsLevelUpCelebrationOpen] = useState(false) 
+
   const [todayCondition, setTodayCondition] = useState<'good' | 'normal' | 'bad' | null>(null)
   const [stats, setStats] = useState<any[]>([]) 
   const [heatmapRange, setHeatmapRange] = useState<'1w' | '1m' | '6m' | '1y' | 'all'>('all')
@@ -115,11 +140,12 @@ export default function Dashboard() {
   const bodyParts = ["목", "승모근", "어깨", "가슴", "등", "복근", "허리", "삼두", "이두", "전완근", "손목", "손", "엉덩이", "고관절", "허벅지(앞)", "허벅지(뒤)(햄스트링)", "무릎", "종아리", "발목", "발"]
 
   useEffect(() => { 
-    fetchData();
+    fetchData(true); 
     setTodayTip(REHAB_TIPS[Math.floor(Math.random() * REHAB_TIPS.length)]);
   }, [])
 
-  const fetchData = async () => {
+  const fetchData = async (isFirstLoad = false) => {
+    if (isFirstLoad) setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
     const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single()
@@ -129,8 +155,16 @@ export default function Dashboard() {
     const { data: condData } = await supabase.from('daily_conditions').select('*').eq('user_id', user.id).order('created_at', { ascending: true })
 
     if (logData) { 
-        setLogs(logData); 
-        setMyLevel(getLevel(logData.length)); 
+        setLogs(logData);
+        const newLevel = getLevel(logData.length);
+        
+        if (!isFirstLoad && prevLevelName && newLevel.name !== prevLevelName) {
+            setIsLevelUpCelebrationOpen(true);
+            triggerConfetti(); 
+        }
+        setMyLevel(newLevel);
+        setPrevLevelName(newLevel.name);
+
         calculateStreak(logData); 
         analyzeLogs(logData); 
         calculateStats(logData); 
@@ -141,6 +175,22 @@ export default function Dashboard() {
     const { data: todayCond } = await supabase.from('daily_conditions').select('*').eq('user_id', user.id).gte('created_at', `${today}T00:00:00`).limit(1)
     if (todayCond && todayCond.length > 0) setTodayCondition(todayCond[0].status)
     setLoading(false)
+  }
+
+  const triggerConfetti = () => {
+    const duration = 3000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    const interval: any = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+      if (timeLeft <= 0) return clearInterval(interval);
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
   }
 
   const processChartData = (logs: any[], conditions: any[]) => {
@@ -323,7 +373,7 @@ export default function Dashboard() {
         const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''
         const { error } = await supabase.from('logs').insert({ user_id: user.id, title, content: partsString + content, pain_score: score, log_type: logType, is_public: isPublic, image_url: mediaUrl, media_type: mediaType, created_at: new Date().toISOString() })
         if (error) throw error;
-        toast.success("기록 저장 완료! 🎉"); setIsModalOpen(false); setTitle(''); setContent(''); setScore(5); setSelectedParts([]); setMediaFile(null); setMediaPreview(null); fetchData()
+        toast.success("기록 저장 완료! 🎉"); setIsModalOpen(false); setTitle(''); setContent(''); setScore(5); setSelectedParts([]); setMediaFile(null); setMediaPreview(null); fetchData(false)
       } catch (e: any) { toast.error("저장 실패: " + e.message) }
     }
     setUploading(false)
@@ -441,182 +491,230 @@ export default function Dashboard() {
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
         <div className="max-w-md mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.reload()}><div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">M</div><span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span></div>
-          <div className="flex items-center gap-4 text-sm font-bold text-slate-400"><Link href="/community" className="hover:text-blue-400 transition">광장</Link><Link href="/mypage" className="hover:text-blue-400 transition">내 정보</Link></div>
+          <div className="flex items-center gap-4 text-sm font-bold text-slate-400"><Link href="/community" className="hover:text-blue-400 transition">광장</Link><Link href="/stats" className="hover:text-blue-400 transition">통계</Link><Link href="/mypage" className="hover:text-blue-400 transition">내 정보</Link></div>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-5 pt-8 space-y-8 animate-slide-up bg-slate-950" ref={reportRef}>
-        <section className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 flex items-start gap-3">
-            <div className="text-yellow-500 mt-0.5"><Icons.Bulb /></div>
-            <div>
-                <h4 className="text-xs font-black text-yellow-500 mb-1 uppercase tracking-wide">Daily Rehab Tip</h4>
-                <p className="text-sm font-bold text-slate-200 leading-relaxed">{todayTip}</p>
-            </div>
-        </section>
-
-        <section>
-            <div className="flex justify-between items-end">
-                <div><h2 className="text-3xl font-extrabold text-white leading-tight">안녕하세요,<br/><span className="text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">{userName}</span>님!</h2><p className="text-slate-400 font-bold mt-2 text-sm">오늘도 부상 없이 득근해볼까요? 💪</p></div>
-                <button onClick={() => setIsAnalysisOpen(true)} className="bg-slate-800 border border-white/10 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-700 transition flex items-center gap-1"><Icons.Chart /> AI 분석</button>
-            </div>
-        </section>
-
-        <section className="grid grid-cols-1 gap-4">
-            <div className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-5 border border-white/5 flex items-center justify-between">
-                <div><h2 className="font-extrabold text-white text-sm mb-1">오늘 컨디션 👋</h2><p className="text-slate-400 font-bold text-xs">부상 방지 체크!</p></div>
-                <div className="flex gap-2">{['good', 'normal', 'bad'].map((status) => (<button key={status} onClick={() => handleConditionCheck(status as any)} className={`flex items-center justify-center w-10 h-10 rounded-xl border-2 transition-all ${todayCondition === status ? (status === 'good' ? 'bg-green-500/20 border-green-500 scale-110' : status === 'normal' ? 'bg-yellow-500/20 border-yellow-500 scale-110' : 'bg-red-500/20 border-red-500 scale-110') : 'bg-slate-800 border-slate-700 hover:border-slate-500'}`}><span className="text-lg">{status === 'good' ? '😆' : status === 'normal' ? '🙂' : '😷'}</span></button>))}</div>
-            </div>
-            
-            {/* 🆕 등급 가이드 버튼 추가됨 */}
-            <div className={`rounded-3xl p-6 shadow-lg border-2 border-white/10 relative overflow-hidden text-white ${myLevel.color} ${myLevel.glow}`}>
-                <div className="relative z-10 flex justify-between items-end">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="text-2xl">{myLevel.emoji}</span>
-                            <span className="font-black text-xl uppercase italic tracking-wider">{myLevel.name}</span>
-                        </div>
-                        <p className="font-bold text-white/90 text-xs mb-3">현재 등급: {myLevel.rank}</p>
-                        <div className="flex items-center gap-2">
-                            <span className="text-3xl font-black">{streak}</span>
-                            <span className="text-sm font-bold opacity-80">일 연속! 🔥</span>
-                        </div>
-                    </div>
-                    <div className="text-right">
-                        <button onClick={() => setIsLevelModalOpen(true)} className="absolute top-0 right-0 p-2 text-white/70 hover:text-white"><Icons.Info /></button>
-                        <p className="text-xs font-bold opacity-70 mb-1">다음 {myLevel.nextName}까지</p>
-                        
-                        {/* 🆕 프로그레스 바 추가 */}
-                        <div className="w-24 h-1.5 bg-black/20 rounded-full mt-1 overflow-hidden">
-                            <div 
-                                className="h-full bg-white/90 rounded-full transition-all duration-1000" 
-                                style={{ width: `${Math.min(100, (logs.length / myLevel.next) * 100)}%` }}
-                            ></div>
-                        </div>
-                        <p className="text-lg font-black mt-1">{Math.max(0, myLevel.next - logs.length)}회</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        {logs.length > 0 && (
-            <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-black text-white">나의 선수 스탯 ⚽</h3>
-                    <span className="text-xs font-bold text-slate-500 bg-slate-800 px-2 py-1 rounded-lg">LIVE</span>
-                </div>
-                <div className="h-64 w-full flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={stats}>
-                            <PolarGrid stroke="#334155" />
-                            <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }} />
-                            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                            <Radar name="My Stats" dataKey="A" stroke="#3b82f6" strokeWidth={3} fill="#3b82f6" fillOpacity={0.5} />
-                            <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} itemStyle={{ color: '#60a5fa' }} formatter={(val, name, props) => [val, props.payload.full]} labelStyle={{display: 'none'}} />
-                        </RadarChart>
-                    </ResponsiveContainer>
+      {/* 👇 3번: 로딩 중일 때 스켈레톤 UI 표시 */}
+      {loading ? (
+        <main className="max-w-md mx-auto px-5 pt-8 pb-32">
+            <DashboardSkeleton />
+        </main>
+      ) : (
+        <main className="max-w-md mx-auto px-5 pt-8 space-y-8 animate-slide-up bg-slate-950" ref={reportRef}>
+            <section className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 flex items-start gap-3">
+                <div className="text-yellow-500 mt-0.5"><Icons.Bulb /></div>
+                <div>
+                    <h4 className="text-xs font-black text-yellow-500 mb-1 uppercase tracking-wide">Daily Rehab Tip</h4>
+                    <p className="text-sm font-bold text-slate-200 leading-relaxed">{todayTip}</p>
                 </div>
             </section>
-        )}
 
-        <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden transition-all">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 rounded-full blur-[80px] opacity-20 -mr-10 -mt-10 pointer-events-none"></div>
-          
-          <div className="flex flex-col gap-4 mb-6 relative z-10">
-            <div className="flex justify-between items-end">
-                <div>
-                    <h3 className="text-lg font-black text-white flex items-center gap-2">부상 히트맵 <span className="text-red-500 animate-pulse"><Icons.AlertCircle /></span></h3>
-                    <p className="text-xs font-bold text-slate-400 mt-1">최근 통증 부위 (재활 기록만)</p>
+            <section>
+                <div className="flex justify-between items-end">
+                    <div><h2 className="text-3xl font-extrabold text-white leading-tight">안녕하세요,<br/><span className="text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">{userName}</span>님!</h2><p className="text-slate-400 font-bold mt-2 text-sm">오늘도 부상 없이 득근해볼까요? 💪</p></div>
+                    <button onClick={() => setIsAnalysisOpen(true)} className="bg-slate-800 border border-white/10 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-700 transition flex items-center gap-1"><Icons.Chart /> AI 분석</button>
                 </div>
-                <div className="text-right">
-                    <span className="block text-3xl font-black text-white">{rehabLogs.length}</span>
-                    <span className="text-xs font-bold text-slate-400">건의 통증</span>
+            </section>
+
+            <section className="grid grid-cols-1 gap-4">
+                <div className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-5 border border-white/5 flex items-center justify-between">
+                    <div><h2 className="font-extrabold text-white text-sm mb-1">오늘 컨디션 👋</h2><p className="text-slate-400 font-bold text-xs">부상 방지 체크!</p></div>
+                    <div className="flex gap-2">{['good', 'normal', 'bad'].map((status) => (<button key={status} onClick={() => handleConditionCheck(status as any)} className={`flex items-center justify-center w-10 h-10 rounded-xl border-2 transition-all ${todayCondition === status ? (status === 'good' ? 'bg-green-500/20 border-green-500 scale-110' : status === 'normal' ? 'bg-yellow-500/20 border-yellow-500 scale-110' : 'bg-red-500/20 border-red-500 scale-110') : 'bg-slate-800 border-slate-700 hover:border-slate-500'}`}><span className="text-lg">{status === 'good' ? '😆' : status === 'normal' ? '🙂' : '😷'}</span></button>))}</div>
                 </div>
-            </div>
-
-            <div className="flex bg-slate-800 p-1 rounded-xl">
-                {['1w', '1m', '6m', '1y', 'all'].map((range) => (
-                    <button 
-                        key={range}
-                        onClick={() => setHeatmapRange(range as any)}
-                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${heatmapRange === range ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-                    >
-                        {range === '1w' ? '1주' : range === '1m' ? '1달' : range === '6m' ? '6달' : range === '1y' ? '1년' : '전체'}
-                    </button>
-                ))}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 relative z-10">
-            {Object.keys(bodyPartCounts).length === 0 ? (
-                <p className="text-xs text-slate-500 font-bold w-full text-center py-4">해당 기간에 통증 기록이 없습니다. 👍</p>
-            ) : (
-                bodyParts.map((part) => { 
-                    const count = bodyPartCounts[part] || 0; 
-                    if (count === 0) return null;
-                    return (
-                        <div key={part} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-300 ${getSeverityColor(count)}`}>
-                            {part} <span className="ml-1 opacity-90 text-[10px]">({count})</span>
+                
+                {/* 🆕 등급 가이드 버튼 추가됨 */}
+                <div className={`rounded-3xl p-6 shadow-lg border-2 border-white/10 relative overflow-hidden text-white ${myLevel.color} ${myLevel.glow}`}>
+                    <div className="relative z-10 flex justify-between items-end">
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-2xl">{myLevel.emoji}</span>
+                                <span className="font-black text-xl uppercase italic tracking-wider">{myLevel.name}</span>
+                            </div>
+                            <p className="font-bold text-white/90 text-xs mb-3">현재 등급: {myLevel.rank}</p>
+                            <div className="flex items-center gap-2">
+                                <span className="text-3xl font-black">{streak}</span>
+                                <span className="text-sm font-bold opacity-80">일 연속! 🔥</span>
+                            </div>
                         </div>
-                    ) 
-                })
+                        <div className="text-right">
+                            <button onClick={() => setIsLevelModalOpen(true)} className="absolute top-0 right-0 p-2 text-white/70 hover:text-white"><Icons.Info /></button>
+                            <p className="text-xs font-bold opacity-70 mb-1">다음 {myLevel.nextName}까지</p>
+                            
+                            {/* 🆕 프로그레스 바 추가 */}
+                            <div className="w-24 h-1.5 bg-black/20 rounded-full mt-1 overflow-hidden">
+                                <div 
+                                    className="h-full bg-white/90 rounded-full transition-all duration-1000" 
+                                    style={{ width: `${Math.min(100, (logs.length / myLevel.next) * 100)}%` }}
+                                ></div>
+                            </div>
+                            <p className="text-lg font-black mt-1">{Math.max(0, myLevel.next - logs.length)}회</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {logs.length > 0 && (
+                <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-black text-white">나의 선수 스탯 ⚽</h3>
+                        <span className="text-xs font-bold text-slate-500 bg-slate-800 px-2 py-1 rounded-lg">LIVE</span>
+                    </div>
+                    <div className="h-64 w-full flex items-center justify-center">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={stats}>
+                                <PolarGrid stroke="#334155" />
+                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }} />
+                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                <Radar name="My Stats" dataKey="A" stroke="#3b82f6" strokeWidth={3} fill="#3b82f6" fillOpacity={0.5} />
+                                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} itemStyle={{ color: '#60a5fa' }} formatter={(val, name, props) => [val, props.payload.full]} labelStyle={{display: 'none'}} />
+                            </RadarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </section>
             )}
-          </div>
-        </section>
 
-        <section className="bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5">
-           <div className="flex items-center justify-between mb-4">
-             <h3 className="font-extrabold text-white">컨디션 & 운동부하 분석 📉</h3>
-             <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-1 rounded">최근 7일</span>
-           </div>
-           <div className="h-56 w-full">
-             <ResponsiveContainer width="100%" height="100%">
-               <ComposedChart data={chartData}>
-                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
-                 <XAxis dataKey="date" tick={{fontSize:10, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
-                 <YAxis yAxisId="left" orientation="left" domain={[0, 12]} hide />
-                 <YAxis yAxisId="right" orientation="right" domain={[0, 12]} hide />
-                 <Tooltip 
-                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} 
-                    labelStyle={{ color: '#cbd5e1', fontWeight: 'bold' }}
-                    formatter={(value: any, name: any) => {
-                        if (name === '컨디션') return [value === 10 ? '좋음' : value === 6 ? '보통' : '나쁨', name];
-                        return [`${value}점`, name];
-                    }}
-                 />
-                 <Legend verticalAlign="top" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                 <Bar yAxisId="left" dataKey="condition" name="컨디션" barSize={20} fill="#facc15" radius={[4, 4, 0, 0]} fillOpacity={0.3} />
-                 <Line yAxisId="right" type="monotone" dataKey="score" name="운동강도/통증" stroke="#3b82f6" strokeWidth={3} dot={{r:3, fill:'#3b82f6'}} activeDot={{r:6, fill:'#fff'}} />
-               </ComposedChart>
-             </ResponsiveContainer>
-           </div>
-           <p className="text-[10px] text-slate-500 mt-2 text-center">💡 컨디션(노란색)이 낮을 때 운동강도(파란선)가 높으면 부상 위험!</p>
-        </section>
+            <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden transition-all">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 rounded-full blur-[80px] opacity-20 -mr-10 -mt-10 pointer-events-none"></div>
+            
+            <div className="flex flex-col gap-4 mb-6 relative z-10">
+                <div className="flex justify-between items-end">
+                    <div>
+                        <h3 className="text-lg font-black text-white flex items-center gap-2">부상 히트맵 <span className="text-red-500 animate-pulse"><Icons.AlertCircle /></span></h3>
+                        <p className="text-xs font-bold text-slate-400 mt-1">최근 통증 부위 (재활 기록만)</p>
+                    </div>
+                    <div className="text-right">
+                        <span className="block text-3xl font-black text-white">{rehabLogs.length}</span>
+                        <span className="text-xs font-bold text-slate-400">건의 통증</span>
+                    </div>
+                </div>
 
-        <section>
-          <div className="flex justify-between items-center mb-4 px-1"><h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3><div className="flex gap-2"><button onClick={handleDownloadPDF} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700">📄 리포트 저장</button>{selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}</div></div>
-          <div className="space-y-3">{loading ? (<div className="text-center py-10 font-bold text-slate-600 animate-pulse">로딩 중...</div>) : filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { const isWorkout = log.log_type === 'workout' || (log.pain_score && !log.content.includes('통증')); return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group"><div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isWorkout ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>{log.image_url ? <img src={log.image_url} alt="인증" className="w-full h-full object-cover" /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />)}</div><div><div className="font-black text-white text-sm mb-0.5">{log.title}</div><div className="text-xs font-bold text-slate-500 line-clamp-1">{log.content}</div></div></div><div className="flex items-center gap-3"><button onClick={() => handleCopyLog(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/10 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-500">점</div></div></div></div>) }))}</div>
-        </section>
+                <div className="flex bg-slate-800 p-1 rounded-xl">
+                    {['1w', '1m', '6m', '1y', 'all'].map((range) => (
+                        <button 
+                            key={range}
+                            onClick={() => setHeatmapRange(range as any)}
+                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${heatmapRange === range ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            {range === '1w' ? '1주' : range === '1m' ? '1달' : range === '6m' ? '6달' : range === '1y' ? '1년' : '전체'}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
-        <section className="mt-8 mb-4 text-center">
-            <button 
-                onClick={() => setIsDisclaimerOpen(true)} 
-                className="text-[10px] text-slate-600 font-bold hover:text-slate-400 flex items-center justify-center gap-1 mx-auto transition"
-            >
-                <Icons.Info /> 서비스 이용 약관 및 면책 조항
-            </button>
-            <span className="text-slate-700 text-[10px] mx-2">|</span>
-            <button 
-                onClick={() => setIsSuggestionOpen(true)} 
-                className="text-[10px] text-slate-500 font-bold hover:text-blue-400 flex items-center justify-center gap-1 transition"
-            >
-                <Icons.MessageSquare /> 개발자에게 건의하기
-            </button>
-        </section>
-      </main>
+            <div className="flex flex-wrap gap-2 relative z-10">
+                {Object.keys(bodyPartCounts).length === 0 ? (
+                    <p className="text-xs text-slate-500 font-bold w-full text-center py-4">해당 기간에 통증 기록이 없습니다. 👍</p>
+                ) : (
+                    bodyParts.map((part) => { 
+                        const count = bodyPartCounts[part] || 0; 
+                        if (count === 0) return null;
+                        return (
+                            <div key={part} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-300 ${getSeverityColor(count)}`}>
+                                {part} <span className="ml-1 opacity-90 text-[10px]">({count})</span>
+                            </div>
+                        ) 
+                    })
+                )}
+            </div>
+            </section>
+
+            <section className="bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5">
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="font-extrabold text-white">컨디션 & 운동부하 분석 📉</h3>
+                <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-1 rounded">최근 7일</span>
+            </div>
+            <div className="h-56 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
+                    <XAxis dataKey="date" tick={{fontSize:10, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left" orientation="left" domain={[0, 12]} hide />
+                    <YAxis yAxisId="right" orientation="right" domain={[0, 12]} hide />
+                    <Tooltip 
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} 
+                        labelStyle={{ color: '#cbd5e1', fontWeight: 'bold' }}
+                        formatter={(value: any, name: any) => {
+                            if (name === '컨디션') return [value === 10 ? '좋음' : value === 6 ? '보통' : '나쁨', name];
+                            return [`${value}점`, name];
+                        }}
+                    />
+                    <Legend verticalAlign="top" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                    <Bar yAxisId="left" dataKey="condition" name="컨디션" barSize={20} fill="#facc15" radius={[4, 4, 0, 0]} fillOpacity={0.3} />
+                    <Line yAxisId="right" type="monotone" dataKey="score" name="운동강도/통증" stroke="#3b82f6" strokeWidth={3} dot={{r:3, fill:'#3b82f6'}} activeDot={{r:6, fill:'#fff'}} />
+                </ComposedChart>
+                </ResponsiveContainer>
+            </div>
+            <p className="text-[10px] text-slate-500 mt-2 text-center">💡 컨디션(노란색)이 낮을 때 운동강도(파란선)가 높으면 부상 위험!</p>
+            </section>
+
+            <section>
+            <div className="flex justify-between items-center mb-4 px-1"><h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3><div className="flex gap-2"><button onClick={handleDownloadPDF} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700">📄 리포트 저장</button>{selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}</div></div>
+            <div className="space-y-3">{filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { const isWorkout = log.log_type === 'workout' || (log.pain_score && !log.content.includes('통증')); return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group"><div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isWorkout ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>{log.image_url ? <img src={log.image_url} alt="인증" className="w-full h-full object-cover" /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />)}</div><div><div className="font-black text-white text-sm mb-0.5">{log.title}</div><div className="text-xs font-bold text-slate-500 line-clamp-1">{log.content}</div></div></div><div className="flex items-center gap-3"><button onClick={() => handleCopyLog(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/10 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-500">점</div></div></div></div>) }))}</div>
+            </section>
+
+            <section className="mt-8 mb-4 text-center">
+                <button 
+                    onClick={() => setIsDisclaimerOpen(true)} 
+                    className="text-[10px] text-slate-600 font-bold hover:text-slate-400 flex items-center justify-center gap-1 mx-auto transition"
+                >
+                    <Icons.Info /> 서비스 이용 약관 및 면책 조항
+                </button>
+                <span className="text-slate-700 text-[10px] mx-2">|</span>
+                <button 
+                    onClick={() => setIsSuggestionOpen(true)} 
+                    className="text-[10px] text-slate-500 font-bold hover:text-blue-400 flex items-center justify-center gap-1 transition"
+                >
+                    <Icons.MessageSquare /> 개발자에게 건의하기
+                </button>
+            </section>
+        </main>
+      )}
 
       <div className="fixed bottom-0 left-0 right-0 p-6 pointer-events-none flex justify-end max-w-md mx-auto z-40"><button onClick={() => setIsModalOpen(true)} className="pointer-events-auto w-16 h-16 bg-blue-600 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center justify-center text-white hover:bg-blue-500 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
       
-      {/* 🆕 등급 가이드 모달 */}
+      {/* 👇 1번: 화려한 레벨업 축하 모달 */}
+      <AnimatePresence>
+        {isLevelUpCelebrationOpen && (
+            <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
+                onClick={() => setIsLevelUpCelebrationOpen(false)}
+            >
+                <motion.div 
+                    initial={{ scale: 0.5, y: 100 }} animate={{ scale: 1, y: 0, rotate: [0, 10, -10, 0] }} transition={{ type: "spring", damping: 15 }}
+                    className="relative max-w-sm w-full text-center p-8 rounded-3xl border-2 border-white/20 bg-gradient-to-br from-slate-900 to-slate-800 shadow-2xl overflow-hidden"
+                    onClick={e => e.stopPropagation()}
+                >
+                    {/* 배경 광원 효과 */}
+                    <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[100px] opacity-50 animate-pulse-slow ${myLevel.color.replace('bg-gradient-to-br', 'bg')}`}></div>
+                    
+                    <div className="relative z-10">
+                        <motion.div 
+                            animate={{ y: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 2 }}
+                            className="text-yellow-400 mx-auto mb-4 drop-shadow-[0_0_30px_rgba(250,204,21,0.8)]"
+                        >
+                            <Icons.Trophy />
+                        </motion.div>
+                        <h2 className="text-3xl font-black text-white mb-2 uppercase italic tracking-tight drop-shadow-lg">Level Up!</h2>
+                        <p className="text-slate-300 font-bold text-lg mb-8">축하합니다! 새로운 등급 달성!</p>
+                        
+                        {/* 새로운 등급 카드 */}
+                        <div className={`p-6 rounded-3xl border-2 border-white/30 shadow-2xl transform hover:scale-105 transition-all duration-500 ${myLevel.color} ${myLevel.glow}`}>
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-6xl drop-shadow-md animate-bounce-slow">{myLevel.emoji}</span>
+                                <h3 className="text-3xl font-black text-white uppercase italic tracking-wider drop-shadow-lg">{myLevel.name}</h3>
+                                <p className="text-sm font-bold text-white/90">{myLevel.rank}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button onClick={() => setIsLevelUpCelebrationOpen(false)} className="mt-8 w-full py-4 bg-white text-black font-extrabold rounded-xl hover:bg-slate-200 transition shadow-lg relative z-10">멋져요! 😎</button>
+                </motion.div>
+            </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* 등급 가이드 모달 (기존 유지) */}
       {isLevelModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsLevelModalOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -723,7 +821,6 @@ export default function Dashboard() {
                         <p className="text-xs font-bold text-slate-400 mb-2">🤖 AI 분석 피드백</p>
                         <p className="font-bold leading-relaxed text-slate-200">{analysisData.advice}</p>
                     </div>
-                    {/* 👇 병원 찾기 버튼 (8점 이상일 때 표시) */}
                     {Number(analysisData.avgPain) >= 8 && (
                         <a href="https://map.naver.com/p/search/정형외과" target="_blank" rel="noreferrer" className="block w-full py-3 mt-2 bg-red-600 hover:bg-red-500 text-white font-bold text-center rounded-xl animate-pulse shadow-lg transition flex items-center justify-center gap-2">
                             <Icons.Map /> 🏥 근처 정형외과 찾기 (네이버)
