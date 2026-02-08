@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation"
 import toast, { Toaster } from 'react-hot-toast'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
-// 👇 Tooltip 다시 추가했습니다!
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { toPng } from 'html-to-image'
 import jsPDF from 'jspdf'
@@ -27,7 +26,8 @@ const Icons = {
   Share: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>,
   Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
   Camera: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
-  Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+  Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+  Chart: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
 }
 
 const getLevel = (count: number) => {
@@ -46,10 +46,10 @@ export default function Dashboard() {
   const reportRef = useRef<HTMLDivElement>(null)
   const shareCardRef = useRef<HTMLDivElement>(null)
   const [shareData, setShareData] = useState<any>(null)
-  
-  // 결과 이미지 팝업용 상태
   const [resultImage, setResultImage] = useState<string | null>(null)
   const [isResultOpen, setIsResultOpen] = useState(false)
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
+  const [analysisData, setAnalysisData] = useState<any>(null)
 
   const [streak, setStreak] = useState(0)
   const [myLevel, setMyLevel] = useState<any>(getLevel(0))
@@ -77,12 +77,52 @@ export default function Dashboard() {
     const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single()
     setUserName(profile?.username || user.email?.split("@")[0] || "선수")
     const { data } = await supabase.from('logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-    if (data) { setLogs(data); setMyLevel(getLevel(data.length)); calculateStreak(data); }
+    if (data) { 
+        setLogs(data); 
+        setMyLevel(getLevel(data.length)); 
+        calculateStreak(data); 
+        analyzeLogs(data); 
+    }
     const today = new Date().toISOString().split('T')[0]
     const { data: conditionData } = await supabase.from('daily_conditions').select('*').eq('user_id', user.id).gte('created_at', `${today}T00:00:00`).limit(1)
     if (conditionData && conditionData.length > 0) setTodayCondition(conditionData[0].status)
     setLoading(false)
   }
+
+  // 🏥 데이터 분석 함수 (문구 수정됨)
+  const analyzeLogs = (data: any[]) => {
+    if (data.length === 0) return;
+
+    const partCounts: {[key: string]: number} = {};
+    let totalPain = 0;
+    let painLogCount = 0;
+
+    data.forEach(log => {
+        if (log.pain_score > 0) {
+            totalPain += log.pain_score;
+            painLogCount++;
+            const match = log.content?.match(/^\[(.*?)\]/);
+            if (match) {
+                match[1].split(', ').forEach((p: string) => {
+                    partCounts[p] = (partCounts[p] || 0) + 1;
+                });
+            }
+        }
+    });
+
+    const sortedParts = Object.entries(partCounts).sort((a, b) => b[1] - a[1]);
+    const worstPart = sortedParts.length > 0 ? sortedParts[0][0] : '없음';
+    const avgPain = painLogCount > 0 ? (totalPain / painLogCount).toFixed(1) : '0';
+
+    let advice = "꾸준한 운동이 답입니다! 💪";
+    if (Number(avgPain) > 7) advice = "🚨 통증 점수가 높습니다. 충분한 휴식을 취하거나 전문가 상담을 권장합니다.";
+    else if (worstPart.includes("무릎")) advice = "🦵 무릎 부하가 많네요. 대퇴사두근과 햄스트링 보강 운동이 도움될 수 있습니다.";
+    else if (worstPart.includes("허리")) advice = "🧘 허리가 불편하시군요. 코어 운동과 스트레칭을 루틴에 추가해보세요.";
+    else if (worstPart.includes("발목")) advice = "🦶 발목 안정성을 위해 밸런스 운동을 워밍업에 넣어보는 건 어떨까요?";
+    else if (worstPart.includes("어깨")) advice = "🙆‍♂️ 어깨 회전근개 강화와 흉추 가동성 운동을 추천합니다.";
+
+    setAnalysisData({ worstPart, avgPain, advice, totalLogs: data.length });
+  };
 
   const calculateStreak = (logs: any[]) => {
     if (logs.length === 0) return setStreak(0);
@@ -110,7 +150,6 @@ export default function Dashboard() {
     toast.success("컨디션 기록 완료!")
   }
 
-  // 📄 PDF 다운로드 (모바일 공유 기능 사용)
   const handleDownloadPDF = async () => {
     if (!reportRef.current) return
     const t = toast.loading("리포트 생성 중... 잠시만요!")
@@ -126,22 +165,11 @@ export default function Dashboard() {
         const pdfWidth = pdf.internal.pageSize.getWidth()
         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
         pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight)
-        
-        // 모바일 Web Share API 시도
         const pdfBlob = pdf.output('blob');
         const file = new File([pdfBlob], `Moveplaza_Report.pdf`, { type: 'application/pdf' });
-
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-             await navigator.share({ files: [file], title: 'Moveplaza 리포트' });
-             toast.dismiss(t);
-        } else {
-             pdf.save(`${userName}_Moveplaza_Report.pdf`)
-             toast.success("다운로드 완료! (PC)", { id: t })
-        }
-      } catch (e) { 
-        console.error(e); 
-        toast.error("인스타그램 정책상 저장이 차단되었습니다 ㅠ 캡처를 이용해주세요.", { id: t, duration: 5000 }) 
-      }
+        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Moveplaza 리포트' }); toast.dismiss(t); } 
+        else { pdf.save(`${userName}_Moveplaza_Report.pdf`); toast.success("다운로드 완료! (PC)", { id: t }) }
+      } catch (e) { console.error(e); toast.error("인스타그램 정책상 저장이 차단되었습니다 ㅠ 캡처를 이용해주세요.", { id: t, duration: 5000 }) }
     }, 1000);
   }
 
@@ -187,7 +215,6 @@ export default function Dashboard() {
     else setSelectedParts([...selectedParts, part])
   }
 
-  // 📸 공유 버튼 클릭 시: 이미지 생성 후 팝업 띄움
   const handleShareClick = async (log: any) => {
     setShareData(log)
     const t = toast.loading("카드 만드는 중... 🎨")
@@ -195,51 +222,21 @@ export default function Dashboard() {
       if (shareCardRef.current) {
         try {
           const dataUrl = await toPng(shareCardRef.current, { cacheBust: true, pixelRatio: 3, backgroundColor: '#0f172a' })
-          setResultImage(dataUrl) // 생성된 이미지 저장
-          setIsResultOpen(true)   // 팝업 열기
-          toast.dismiss(t)
-        } catch (error) {
-          console.error(error);
-          toast.error("실패 ㅠ 다시 시도해주세요.", { id: t });
-        }
+          setResultImage(dataUrl); setIsResultOpen(true); toast.dismiss(t)
+        } catch (error) { console.error(error); toast.error("실패 ㅠ 다시 시도해주세요.", { id: t }); }
         setShareData(null);
       }
     }, 1000);
   }
 
-  // 💾 팝업 내 "저장 버튼" 클릭 시: 실제 공유/저장 실행
   const handleSaveResultImage = async (dataUrl: string) => {
     const t = toast.loading("저장/공유 창 여는 중...")
     try {
-      // DataURL을 파일 객체로 변환
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], "moveplaza_card.png", { type: "image/png" });
-
-      // 모바일 공유 기능 호출
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: 'Moveplaza 공유 카드',
-            text: '나의 운동 기록 카드입니다!',
-          });
-          toast.dismiss(t);
-      } else {
-          // PC 등 미지원 환경 (다운로드 시도)
-          const link = document.createElement('a');
-          link.download = 'moveplaza_card.png';
-          link.href = dataUrl;
-          link.click();
-          toast.success("PC: 다운로드됨 / 모바일: '공유'를 지원하지 않는 브라우저입니다.", { id: t, duration: 4000 });
-      }
-    } catch (error: any) {
-      // 사용자가 공유창을 닫은 경우(AbortError)는 에러 아님
-      if (error.name !== 'AbortError') {
-          console.error(error);
-          toast.error("인스타그램 정책상 저장이 차단되었습니다. 캡처를 이용해주세요 ㅠ", { id: t, duration: 5000 });
-      } else {
-          toast.dismiss(t);
-      }
-    }
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Moveplaza 공유 카드', text: '나의 운동 기록 카드입니다!', }); toast.dismiss(t); } 
+      else { const link = document.createElement('a'); link.download = 'moveplaza_card.png'; link.href = dataUrl; link.click(); toast.success("PC: 다운로드됨", { id: t }); }
+    } catch (error: any) { if (error.name !== 'AbortError') { console.error(error); toast.error("저장이 차단되었습니다 ㅠ", { id: t }); } else { toast.dismiss(t); } }
   }
 
   const rehabLogs = logs.filter((log: any) => { if (log.type === 'workout') return false; if (log.intensity) return false; return true; })
@@ -250,26 +247,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-24">
       <Toaster position="top-center" />
-      
-      {/* 📸 공유용 숨겨진 카드 */}
-      {shareData && (
-        <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-1] opacity-0 pointer-events-none">
-          <div ref={shareCardRef} className="w-[500px] h-[500px] bg-slate-900 p-8 flex flex-col justify-between text-white relative overflow-hidden font-sans">
-            {shareData.image_url ? (
-              <><img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" /><div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 z-0"></div></>
-            ) : (
-              <><div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 z-0"></div><div className="absolute top-[-50px] right-[-50px] w-[200px] h-[200px] bg-blue-600 rounded-full blur-[90px] opacity-60 z-0"></div><div className="absolute bottom-[-50px] left-[-50px] w-[200px] h-[200px] bg-red-600 rounded-full blur-[90px] opacity-50 z-0"></div></>
-            )}
-            <div className="z-10 relative">
-              <div className="flex justify-between items-start mb-4"><span className={`px-4 py-1.5 rounded-full text-sm font-black tracking-wide ${shareData.log_type === 'workout' ? 'bg-blue-600' : 'bg-red-600'}`}>{shareData.log_type === 'workout' ? 'WORKOUT LOG' : 'REHAB LOG'}</span><p className="text-white/80 font-bold text-sm">{new Date(shareData.created_at).toLocaleDateString()}</p></div>
-              <h1 className="text-4xl font-black leading-tight mb-4 tracking-tight drop-shadow-lg">{shareData.title}</h1><p className="text-white/90 text-lg font-medium leading-relaxed line-clamp-4 drop-shadow-md">{shareData.content}</p>
-            </div>
-            <div className="z-10 relative border-t border-white/20 pt-6 flex justify-between items-end"><div><p className="text-white/70 text-xs font-black tracking-widest mb-1">INTENSITY</p><p className="text-5xl font-black text-white drop-shadow-lg">{shareData.pain_score}<span className="text-xl text-white/60 ml-1">/ 10</span></p></div><div className="text-right"><p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg">MOVEPLAZA</p><p className="text-[10px] text-white/70 font-bold tracking-widest uppercase">Athlete Performance System</p></div></div>
-          </div>
-        </div>
-      )}
+      {shareData && (<div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-1] opacity-0 pointer-events-none"><div ref={shareCardRef} className="w-[500px] h-[500px] bg-slate-900 p-8 flex flex-col justify-between text-white relative overflow-hidden font-sans">{shareData.image_url ? (<><img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" /><div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 z-0"></div></>) : (<><div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 z-0"></div><div className="absolute top-[-50px] right-[-50px] w-[200px] h-[200px] bg-blue-600 rounded-full blur-[90px] opacity-60 z-0"></div><div className="absolute bottom-[-50px] left-[-50px] w-[200px] h-[200px] bg-red-600 rounded-full blur-[90px] opacity-50 z-0"></div></>)}<div className="z-10 relative"><div className="flex justify-between items-start mb-4"><span className={`px-4 py-1.5 rounded-full text-sm font-black tracking-wide ${shareData.log_type === 'workout' ? 'bg-blue-600' : 'bg-red-600'}`}>{shareData.log_type === 'workout' ? 'WORKOUT LOG' : 'REHAB LOG'}</span><p className="text-white/80 font-bold text-sm">{new Date(shareData.created_at).toLocaleDateString()}</p></div><h1 className="text-4xl font-black leading-tight mb-4 tracking-tight drop-shadow-lg">{shareData.title}</h1><p className="text-white/90 text-lg font-medium leading-relaxed line-clamp-4 drop-shadow-md">{shareData.content}</p></div><div className="z-10 relative border-t border-white/20 pt-6 flex justify-between items-end"><div><p className="text-white/70 text-xs font-black tracking-widest mb-1">INTENSITY</p><p className="text-5xl font-black text-white drop-shadow-lg">{shareData.pain_score}<span className="text-xl text-white/60 ml-1">/ 10</span></p></div><div className="text-right"><p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg">MOVEPLAZA</p><p className="text-[10px] text-white/70 font-bold tracking-widest uppercase">Athlete Performance System</p></div></div></div></div>)}
 
-      {/* 헤더 */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 transition-all">
         <div className="max-w-md mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.reload()}><div className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-blue-900/20 shadow-lg">M</div><span className="text-xl font-black tracking-tight text-slate-900">MOVEPLAZA</span></div>
@@ -277,11 +256,15 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* 메인 컨텐츠 */}
       <main className="max-w-md mx-auto px-5 pt-8 space-y-8 animate-slide-up bg-white" ref={reportRef}>
-        <section><h2 className="text-3xl font-extrabold text-slate-900 leading-tight">안녕하세요,<br/><span className="text-blue-600">{userName}</span>님!</h2><p className="text-slate-500 font-bold mt-2 text-sm">오늘도 부상 없이 득근해볼까요? 💪</p></section>
+        <section>
+            <div className="flex justify-between items-end">
+                <div><h2 className="text-3xl font-extrabold text-slate-900 leading-tight">안녕하세요,<br/><span className="text-blue-600">{userName}</span>님!</h2><p className="text-slate-500 font-bold mt-2 text-sm">오늘도 부상 없이 득근해볼까요? 💪</p></div>
+                {/* 🆕 분석 리포트 버튼 */}
+                <button onClick={() => setIsAnalysisOpen(true)} className="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-lg hover:bg-slate-700 transition flex items-center gap-1"><Icons.Chart /> 내 몸 분석</button>
+            </div>
+        </section>
 
-        {/* 1. 컨디션 & 스트릭 */}
         <section className="grid grid-cols-1 gap-4">
             <div className="bg-white rounded-3xl p-5 shadow-lg border border-slate-100 flex items-center justify-between">
                 <div><h2 className="font-extrabold text-slate-900 text-sm mb-1">오늘 컨디션 👋</h2><p className="text-slate-400 font-bold text-xs">부상 방지 체크!</p></div>
@@ -290,14 +273,12 @@ export default function Dashboard() {
             <div className={`rounded-3xl p-6 shadow-lg border-2 border-white relative overflow-hidden text-white ${myLevel.color}`}><div className="relative z-10 flex justify-between items-end"><div><div className="flex items-center gap-2 mb-1"><span className="text-2xl">{myLevel.emoji}</span><span className="font-black text-xl uppercase italic tracking-wider">{myLevel.name}</span></div><p className="font-bold text-white/90 text-xs mb-3">현재 등급: {myLevel.rank}</p><div className="flex items-center gap-2"><span className="text-3xl font-black">{streak}</span><span className="text-sm font-bold opacity-80">일 연속! 🔥</span></div></div><div className="text-right"><p className="text-xs font-bold opacity-70 mb-1">다음 등급까지</p><p className="text-lg font-black">{myLevel.next - logs.length}회</p></div></div></div>
         </section>
 
-        {/* 2. 부상 히트맵 */}
         <section className="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/60 border border-slate-100 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-full blur-3xl opacity-60 -mr-10 -mt-10 pointer-events-none"></div>
           <div className="flex justify-between items-end mb-6 relative"><div><h3 className="text-lg font-black text-slate-900 flex items-center gap-2">부상 히트맵 <span className="text-red-500 animate-pulse"><Icons.AlertCircle /></span></h3><p className="text-xs font-bold text-slate-400 mt-1">최근 통증 부위 (재활 기록만)</p></div><div className="text-right"><span className="block text-3xl font-black text-slate-900">{rehabLogs.length}</span><span className="text-xs font-bold text-slate-400">건의 통증</span></div></div>
           <div className="flex flex-wrap gap-2 relative z-10">{bodyParts.map((part) => { const count = bodyPartCounts[part] || 0; return (<div key={part} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-300 ${getSeverityColor(count)}`}>{part} {count > 0 && <span className="ml-1 opacity-90 text-[10px]">({count})</span>}</div>) })}</div>
         </section>
 
-        {/* 3. 캘린더 & 차트 (Tooltip 개선됨) */}
         <section className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100">
            <h3 className="font-extrabold text-slate-900 mb-4">활동 흐름</h3>
            <div className="h-40 mb-6">
@@ -305,23 +286,7 @@ export default function Dashboard() {
                <LineChart data={logs.slice(0, 7).reverse()}>
                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                  <XAxis dataKey="created_at" tickFormatter={(d) => new Date(d).getDate() + '일'} tick={{fontSize:10}} axisLine={false} tickLine={false} />
-                 
-                 {/* 👇 여기가 핵심! 위치를 상단(y: 0)으로 고정해서 그래프를 가리지 않게 함 */}
-                 <Tooltip 
-                   position={{ y: 0 }} 
-                   contentStyle={{ 
-                     backgroundColor: 'rgba(255, 255, 255, 0.9)', 
-                     border: 'none', 
-                     borderRadius: '8px', 
-                     boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                     fontSize: '12px',
-                     padding: '4px 8px',
-                     fontWeight: 'bold'
-                   }} 
-                   labelStyle={{ display: 'none' }} // 날짜 중복 표시 제거 (깔끔하게)
-                   formatter={(value, name, props) => [`${value}점`, `${new Date(props.payload.created_at).getDate()}일 기록`]} // 내용 커스텀
-                 />
-                 
+                 <Tooltip position={{ y: 0 }} contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', border: 'none', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', fontSize: '12px', padding: '4px 8px', fontWeight: 'bold' }} labelStyle={{ display: 'none' }} formatter={(value, name, props) => [`${value}점`, `${new Date(props.payload.created_at).getDate()}일 기록`]} />
                  <Line type="monotone" dataKey="pain_score" stroke="#2563eb" strokeWidth={3} dot={{r:3}} activeDot={{r:5}} isAnimationActive={false} />
                </LineChart>
              </ResponsiveContainer>
@@ -330,7 +295,6 @@ export default function Dashboard() {
            <Calendar onClickDay={setSelectedDate} value={selectedDate} tileContent={({ date }) => logs.some(l => new Date(l.created_at).toDateString() === date.toDateString()) ? <div className="flex justify-center mt-1"><div className="w-1 h-1 bg-blue-600 rounded-full"></div></div> : null} />
         </section>
 
-        {/* 4. 로그 리스트 */}
         <section>
           <div className="flex justify-between items-center mb-4 px-1"><h3 className="text-xl font-black text-slate-900">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3><div className="flex gap-2"><button onClick={handleDownloadPDF} className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-bold hover:bg-slate-200">📄 리포트 저장</button>{selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-gray-200 px-2 py-1 rounded-lg font-bold">전체보기</button>}</div></div>
           <div className="space-y-3">{loading ? (<div className="text-center py-10 font-bold text-slate-300">로딩 중...</div>) : filteredLogs.length === 0 ? (<div className="text-center py-12 bg-white rounded-3xl border-2 border-dashed border-slate-200"><p className="text-slate-400 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-600 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { const isWorkout = log.log_type === 'workout' || (log.pain_score && !log.content.includes('통증')); return (<div key={log.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition hover:shadow-md hover:scale-[1.01] cursor-default group"><div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden shrink-0 ${isWorkout ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>{log.image_url ? <img src={log.image_url} alt="인증" className="w-full h-full object-cover" /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />)}</div><div><div className="font-black text-slate-900 text-sm mb-0.5">{log.title}</div><div className="text-xs font-bold text-slate-500 line-clamp-1">{log.content}</div></div></div><div className="flex items-center gap-3"><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-50 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500' : 'text-slate-900'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-400">점</div></div></div></div>) }))}</div>
@@ -339,6 +303,35 @@ export default function Dashboard() {
 
       {/* 플로팅 버튼 & 모달 */}
       <div className="fixed bottom-0 left-0 right-0 p-6 pointer-events-none flex justify-end max-w-md mx-auto z-40"><button onClick={() => setIsModalOpen(true)} className="pointer-events-auto w-16 h-16 bg-blue-600 rounded-full shadow-xl shadow-blue-600/40 flex items-center justify-center text-white hover:bg-blue-700 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
+      
+      {/* 🆕 분석 리포트 모달 (문구 수정: AI 분석 피드백) */}
+      {isAnalysisOpen && analysisData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsAnalysisOpen(false)}>
+            <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setIsAnalysisOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><Icons.X /></button>
+                <h3 className="text-xl font-black text-slate-900 mb-1">📊 내 몸 분석 리포트</h3>
+                <p className="text-xs text-slate-500 font-bold mb-6">{analysisData.totalLogs}개의 기록을 분석했습니다.</p>
+                
+                <div className="space-y-4">
+                    <div className="bg-blue-50 p-4 rounded-2xl flex items-center justify-between">
+                        <div><p className="text-xs font-bold text-blue-600">가장 많이 아픈 곳</p><p className="text-2xl font-black text-slate-900">{analysisData.worstPart}</p></div>
+                        <div className="text-4xl">🤕</div>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-2xl flex items-center justify-between">
+                        <div><p className="text-xs font-bold text-red-600">평균 통증 점수</p><p className="text-2xl font-black text-slate-900">{analysisData.avgPain}<span className="text-sm text-slate-400">점</span></p></div>
+                        <div className="text-4xl">🌡️</div>
+                    </div>
+                    <div className="bg-slate-900 p-5 rounded-2xl text-white">
+                        {/* 👇 여기 문구 수정됨! */}
+                        <p className="text-xs font-bold text-slate-400 mb-2">🤖 AI 분석 피드백</p>
+                        <p className="font-bold leading-relaxed">{analysisData.advice}</p>
+                    </div>
+                </div>
+                <button onClick={() => setIsAnalysisOpen(false)} className="mt-6 w-full py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition">닫기</button>
+            </div>
+        </div>
+      )}
+
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
           <div className="bg-white w-full max-w-md h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-modal">
@@ -357,27 +350,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 🟢 결과 이미지 팝업 (저장 버튼 추가됨!) */}
       {isResultOpen && resultImage && (
         <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-4 animate-fade-in">
           <div className="relative max-w-sm w-full space-y-4">
             <h3 className="text-white font-bold text-center text-lg animate-pulse">👇 아래 버튼을 눌러 저장하세요!</h3>
             <img src={resultImage} alt="결과" className="w-full rounded-2xl shadow-2xl border border-white/10" />
-            
-            {/* ✨ 새로 추가된 저장 버튼 ✨ */}
-            <button 
-              onClick={() => handleSaveResultImage(resultImage)} 
-              className="w-full py-4 bg-blue-600 text-white font-extrabold rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
-            >
-              <Icons.Download /> 이미지 저장 / 공유하기
-            </button>
-
-            <button 
-              onClick={() => setIsResultOpen(false)} 
-              className="w-full py-4 bg-white text-black font-extrabold rounded-xl shadow-lg hover:bg-gray-200 transition"
-            >
-              닫기
-            </button>
+            <button onClick={() => handleSaveResultImage(resultImage)} className="w-full py-4 bg-blue-600 text-white font-extrabold rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"><Icons.Download /> 이미지 저장 / 공유하기</button>
+            <button onClick={() => setIsResultOpen(false)} className="w-full py-4 bg-white text-black font-extrabold rounded-xl shadow-lg hover:bg-gray-200 transition">닫기</button>
           </div>
         </div>
       )}
