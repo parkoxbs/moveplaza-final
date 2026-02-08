@@ -37,15 +37,17 @@ const Icons = {
   Star: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
 }
 
-// 🆕 등급 시스템 정의
+// 🆕 확 바뀐 레벨 시스템 (난이도 상향 & 디자인 강화)
+// color: 배경 그라데이션, text: 텍스트 색상, glow: 그림자/후광 효과
 const LEVEL_SYSTEM = [
-  { name: 'Rookie', rank: '루키', emoji: '🐣', min: 0, color: 'bg-green-500', desc: '운동을 막 시작한 신인 선수' },
-  { name: 'Semi-Pro', rank: '세미 프로', emoji: '🏃', min: 10, color: 'bg-blue-500', desc: '꾸준함이 몸에 배기 시작한 단계' },
-  { name: 'Pro', rank: '프로', emoji: '🔥', min: 30, color: 'bg-red-500', desc: '자기 관리가 확실한 프로급 선수' },
-  { name: 'World Class', rank: '월드 클래스', emoji: '👑', min: 50, color: 'bg-purple-600', desc: '모두가 인정하는 레전드' }
+  { name: 'Rookie', rank: '루키', emoji: '🐣', min: 0, color: 'bg-gradient-to-br from-slate-700 to-slate-600', glow: 'shadow-none', desc: '운동의 세계에 첫 발을 내딛은 신인' },
+  { name: 'Beginner', rank: '비기너', emoji: '🌱', min: 15, color: 'bg-gradient-to-br from-emerald-600 to-teal-500', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.4)]', desc: '기초 체력을 다지며 성장하는 단계' },
+  { name: 'Semi-Pro', rank: '세미 프로', emoji: '🏃', min: 50, color: 'bg-gradient-to-br from-blue-600 to-indigo-500', glow: 'shadow-[0_0_15px_rgba(59,130,246,0.4)]', desc: '꾸준함이 몸에 배어가는 유망주' },
+  { name: 'Pro', rank: '프로', emoji: '🔥', min: 100, color: 'bg-gradient-to-br from-red-600 to-orange-500', glow: 'shadow-[0_0_20px_rgba(239,68,68,0.5)]', desc: '자기 관리가 확실한 지역구 에이스' },
+  { name: 'World Class', rank: '월드 클래스', emoji: '💎', min: 200, color: 'bg-gradient-to-br from-purple-600 via-fuchsia-500 to-pink-500', glow: 'shadow-[0_0_25px_rgba(192,38,211,0.6)]', desc: '모두가 인정하는 압도적 퍼포먼스' },
+  { name: 'Legend', rank: '레전드', emoji: '👑', min: 400, color: 'bg-gradient-to-br from-yellow-500 via-amber-400 to-yellow-600', glow: 'shadow-[0_0_30px_rgba(245,158,11,0.7)] ring-2 ring-yellow-300', desc: '명예의 전당에 오를 살아있는 전설' }
 ];
 
-// 꿀팁 리스트
 const REHAB_TIPS = [
   "🤕 발목 삐끗(염좌) 직후엔 RICE! 휴식(Rest), 냉찜질(Ice), 압박(Compression), 거상(Elevation)을 기억하세요.",
   "🦵 햄스트링은 다치기 쉽습니다. 운동 전 폼롤러보다 동적 스트레칭(다리 흔들기 등)이 훨씬 효과적입니다.",
@@ -58,10 +60,8 @@ const REHAB_TIPS = [
 ];
 
 const getLevel = (count: number) => {
-  // 배열을 역순으로 돌면서 조건에 맞는 가장 높은 등급을 찾음
   for (let i = LEVEL_SYSTEM.length - 1; i >= 0; i--) {
     if (count >= LEVEL_SYSTEM[i].min) {
-        // 다음 레벨 찾기
         const nextLevel = LEVEL_SYSTEM[i + 1];
         return { 
             ...LEVEL_SYSTEM[i], 
@@ -70,7 +70,7 @@ const getLevel = (count: number) => {
         };
     }
   }
-  return { ...LEVEL_SYSTEM[0], next: 10, nextName: '세미 프로' };
+  return { ...LEVEL_SYSTEM[0], next: 15, nextName: '비기너' };
 };
 
 export default function Dashboard() {
@@ -91,7 +91,7 @@ export default function Dashboard() {
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false)
   const [suggestionText, setSuggestionText] = useState("")
   const [todayTip, setTodayTip] = useState("")
-  const [isLevelModalOpen, setIsLevelModalOpen] = useState(false) // 🆕 등급 모달 상태
+  const [isLevelModalOpen, setIsLevelModalOpen] = useState(false) 
 
   const [streak, setStreak] = useState(0)
   const [myLevel, setMyLevel] = useState<any>(getLevel(0))
@@ -468,7 +468,7 @@ export default function Dashboard() {
             </div>
             
             {/* 🆕 등급 가이드 버튼 추가됨 */}
-            <div className={`rounded-3xl p-6 shadow-lg border-2 border-white/10 relative overflow-hidden text-white ${myLevel.color}`}>
+            <div className={`rounded-3xl p-6 shadow-lg border-2 border-white/10 relative overflow-hidden text-white ${myLevel.color} ${myLevel.glow}`}>
                 <div className="relative z-10 flex justify-between items-end">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -484,7 +484,15 @@ export default function Dashboard() {
                     <div className="text-right">
                         <button onClick={() => setIsLevelModalOpen(true)} className="absolute top-0 right-0 p-2 text-white/70 hover:text-white"><Icons.Info /></button>
                         <p className="text-xs font-bold opacity-70 mb-1">다음 {myLevel.nextName}까지</p>
-                        <p className="text-lg font-black">{Math.max(0, myLevel.next - logs.length)}회</p>
+                        
+                        {/* 🆕 프로그레스 바 추가 */}
+                        <div className="w-24 h-1.5 bg-black/20 rounded-full mt-1 overflow-hidden">
+                            <div 
+                                className="h-full bg-white/90 rounded-full transition-all duration-1000" 
+                                style={{ width: `${Math.min(100, (logs.length / myLevel.next) * 100)}%` }}
+                            ></div>
+                        </div>
+                        <p className="text-lg font-black mt-1">{Math.max(0, myLevel.next - logs.length)}회</p>
                     </div>
                 </div>
             </div>
@@ -611,31 +619,36 @@ export default function Dashboard() {
       {/* 🆕 등급 가이드 모달 */}
       {isLevelModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsLevelModalOpen(false)}>
-            <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-                <button onClick={() => setIsLevelModalOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
-                <h3 className="text-xl font-black text-white mb-6 flex items-center gap-2">🏆 등급 시스템 가이드</h3>
+            <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setIsLevelModalOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white z-10"><Icons.X /></button>
+                <div className="text-center mb-6">
+                    <h3 className="text-2xl font-black text-white mb-1 flex items-center justify-center gap-2">🏆 등급 시스템 가이드</h3>
+                    <p className="text-xs text-slate-400 font-bold">기록을 쌓아 최고의 선수가 되어보세요!</p>
+                </div>
                 
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
                     {LEVEL_SYSTEM.map((level) => (
-                        <div key={level.name} className={`p-4 rounded-2xl border flex items-center justify-between ${myLevel.name === level.name ? 'bg-slate-800 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'bg-slate-900/50 border-white/5 opacity-60'}`}>
-                            <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-lg ${level.color} text-white`}>{level.emoji}</div>
+                        <div key={level.name} className={`p-4 rounded-2xl border flex items-center justify-between transition-all duration-300 ${myLevel.name === level.name ? `bg-slate-800 border-white/20 ${level.glow}` : 'bg-slate-900/50 border-white/5 opacity-70 grayscale hover:grayscale-0'}`}>
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-lg ${level.color} text-white`}>{level.emoji}</div>
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <h4 className={`font-black text-sm ${myLevel.name === level.name ? 'text-blue-400' : 'text-white'}`}>{level.rank}</h4>
-                                        {myLevel.name === level.name && <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-md font-bold">ME</span>}
+                                        <h4 className={`font-black text-base ${myLevel.name === level.name ? 'text-white' : 'text-slate-300'}`}>{level.rank}</h4>
+                                        {myLevel.name === level.name && <span className="text-[10px] bg-white text-black px-1.5 py-0.5 rounded-md font-extrabold animate-pulse">ME</span>}
                                     </div>
-                                    <p className="text-[10px] text-slate-400 font-bold">{level.desc}</p>
+                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">{level.desc}</p>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <p className="text-[10px] font-bold text-slate-500">필요 기록</p>
-                                <p className="text-sm font-black text-white">{level.min}회+</p>
+                                <p className="text-[10px] font-bold text-slate-500 mb-0.5">필요 기록</p>
+                                <p className="text-lg font-black text-white italic">{level.min}<span className="text-xs not-italic ml-0.5 text-slate-500">회+</span></p>
                             </div>
                         </div>
                     ))}
                 </div>
-                <button onClick={() => setIsLevelModalOpen(false)} className="mt-6 w-full py-3 bg-slate-800 text-white font-extrabold rounded-xl hover:bg-slate-700 transition">확인했습니다</button>
+                <div className="mt-6">
+                    <button onClick={() => setIsLevelModalOpen(false)} className="w-full py-4 bg-white text-black font-extrabold rounded-xl hover:bg-slate-200 transition shadow-lg">도전하겠습니다 🔥</button>
+                </div>
             </div>
         </div>
       )}
@@ -710,6 +723,7 @@ export default function Dashboard() {
                         <p className="text-xs font-bold text-slate-400 mb-2">🤖 AI 분석 피드백</p>
                         <p className="font-bold leading-relaxed text-slate-200">{analysisData.advice}</p>
                     </div>
+                    {/* 👇 병원 찾기 버튼 (8점 이상일 때 표시) */}
                     {Number(analysisData.avgPain) >= 8 && (
                         <a href="https://map.naver.com/p/search/정형외과" target="_blank" rel="noreferrer" className="block w-full py-3 mt-2 bg-red-600 hover:bg-red-500 text-white font-bold text-center rounded-xl animate-pulse shadow-lg transition flex items-center justify-center gap-2">
                             <Icons.Map /> 🏥 근처 정형외과 찾기 (네이버)
@@ -731,10 +745,12 @@ export default function Dashboard() {
                <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 placeholder-slate-600" placeholder="제목 입력" /></div>
                <div><label className="block text-sm font-bold text-slate-400 mb-2">사진/영상 추가</label><div className="flex items-center gap-3"><label className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-500/10 transition overflow-hidden text-slate-500">{mediaPreview ? <img src={mediaPreview} className="w-full h-full object-cover" /> : <Icons.Camera />}<input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} /></label><span className="text-xs text-slate-500 font-bold">{mediaFile ? "파일 선택됨 ✅" : "운동 인증샷이나 통증 부위를 찍어보세요."}</span></div></div>
                
+               {/* 👇 여기에 BodyMap 추가됨! */}
                <div>
                  <label className="block text-sm font-bold text-slate-400 mb-2">관련 부위 (터치)</label>
                  <BodyMap selectedParts={selectedParts} togglePart={togglePart} type={logType} />
                  
+                 {/* 👇 버튼 리스트 추가: BodyMap 아래에 위치 */}
                  <div className="mt-4 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                    {bodyParts.map((part) => (
                      <button
