@@ -120,6 +120,7 @@ export default function Dashboard() {
     toast.success("컨디션 기록 완료!")
   }
 
+  // 📄 PDF 다운로드 (백지 수정 및 스크롤 전체 캡처)
   const handleDownloadPDF = async () => {
     if (!reportRef.current) return
     const t = toast.loading("PDF 리포트 생성 중...")
@@ -127,7 +128,14 @@ export default function Dashboard() {
       const element = reportRef.current
       const width = element.scrollWidth
       const height = element.scrollHeight
-      const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff', width: width, height: height, style: { padding: '40px', background: 'white' } })
+      const dataUrl = await toPng(element, { 
+        cacheBust: true, 
+        pixelRatio: 2, 
+        backgroundColor: '#ffffff', 
+        width: width, 
+        height: height, 
+        style: { padding: '40px', background: 'white' } 
+      })
       const pdf = new jsPDF('p', 'mm', 'a4')
       const imgProps = pdf.getImageProperties(dataUrl)
       const pdfWidth = pdf.internal.pageSize.getWidth()
@@ -201,22 +209,48 @@ export default function Dashboard() {
     if (!error) { toast.success('삭제 완료!'); setLogs(logs.filter(l => l.id !== id)) }
   }
 
+  // 📸 공유 기능 (인스타 브라우저 대응: Web Share API)
   const handleShare = async (log: any) => {
     setShareData(log)
     const t = toast.loading("카드 생성 중...")
+    
     setTimeout(async () => {
       if (shareCardRef.current) {
         try {
-          const dataUrl = await toPng(shareCardRef.current, { cacheBust: true, pixelRatio: 3 })
-          const link = document.createElement('a')
-          link.download = `Moveplaza_Share.png`
-          link.href = dataUrl
-          link.click()
-          toast.success("이미지 저장 완료!", { id: t })
-        } catch { toast.error("실패 ㅠ", { id: t }) }
-        setShareData(null)
+          // 1. 이미지 생성 (다크모드 배경 강제)
+          const dataUrl = await toPng(shareCardRef.current, { 
+            cacheBust: true, 
+            pixelRatio: 3,
+            backgroundColor: '#0f172a' 
+          })
+
+          // 2. Blob으로 변환 (모바일 공유용)
+          const blob = await (await fetch(dataUrl)).blob();
+          const file = new File([blob], "moveplaza_share.png", { type: "image/png" });
+
+          // 3. Web Share API 시도 (모바일)
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: 'Moveplaza 기록',
+              text: '오늘의 운동 기록을 확인하세요! 💪',
+            });
+            toast.success("공유 창이 열렸습니다!", { id: t });
+          } else {
+            // 4. PC/미지원 브라우저용 다운로드
+            const link = document.createElement('a');
+            link.download = `Moveplaza_Share.png`;
+            link.href = dataUrl;
+            link.click();
+            toast.success("갤러리에 저장되었습니다! (PC)", { id: t });
+          }
+        } catch (error) {
+          console.error(error);
+          toast.error("인스타그램 브라우저에서는 저장이 제한될 수 있습니다. 'Chrome'이나 'Safari' 앱으로 열어주세요.", { id: t, duration: 5000 });
+        }
+        setShareData(null);
       }
-    }, 500)
+    }, 1000);
   }
 
   const togglePart = (part: string) => {
