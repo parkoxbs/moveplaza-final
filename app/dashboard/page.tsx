@@ -31,8 +31,22 @@ const Icons = {
   Chart: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>,
   Info: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>,
   Copy: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
-  Map: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+  Map: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
+  MessageSquare: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>,
+  Bulb: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
 }
+
+// 꿀팁 리스트
+const REHAB_TIPS = [
+  "🤕 발목 삐끗(염좌) 직후엔 RICE! 휴식(Rest), 냉찜질(Ice), 압박(Compression), 거상(Elevation)을 기억하세요.",
+  "🦵 햄스트링은 다치기 쉽습니다. 운동 전 폼롤러보다 동적 스트레칭(다리 흔들기 등)이 훨씬 효과적입니다.",
+  "💊 통증 점수 6점 이상이면 '근성'이 아니라 '미련'입니다. 즉시 운동을 멈추세요.",
+  "💧 근육 경련이 자주 난다면 마그네슘 부족일 수 있습니다. 물과 이온음료를 충분히 드세요.",
+  "🏋️‍♂️ 스쿼트 할 때 무릎 소리가 나면서 아프다면? 자세보다 고관절 유연성부터 체크해보세요.",
+  "🛌 잠이 보약입니다. 근육은 헬스장이 아니라 침대에서 자랍니다. 7시간 이상 주무세요!",
+  "🧊 운동 직후 붓기가 있다면 온찜질 절대 금지! 혈관이 확장되어 붓기가 더 심해집니다.",
+  "🧘 허리가 아플 땐 윗몸일으키기 금지! 플랭크나 버드독 같은 코어 운동을 하세요."
+];
 
 const getLevel = (count: number) => {
   if (count >= 50) return { name: 'World Class', rank: '월드 클래스', emoji: '👑', color: 'bg-purple-600 text-white', next: 1000 };
@@ -55,6 +69,10 @@ export default function Dashboard() {
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
   const [analysisData, setAnalysisData] = useState<any>(null)
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false)
+  
+  const [isSuggestionOpen, setIsSuggestionOpen] = useState(false)
+  const [suggestionText, setSuggestionText] = useState("")
+  const [todayTip, setTodayTip] = useState("")
 
   const [streak, setStreak] = useState(0)
   const [myLevel, setMyLevel] = useState<any>(getLevel(0))
@@ -76,7 +94,10 @@ export default function Dashboard() {
 
   const bodyParts = ["목", "승모근", "어깨", "가슴", "등", "복근", "허리", "삼두", "이두", "전완근", "손목", "손", "엉덩이", "고관절", "허벅지(앞)", "허벅지(뒤)(햄스트링)", "무릎", "종아리", "발목", "발"]
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { 
+    fetchData();
+    setTodayTip(REHAB_TIPS[Math.floor(Math.random() * REHAB_TIPS.length)]);
+  }, [])
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -88,7 +109,7 @@ export default function Dashboard() {
         setLogs(data); 
         setMyLevel(getLevel(data.length)); 
         calculateStreak(data); 
-        analyzeLogs(data); // 👈 여기서 AI 코멘트 생성
+        analyzeLogs(data); 
         calculateStats(data); 
     }
     const today = new Date().toISOString().split('T')[0]
@@ -97,7 +118,7 @@ export default function Dashboard() {
     setLoading(false)
   }
 
-  // 스탯 계산
+  // 📊 육각형 스탯 계산 (강도는 workout 기록만!)
   const calculateStats = (data: any[]) => {
     if (!data || data.length === 0) {
         setStats([
@@ -110,23 +131,38 @@ export default function Dashboard() {
         ]);
         return;
     }
+
+    // 1. 열정 (Consistency)
     const uniqueDays = new Set(data.map(l => new Date(l.created_at).toDateString())).size;
     const consistency = Math.min(uniqueDays * 5, 100); 
-    const avgScore = data.reduce((acc, cur) => acc + cur.pain_score, 0) / data.length;
+
+    // 2. 강도 (Intensity) - 🚨 수정됨: workout 기록만 사용
+    const workoutLogs = data.filter(l => l.log_type === 'workout');
+    const avgScore = workoutLogs.length > 0 
+        ? workoutLogs.reduce((acc, cur) => acc + cur.pain_score, 0) / workoutLogs.length 
+        : 0;
     const intensity = Math.min(avgScore * 12, 100);
+
+    // 3. 활동량 (Volume)
     const volume = Math.min(data.length * 2, 100);
+
+    // 4. 밸런스 (Balance)
     const usedParts = new Set();
     data.forEach(l => {
         const match = (l.content || '').match(/^\[(.*?)\]/);
         if(match) match[1].split(', ').forEach((p: string) => usedParts.add(p));
     });
     const balance = Math.min(usedParts.size * 8, 100);
+
+    // 5. 관리 (Care)
     const rehabCount = data.filter(l => l.log_type === 'rehab').length;
     const rehabRatio = rehabCount / data.length;
     let care = 50;
     if (rehabRatio > 0 && rehabRatio < 0.4) care = 95; 
     else if (rehabRatio === 0) care = 60; 
     else care = 80; 
+
+    // 6. 컨디션 (Condition)
     const physical = 75 + (data.length > 5 ? 10 : 0);
 
     setStats([
@@ -139,47 +175,52 @@ export default function Dashboard() {
     ]);
   };
 
-  // 🆕 AI 분석 로직 (코멘트 복구됨)
+  // 🚨 AI 분석 로직 (평균 통증 점수는 rehab 기록만!)
   const analyzeLogs = (data: any[]) => {
     if (data.length === 0) return;
+    
+    // 1. 재활 기록만 필터링
+    const rehabLogs = data.filter(l => l.log_type === 'rehab');
+    
+    // 2. 부위별 통증 빈도 및 총 통증 점수 계산 (재활 기록 기준)
     const partCounts: {[key: string]: number} = {};
     let totalPain = 0;
-    let painLogCount = 0;
     
-    // 통증 점수 합산 및 부위 카운트 (재활 기록만)
-    data.forEach(log => {
-        if (log.pain_score > 0) { // 운동 강도나 통증 점수가 있는 경우
-            totalPain += log.pain_score;
-            painLogCount++;
-        }
-        // 부위 파싱
+    rehabLogs.forEach(log => {
+        totalPain += log.pain_score;
         const match = (log.content || '').match(/^\[(.*?)\]/);
         if (match) match[1].split(', ').forEach((p: string) => { partCounts[p] = (partCounts[p] || 0) + 1; });
     });
 
     const sortedParts = Object.entries(partCounts).sort((a, b) => b[1] - a[1]);
     const worstPart = sortedParts.length > 0 ? sortedParts[0][0] : '없음';
-    const avgPain = painLogCount > 0 ? (totalPain / painLogCount).toFixed(1) : '0';
-
-    // 👇 점수별 AI 코멘트 로직 부활
-    let advice = "꾸준한 운동이 답입니다! 💪";
     
-    if (Number(avgPain) >= 8) {
-        advice = "🚨 평균 통증 점수가 매우 높습니다! 무리한 운동은 멈추고, 전문 의료기관 방문을 강력히 권장합니다.";
-    } else if (Number(avgPain) >= 5) {
-        advice = "⚠️ 통증이 지속되고 있습니다. 운동 강도를 낮추고 충분한 휴식과 스트레칭이 필요합니다.";
-    } else if (worstPart.includes("무릎")) {
-        advice = "🦵 무릎에 부하가 많이 가고 있네요. 대퇴사두근 강화 운동과 햄스트링 스트레칭을 루틴에 추가해보세요.";
-    } else if (worstPart.includes("허리")) {
-        advice = "🧘 허리가 불편하시군요. 코어 운동(플랭크, 버드독)을 강화하고, 허리를 과하게 꺾는 동작은 피하세요.";
-    } else if (worstPart.includes("발목")) {
-        advice = "🦶 발목 불안정성이 의심됩니다. 밸런스 운동과 밴드를 이용한 발목 강화 운동이 도움됩니다.";
-    } else if (worstPart.includes("어깨")) {
-        advice = "🙆‍♂️ 어깨 충돌을 조심하세요. 회전근개 강화와 흉추 가동성 운동을 추천합니다.";
+    // 3. 평균 통증 점수 계산 (재활 기록이 없으면 0)
+    const avgPain = rehabLogs.length > 0 ? (totalPain / rehabLogs.length).toFixed(1) : '0';
+
+    let advice = "부상 없이 건강하게 운동하고 계시네요! 👍";
+    
+    // 재활 기록이 있을 때만 통증 관련 조언
+    if (rehabLogs.length > 0) {
+        if (Number(avgPain) >= 8) {
+            advice = "🚨 평균 통증 점수가 매우 높습니다! 무리한 운동은 멈추고, 전문 의료기관 방문을 강력히 권장합니다.";
+        } else if (Number(avgPain) >= 5) {
+            advice = "⚠️ 통증이 지속되고 있습니다. 운동 강도를 낮추고 충분한 휴식과 스트레칭이 필요합니다.";
+        } else if (worstPart.includes("무릎")) {
+            advice = "🦵 무릎에 부하가 많이 가고 있네요. 대퇴사두근 강화 운동과 햄스트링 스트레칭을 루틴에 추가해보세요.";
+        } else if (worstPart.includes("허리")) {
+            advice = "🧘 허리가 불편하시군요. 코어 운동(플랭크, 버드독)을 강화하고, 허리를 과하게 꺾는 동작은 피하세요.";
+        } else if (worstPart.includes("발목")) {
+            advice = "🦶 발목 불안정성이 의심됩니다. 밸런스 운동과 밴드를 이용한 발목 강화 운동이 도움됩니다.";
+        } else if (worstPart.includes("어깨")) {
+            advice = "🙆‍♂️ 어깨 충돌을 조심하세요. 회전근개 강화와 흉추 가동성 운동을 추천합니다.";
+        }
     } else {
-        advice = "🔥 아주 좋습니다! 지금처럼 부상 없이 꾸준히 관리하면 더 성장할 수 있습니다.";
+        // 재활 기록이 하나도 없을 때
+        advice = "🔥 부상 기록이 없습니다! 아주 훌륭합니다. 이대로 꾸준히 득근하세요!";
     }
 
+    // totalLogs는 전체 활동량을 보여주기 위해 유지
     setAnalysisData({ worstPart, avgPain, advice, totalLogs: data.length });
   };
 
@@ -253,6 +294,19 @@ export default function Dashboard() {
     setUploading(false)
   }
 
+  const handleSendSuggestion = async () => {
+    if(!suggestionText.trim()) return toast.error("내용을 입력해주세요!");
+    const t = toast.loading("전송 중...");
+    const { error } = await supabase.from('suggestions').insert({ content: suggestionText });
+    if(error) {
+        toast.error("전송 실패 ㅠ", { id: t });
+    } else {
+        toast.success("소중한 의견 감사합니다! 💌", { id: t });
+        setSuggestionText("");
+        setIsSuggestionOpen(false);
+    }
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0]; setMediaFile(file); setMediaPreview(URL.createObjectURL(file))
@@ -317,7 +371,6 @@ export default function Dashboard() {
     }, 1000);
   }
 
-  // 필터링된 재활 로그 (히트맵용)
   const getFilteredRehabLogs = () => {
     const now = new Date();
     return logs.filter(log => {
@@ -348,7 +401,6 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
-      {/* 📸 공유용 숨겨진 카드 */}
       {shareData && (<div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-1] opacity-0 pointer-events-none"><div ref={shareCardRef} className="w-[500px] h-[500px] bg-slate-900 p-8 flex flex-col justify-between text-white relative overflow-hidden font-sans">{shareData.image_url ? (<><img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" /><div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 z-0"></div></>) : (<><div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 z-0"></div><div className="absolute top-[-50px] right-[-50px] w-[200px] h-[200px] bg-blue-600 rounded-full blur-[90px] opacity-60 z-0"></div><div className="absolute bottom-[-50px] left-[-50px] w-[200px] h-[200px] bg-red-600 rounded-full blur-[90px] opacity-50 z-0"></div></>)}<div className="z-10 relative"><div className="flex justify-between items-start mb-4"><span className={`px-4 py-1.5 rounded-full text-sm font-black tracking-wide ${shareData.log_type === 'workout' ? 'bg-blue-600' : 'bg-red-600'}`}>{shareData.log_type === 'workout' ? 'WORKOUT LOG' : 'REHAB LOG'}</span><p className="text-white/80 font-bold text-sm">{new Date(shareData.created_at).toLocaleDateString()}</p></div><h1 className="text-4xl font-black leading-tight mb-4 tracking-tight drop-shadow-lg">{shareData.title}</h1><p className="text-white/90 text-lg font-medium leading-relaxed line-clamp-4 drop-shadow-md">{shareData.content}</p></div><div className="z-10 relative border-t border-white/20 pt-6 flex justify-between items-end"><div><p className="text-white/70 text-xs font-black tracking-widest mb-1">INTENSITY</p><p className="text-5xl font-black text-white drop-shadow-lg">{shareData.pain_score}<span className="text-xl text-white/60 ml-1">/ 10</span></p></div><div className="text-right"><p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg">MOVEPLAZA</p><p className="text-[10px] text-white/70 font-bold tracking-widest uppercase">Athlete Performance System</p></div></div></div></div>)}
 
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
@@ -359,6 +411,14 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-md mx-auto px-5 pt-8 space-y-8 animate-slide-up bg-slate-950" ref={reportRef}>
+        <section className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 flex items-start gap-3">
+            <div className="text-yellow-500 mt-0.5"><Icons.Bulb /></div>
+            <div>
+                <h4 className="text-xs font-black text-yellow-500 mb-1 uppercase tracking-wide">Daily Rehab Tip</h4>
+                <p className="text-sm font-bold text-slate-200 leading-relaxed">{todayTip}</p>
+            </div>
+        </section>
+
         <section>
             <div className="flex justify-between items-end">
                 <div><h2 className="text-3xl font-extrabold text-white leading-tight">안녕하세요,<br/><span className="text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">{userName}</span>님!</h2><p className="text-slate-400 font-bold mt-2 text-sm">오늘도 부상 없이 득근해볼까요? 💪</p></div>
@@ -467,12 +527,38 @@ export default function Dashboard() {
             >
                 <Icons.Info /> 서비스 이용 약관 및 면책 조항
             </button>
+            <span className="text-slate-700 text-[10px] mx-2">|</span>
+            {/* 🆕 건의함 버튼 */}
+            <button 
+                onClick={() => setIsSuggestionOpen(true)} 
+                className="text-[10px] text-slate-500 font-bold hover:text-blue-400 flex items-center justify-center gap-1 transition"
+            >
+                <Icons.MessageSquare /> 개발자에게 건의하기
+            </button>
         </section>
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 p-6 pointer-events-none flex justify-end max-w-md mx-auto z-40"><button onClick={() => setIsModalOpen(true)} className="pointer-events-auto w-16 h-16 bg-blue-600 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center justify-center text-white hover:bg-blue-500 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
       
-      {/* 🆕 면책 조항 모달 (상세 내용 포함) */}
+      {/* 🆕 건의함 모달 */}
+      {isSuggestionOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsSuggestionOpen(false)}>
+            <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setIsSuggestionOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
+                <h3 className="text-lg font-black text-white mb-2 flex items-center gap-2">💌 개발자에게 건의하기</h3>
+                <p className="text-xs text-slate-400 font-bold mb-4">"이 기능 추가해주세요!" 또는 "이거 불편해요 ㅠ"<br/>자유롭게 남겨주시면 빠르게 반영하겠습니다!</p>
+                <textarea 
+                    value={suggestionText}
+                    onChange={(e) => setSuggestionText(e.target.value)}
+                    className="w-full h-32 bg-slate-800 text-white p-4 rounded-xl border border-white/5 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm font-medium"
+                    placeholder="내용을 입력해주세요..."
+                />
+                <button onClick={handleSendSuggestion} className="mt-4 w-full py-3 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-500 transition shadow-lg">보내기 🚀</button>
+            </div>
+        </div>
+      )}
+
+      {/* 면책 조항 모달 */}
       {isDisclaimerOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsDisclaimerOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm max-h-[80vh] overflow-y-auto rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
