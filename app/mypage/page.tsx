@@ -11,12 +11,22 @@ const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+// ✅ [설정] 관리자 이메일 (이 이메일로 로그인해야 건의함이 보입니다)
+const ADMIN_EMAIL = "agricb83@gmail.com"; 
+
+const Icons = {
+  Mail: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>,
+  X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+  Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+}
+
 export default function MyPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
   const [id, setId] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [sport, setSport] = useState('');
   const [position, setPosition] = useState('');
@@ -24,12 +34,26 @@ export default function MyPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
+  // 🆕 건의함 관련 상태
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isMailboxOpen, setIsMailboxOpen] = useState(false);
+
   useEffect(() => { getProfile(); }, []);
 
   const getProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("로그인이 필요합니다!"); router.push('/login'); return; }
+    
     setId(user.id);
+    setEmail(user.email || null);
+
+    // 👑 관리자 여부 확인
+    if (user.email === ADMIN_EMAIL) {
+        setIsAdmin(true);
+        fetchSuggestions();
+    }
+
     const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
     if (data) {
       setUsername(data.username || '');
@@ -40,6 +64,20 @@ export default function MyPage() {
     }
     setLoading(false);
   };
+
+  // 🆕 건의사항 가져오기 (관리자용)
+  const fetchSuggestions = async () => {
+    const { data } = await supabase.from('suggestions').select('*').order('created_at', { ascending: false });
+    if (data) setSuggestions(data);
+  }
+
+  // 🆕 건의사항 삭제 (관리자용)
+  const deleteSuggestion = async (id: number) => {
+    if(!confirm("삭제하시겠습니까?")) return;
+    await supabase.from('suggestions').delete().eq('id', id);
+    toast.success("삭제 완료");
+    fetchSuggestions(); // 목록 새로고침
+  }
 
   const updateProfile = async () => {
     if (!id) return;
@@ -151,12 +189,55 @@ export default function MyPage() {
               {saving ? '저장 중... 💾' : '프로필 저장하기 ✨'}
             </button>
 
+            {/* 👑 관리자 전용 버튼 (일반 유저에게는 안 보임) */}
+            {isAdmin && (
+                <button 
+                    onClick={() => setIsMailboxOpen(true)}
+                    className="w-full bg-slate-800 border border-white/10 text-slate-300 font-bold py-3 rounded-xl hover:bg-slate-700 hover:text-white transition flex items-center justify-center gap-2"
+                >
+                    <Icons.Mail /> 📬 건의함 확인 ({suggestions.length})
+                </button>
+            )}
+
             <button onClick={handleLogout} className="w-full text-slate-500 font-bold text-sm hover:text-red-500 py-2 transition">
               로그아웃
             </button>
           </div>
         </div>
       </div>
+
+      {/* 📬 건의함 모달 (관리자용) */}
+      {isMailboxOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsMailboxOpen(false)}>
+            <div className="bg-slate-900 border border-white/10 w-full max-w-sm max-h-[80vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="p-5 border-b border-white/10 flex justify-between items-center bg-slate-800/50">
+                    <h3 className="font-black text-white text-lg flex items-center gap-2">📬 도착한 건의사항</h3>
+                    <button onClick={() => setIsMailboxOpen(false)} className="text-slate-400 hover:text-white"><Icons.X /></button>
+                </div>
+                
+                <div className="p-0 overflow-y-auto flex-1">
+                    {suggestions.length === 0 ? (
+                        <div className="text-center py-10 text-slate-500 font-bold">아직 도착한 건의사항이 없습니다. 텅~ 🍃</div>
+                    ) : (
+                        suggestions.map((msg) => (
+                            <div key={msg.id} className="p-5 border-b border-white/5 hover:bg-slate-800/30 transition group relative">
+                                <p className="text-sm font-medium text-slate-200 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                <div className="mt-2 flex justify-between items-center">
+                                    <span className="text-[10px] text-slate-500 font-bold">{new Date(msg.created_at).toLocaleString()}</span>
+                                    <button onClick={() => deleteSuggestion(msg.id)} className="text-slate-600 hover:text-red-500 transition opacity-0 group-hover:opacity-100 p-1"><Icons.Trash /></button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+                
+                <div className="p-4 bg-slate-800/50 border-t border-white/10">
+                    <button onClick={() => { fetchSuggestions(); toast.success("새로고침 완료"); }} className="w-full py-3 bg-slate-800 text-white font-bold rounded-xl border border-white/10 hover:bg-slate-700 transition">새로고침 🔄</button>
+                </div>
+            </div>
+        </div>
+      )}
+
     </div>
   );
 }
