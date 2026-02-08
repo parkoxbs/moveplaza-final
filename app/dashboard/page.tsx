@@ -10,6 +10,7 @@ import 'react-calendar/dist/Calendar.css'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { toPng } from 'html-to-image'
 import jsPDF from 'jspdf'
+import BodyMap from "..//components/BodyMap" 
 
 // 👇 1. Supabase 주소와 키 입력 (본인 걸로!)
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
@@ -17,7 +18,7 @@ const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-// 아이콘 (다크모드용 컬러 조정)
+// 아이콘
 const Icons = {
   Activity: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
   AlertCircle: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
@@ -46,7 +47,6 @@ export default function Dashboard() {
   const reportRef = useRef<HTMLDivElement>(null)
   const shareCardRef = useRef<HTMLDivElement>(null)
   const [shareData, setShareData] = useState<any>(null)
-  
   const [resultImage, setResultImage] = useState<string | null>(null)
   const [isResultOpen, setIsResultOpen] = useState(false)
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
@@ -152,7 +152,7 @@ export default function Dashboard() {
         const element = reportRef.current
         const width = element.scrollWidth
         const height = element.scrollHeight
-        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#0f172a', width: width, height: height, style: { padding: '20px', background: '#0f172a' } }) // 배경색 다크로 변경
+        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#0f172a', width: width, height: height, style: { padding: '20px', background: '#0f172a' } })
         const pdf = new jsPDF('p', 'mm', 'a4')
         const imgProps = pdf.getImageProperties(dataUrl)
         const pdfWidth = pdf.internal.pageSize.getWidth()
@@ -330,7 +330,32 @@ export default function Dashboard() {
                <div className="flex bg-slate-800 p-1 rounded-xl"><button onClick={() => setLogType('workout')} className={`flex-1 py-3 rounded-lg font-extrabold text-sm transition ${logType === 'workout' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500'}`}>💪 운동 완료</button><button onClick={() => setLogType('rehab')} className={`flex-1 py-3 rounded-lg font-extrabold text-sm transition ${logType === 'rehab' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-500'}`}>🏥 재활/통증</button></div>
                <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 placeholder-slate-600" placeholder="제목 입력" /></div>
                <div><label className="block text-sm font-bold text-slate-400 mb-2">사진/영상 추가</label><div className="flex items-center gap-3"><label className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-500/10 transition overflow-hidden text-slate-500">{mediaPreview ? <img src={mediaPreview} className="w-full h-full object-cover" /> : <Icons.Camera />}<input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} /></label><span className="text-xs text-slate-500 font-bold">{mediaFile ? "파일 선택됨 ✅" : "운동 인증샷이나 통증 부위를 찍어보세요."}</span></div></div>
-               <div><label className="block text-sm font-bold text-slate-400 mb-2">관련 부위</label><div className="flex flex-wrap gap-2">{bodyParts.map(part => (<button key={part} onClick={() => togglePart(part)} className={`px-3 py-2 rounded-lg text-xs font-bold border transition ${selectedParts.includes(part) ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>{part}</button>))}</div></div>
+               
+               {/* 👇 여기에 BodyMap 추가됨! */}
+               <div>
+                 <label className="block text-sm font-bold text-slate-400 mb-2">관련 부위 (터치)</label>
+                 <BodyMap selectedParts={selectedParts} togglePart={togglePart} type={logType} />
+                 
+                 {/* 👇 버튼 리스트 추가: BodyMap 아래에 위치 */}
+                 <div className="mt-4 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                   {bodyParts.map((part) => (
+                     <button
+                       key={part}
+                       onClick={() => togglePart(part)}
+                       className={`px-3 py-2 rounded-lg text-xs font-bold border transition ${
+                         selectedParts.includes(part)
+                           ? logType === 'workout'
+                             ? 'bg-blue-600 text-white border-blue-500' 
+                             : 'bg-red-600 text-white border-red-500'
+                           : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
+                       }`}
+                     >
+                       {part}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+
                <div><label className="block text-sm font-bold text-slate-400 mb-1">내용</label><textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full p-4 h-32 bg-slate-800 text-white rounded-xl border-none focus:ring-2 focus:ring-blue-500 resize-none placeholder-slate-600" placeholder="내용 입력" /></div>
                <div><div className="flex justify-between mb-2"><span className="font-bold text-slate-400">{logType === 'workout' ? '강도' : '통증'}</span><span className={`font-black text-xl ${score > 7 ? 'text-red-500' : 'text-blue-500'}`}>{score}</span></div><input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
                <div className="flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-white/5"><input type="checkbox" id="public" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-blue-600 bg-slate-700 border-slate-600"/><label htmlFor="public" className="text-sm font-bold text-slate-300 cursor-pointer">광장에 자랑하기 (공개)</label></div>
