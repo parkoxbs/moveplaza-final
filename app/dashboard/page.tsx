@@ -7,12 +7,12 @@ import { useRouter } from "next/navigation"
 import toast, { Toaster } from 'react-hot-toast'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
 import { toPng } from 'html-to-image'
 import jsPDF from 'jspdf'
 import BodyMap from "..//components/BodyMap" 
 
-// 👇 1. Supabase 주소와 키 입력 (본인 걸로!)
+// 👇 1. Supabase 주소와 키 입력
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 
@@ -29,7 +29,9 @@ const Icons = {
   Camera: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
   Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
   Chart: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>,
-  Info: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>
+  Info: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>,
+  Copy: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+  Map: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
 }
 
 const getLevel = (count: number) => {
@@ -52,11 +54,13 @@ export default function Dashboard() {
   const [isResultOpen, setIsResultOpen] = useState(false)
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
   const [analysisData, setAnalysisData] = useState<any>(null)
-  const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false) // 🆕 면책 조항 모달 상태
+  const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false)
 
   const [streak, setStreak] = useState(0)
   const [myLevel, setMyLevel] = useState<any>(getLevel(0))
   const [todayCondition, setTodayCondition] = useState<'good' | 'normal' | 'bad' | null>(null)
+  const [stats, setStats] = useState<any[]>([]) 
+  const [heatmapRange, setHeatmapRange] = useState<'1w' | '1m' | '6m' | '1y' | 'all'>('all')
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [logType, setLogType] = useState<'workout' | 'rehab'>('workout')
@@ -70,7 +74,7 @@ export default function Dashboard() {
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreview, setMediaPreview] = useState<string | null>(null)
 
-  const bodyParts = ["목", "승모근", "어깨", "가슴", "등", "복근", "허리", "삼두", "이두", "전완근", "손목", "손", "엉덩이", "고관절", "허벅지(앞)", "허벅지(뒤)", "무릎", "종아리", "발목", "발"]
+  const bodyParts = ["목", "승모근", "어깨", "가슴", "등", "복근", "허리", "삼두", "이두", "전완근", "손목", "손", "엉덩이", "고관절", "허벅지(앞)", "허벅지(뒤)(햄스트링)", "무릎", "종아리", "발목", "발"]
 
   useEffect(() => { fetchData() }, [])
 
@@ -84,7 +88,8 @@ export default function Dashboard() {
         setLogs(data); 
         setMyLevel(getLevel(data.length)); 
         calculateStreak(data); 
-        analyzeLogs(data); 
+        analyzeLogs(data); // 👈 여기서 AI 코멘트 생성
+        calculateStats(data); 
     }
     const today = new Date().toISOString().split('T')[0]
     const { data: conditionData } = await supabase.from('daily_conditions').select('*').eq('user_id', user.id).gte('created_at', `${today}T00:00:00`).limit(1)
@@ -92,29 +97,88 @@ export default function Dashboard() {
     setLoading(false)
   }
 
+  // 스탯 계산
+  const calculateStats = (data: any[]) => {
+    if (!data || data.length === 0) {
+        setStats([
+            { subject: '열정', A: 20, fullMark: 100 },
+            { subject: '강도', A: 20, fullMark: 100 },
+            { subject: '활동량', A: 20, fullMark: 100 },
+            { subject: '밸런스', A: 20, fullMark: 100 },
+            { subject: '관리', A: 20, fullMark: 100 },
+            { subject: '컨디션', A: 20, fullMark: 100 },
+        ]);
+        return;
+    }
+    const uniqueDays = new Set(data.map(l => new Date(l.created_at).toDateString())).size;
+    const consistency = Math.min(uniqueDays * 5, 100); 
+    const avgScore = data.reduce((acc, cur) => acc + cur.pain_score, 0) / data.length;
+    const intensity = Math.min(avgScore * 12, 100);
+    const volume = Math.min(data.length * 2, 100);
+    const usedParts = new Set();
+    data.forEach(l => {
+        const match = (l.content || '').match(/^\[(.*?)\]/);
+        if(match) match[1].split(', ').forEach((p: string) => usedParts.add(p));
+    });
+    const balance = Math.min(usedParts.size * 8, 100);
+    const rehabCount = data.filter(l => l.log_type === 'rehab').length;
+    const rehabRatio = rehabCount / data.length;
+    let care = 50;
+    if (rehabRatio > 0 && rehabRatio < 0.4) care = 95; 
+    else if (rehabRatio === 0) care = 60; 
+    else care = 80; 
+    const physical = 75 + (data.length > 5 ? 10 : 0);
+
+    setStats([
+        { subject: '열정', full: '꾸준함', A: consistency, fullMark: 100 },
+        { subject: '강도', full: '평균강도', A: intensity, fullMark: 100 },
+        { subject: '활동량', full: '총볼륨', A: volume, fullMark: 100 },
+        { subject: '밸런스', full: '다양성', A: balance, fullMark: 100 },
+        { subject: '관리', full: '부상방지', A: care, fullMark: 100 },
+        { subject: '컨디션', full: '신체상태', A: physical, fullMark: 100 },
+    ]);
+  };
+
+  // 🆕 AI 분석 로직 (코멘트 복구됨)
   const analyzeLogs = (data: any[]) => {
     if (data.length === 0) return;
     const partCounts: {[key: string]: number} = {};
     let totalPain = 0;
     let painLogCount = 0;
+    
+    // 통증 점수 합산 및 부위 카운트 (재활 기록만)
     data.forEach(log => {
-        if (log.pain_score > 0) {
+        if (log.pain_score > 0) { // 운동 강도나 통증 점수가 있는 경우
             totalPain += log.pain_score;
             painLogCount++;
-            const match = log.content?.match(/^\[(.*?)\]/);
-            if (match) match[1].split(', ').forEach((p: string) => { partCounts[p] = (partCounts[p] || 0) + 1; });
         }
+        // 부위 파싱
+        const match = (log.content || '').match(/^\[(.*?)\]/);
+        if (match) match[1].split(', ').forEach((p: string) => { partCounts[p] = (partCounts[p] || 0) + 1; });
     });
+
     const sortedParts = Object.entries(partCounts).sort((a, b) => b[1] - a[1]);
     const worstPart = sortedParts.length > 0 ? sortedParts[0][0] : '없음';
     const avgPain = painLogCount > 0 ? (totalPain / painLogCount).toFixed(1) : '0';
 
+    // 👇 점수별 AI 코멘트 로직 부활
     let advice = "꾸준한 운동이 답입니다! 💪";
-    if (Number(avgPain) > 7) advice = "🚨 통증 점수가 높습니다. 충분한 휴식을 취하거나 전문가 상담을 권장합니다.";
-    else if (worstPart.includes("무릎")) advice = "🦵 무릎 부하가 많네요. 대퇴사두근과 햄스트링 보강 운동이 도움될 수 있습니다.";
-    else if (worstPart.includes("허리")) advice = "🧘 허리가 불편하시군요. 코어 운동과 스트레칭을 루틴에 추가해보세요.";
-    else if (worstPart.includes("발목")) advice = "🦶 발목 안정성을 위해 밸런스 운동을 워밍업에 넣어보는 건 어떨까요?";
-    else if (worstPart.includes("어깨")) advice = "🙆‍♂️ 어깨 회전근개 강화와 흉추 가동성 운동을 추천합니다.";
+    
+    if (Number(avgPain) >= 8) {
+        advice = "🚨 평균 통증 점수가 매우 높습니다! 무리한 운동은 멈추고, 전문 의료기관 방문을 강력히 권장합니다.";
+    } else if (Number(avgPain) >= 5) {
+        advice = "⚠️ 통증이 지속되고 있습니다. 운동 강도를 낮추고 충분한 휴식과 스트레칭이 필요합니다.";
+    } else if (worstPart.includes("무릎")) {
+        advice = "🦵 무릎에 부하가 많이 가고 있네요. 대퇴사두근 강화 운동과 햄스트링 스트레칭을 루틴에 추가해보세요.";
+    } else if (worstPart.includes("허리")) {
+        advice = "🧘 허리가 불편하시군요. 코어 운동(플랭크, 버드독)을 강화하고, 허리를 과하게 꺾는 동작은 피하세요.";
+    } else if (worstPart.includes("발목")) {
+        advice = "🦶 발목 불안정성이 의심됩니다. 밸런스 운동과 밴드를 이용한 발목 강화 운동이 도움됩니다.";
+    } else if (worstPart.includes("어깨")) {
+        advice = "🙆‍♂️ 어깨 충돌을 조심하세요. 회전근개 강화와 흉추 가동성 운동을 추천합니다.";
+    } else {
+        advice = "🔥 아주 좋습니다! 지금처럼 부상 없이 꾸준히 관리하면 더 성장할 수 있습니다.";
+    }
 
     setAnalysisData({ worstPart, avgPain, advice, totalLogs: data.length });
   };
@@ -145,28 +209,24 @@ export default function Dashboard() {
     toast.success("컨디션 기록 완료!")
   }
 
-  const handleDownloadPDF = async () => {
-    if (!reportRef.current) return
-    const t = toast.loading("리포트 생성 중...")
-    setTimeout(async () => {
-      try {
-        if(!reportRef.current) return;
-        const element = reportRef.current
-        const width = element.scrollWidth
-        const height = element.scrollHeight
-        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#0f172a', width: width, height: height, style: { padding: '20px', background: '#0f172a' } })
-        const pdf = new jsPDF('p', 'mm', 'a4')
-        const imgProps = pdf.getImageProperties(dataUrl)
-        const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
-        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight)
-        const pdfBlob = pdf.output('blob');
-        const file = new File([pdfBlob], `Moveplaza_Report.pdf`, { type: 'application/pdf' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Moveplaza 리포트' }); toast.dismiss(t); } 
-        else { pdf.save(`${userName}_Moveplaza_Report.pdf`); toast.success("다운로드 완료!", { id: t }) }
-      } catch (e) { console.error(e); toast.error("저장이 차단되었습니다. 캡처를 이용해주세요.", { id: t, duration: 5000 }) }
-    }, 1000);
-  }
+  const handleCopyLog = (log: any) => {
+    if (!log) return;
+    setTitle(log.title || ''); 
+    setScore(log.pain_score);
+    setLogType(log.log_type);
+    const contentText = (log.content || '') as string;
+    const match = contentText.match(/^\[([^\]]*)\]\s*([\s\S]*)/);
+    if (match) {
+        const parts = match[1].split(', ');
+        setSelectedParts(parts);
+        setContent(match[2]);
+    } else {
+        setContent(contentText);
+        setSelectedParts([]);
+    }
+    setIsModalOpen(true);
+    toast.success("기록을 복사했습니다! (날짜는 오늘)");
+  };
 
   const handleAddLog = async () => {
     if (!title.trim()) return toast.error("제목을 입력해주세요!")
@@ -234,14 +294,61 @@ export default function Dashboard() {
     } catch (error: any) { if (error.name !== 'AbortError') { console.error(error); toast.error("저장이 차단되었습니다 ㅠ", { id: t }); } else { toast.dismiss(t); } }
   }
 
-  const rehabLogs = logs.filter((log: any) => { if (log.type === 'workout') return false; if (log.intensity) return false; return true; })
-  const bodyPartCounts = rehabLogs.reduce((acc: any, log: any) => { if (log.body_part) acc[log.body_part] = (acc[log.body_part] || 0) + 1; const match = log.content?.match(/^\[(.*?)\]/); if (match) match[1].split(', ').forEach((p: string) => acc[p] = (acc[p] || 0) + 1); return acc; }, {} as any)
+  const handleDownloadPDF = async () => {
+    if (!reportRef.current) return
+    const t = toast.loading("리포트 생성 중...")
+    setTimeout(async () => {
+      try {
+        if(!reportRef.current) return;
+        const element = reportRef.current
+        const width = element.scrollWidth
+        const height = element.scrollHeight
+        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#0f172a', width: width, height: height, style: { padding: '20px', background: '#0f172a' } })
+        const pdf = new jsPDF('p', 'mm', 'a4')
+        const imgProps = pdf.getImageProperties(dataUrl)
+        const pdfWidth = pdf.internal.pageSize.getWidth()
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
+        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight)
+        const pdfBlob = pdf.output('blob');
+        const file = new File([pdfBlob], `Moveplaza_Report.pdf`, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Moveplaza 리포트' }); toast.dismiss(t); } 
+        else { pdf.save(`${userName}_Moveplaza_Report.pdf`); toast.success("다운로드 완료!", { id: t }) }
+      } catch (e) { console.error(e); toast.error("저장이 차단되었습니다. 캡처를 이용해주세요.", { id: t, duration: 5000 }) }
+    }, 1000);
+  }
+
+  // 필터링된 재활 로그 (히트맵용)
+  const getFilteredRehabLogs = () => {
+    const now = new Date();
+    return logs.filter(log => {
+      if (log.log_type !== 'rehab') return false;
+      const logDate = new Date(log.created_at);
+      if (heatmapRange === 'all') return true;
+      const cutoff = new Date();
+      if (heatmapRange === '1w') cutoff.setDate(now.getDate() - 7);
+      else if (heatmapRange === '1m') cutoff.setMonth(now.getMonth() - 1);
+      else if (heatmapRange === '6m') cutoff.setMonth(now.getMonth() - 6);
+      else if (heatmapRange === '1y') cutoff.setFullYear(now.getFullYear() - 1);
+      return logDate >= cutoff;
+    });
+  };
+
+  const rehabLogs = getFilteredRehabLogs();
+  const bodyPartCounts = rehabLogs.reduce((acc: any, log: any) => { 
+      if (log.body_part) acc[log.body_part] = (acc[log.body_part] || 0) + 1; 
+      const match = (log.content || '').match(/^\[(.*?)\]/); 
+      if (match) match[1].split(', ').forEach((p: string) => acc[p] = (acc[p] || 0) + 1); 
+      return acc; 
+  }, {} as any)
+
   const getSeverityColor = (count: number) => { if (count >= 5) return "bg-red-500/80 text-white border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]"; if (count >= 3) return "bg-orange-500/80 text-white border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]"; if (count >= 1) return "bg-yellow-500/80 text-white border-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]"; return "bg-slate-800 text-slate-400 border-slate-700"; }
   const filteredLogs = selectedDate ? logs.filter(l => new Date(l.created_at).toDateString() === selectedDate.toDateString()) : logs
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
+      
+      {/* 📸 공유용 숨겨진 카드 */}
       {shareData && (<div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-1] opacity-0 pointer-events-none"><div ref={shareCardRef} className="w-[500px] h-[500px] bg-slate-900 p-8 flex flex-col justify-between text-white relative overflow-hidden font-sans">{shareData.image_url ? (<><img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" /><div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 z-0"></div></>) : (<><div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 z-0"></div><div className="absolute top-[-50px] right-[-50px] w-[200px] h-[200px] bg-blue-600 rounded-full blur-[90px] opacity-60 z-0"></div><div className="absolute bottom-[-50px] left-[-50px] w-[200px] h-[200px] bg-red-600 rounded-full blur-[90px] opacity-50 z-0"></div></>)}<div className="z-10 relative"><div className="flex justify-between items-start mb-4"><span className={`px-4 py-1.5 rounded-full text-sm font-black tracking-wide ${shareData.log_type === 'workout' ? 'bg-blue-600' : 'bg-red-600'}`}>{shareData.log_type === 'workout' ? 'WORKOUT LOG' : 'REHAB LOG'}</span><p className="text-white/80 font-bold text-sm">{new Date(shareData.created_at).toLocaleDateString()}</p></div><h1 className="text-4xl font-black leading-tight mb-4 tracking-tight drop-shadow-lg">{shareData.title}</h1><p className="text-white/90 text-lg font-medium leading-relaxed line-clamp-4 drop-shadow-md">{shareData.content}</p></div><div className="z-10 relative border-t border-white/20 pt-6 flex justify-between items-end"><div><p className="text-white/70 text-xs font-black tracking-widest mb-1">INTENSITY</p><p className="text-5xl font-black text-white drop-shadow-lg">{shareData.pain_score}<span className="text-xl text-white/60 ml-1">/ 10</span></p></div><div className="text-right"><p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg">MOVEPLAZA</p><p className="text-[10px] text-white/70 font-bold tracking-widest uppercase">Athlete Performance System</p></div></div></div></div>)}
 
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
@@ -267,10 +374,69 @@ export default function Dashboard() {
             <div className={`rounded-3xl p-6 shadow-lg border-2 border-white/10 relative overflow-hidden text-white ${myLevel.color}`}><div className="relative z-10 flex justify-between items-end"><div><div className="flex items-center gap-2 mb-1"><span className="text-2xl">{myLevel.emoji}</span><span className="font-black text-xl uppercase italic tracking-wider">{myLevel.name}</span></div><p className="font-bold text-white/90 text-xs mb-3">현재 등급: {myLevel.rank}</p><div className="flex items-center gap-2"><span className="text-3xl font-black">{streak}</span><span className="text-sm font-bold opacity-80">일 연속! 🔥</span></div></div><div className="text-right"><p className="text-xs font-bold opacity-70 mb-1">다음 등급까지</p><p className="text-lg font-black">{myLevel.next - logs.length}회</p></div></div></div>
         </section>
 
-        <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden">
+        {logs.length > 0 && (
+            <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-black text-white">나의 선수 스탯 ⚽</h3>
+                    <span className="text-xs font-bold text-slate-500 bg-slate-800 px-2 py-1 rounded-lg">LIVE</span>
+                </div>
+                <div className="h-64 w-full flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={stats}>
+                            <PolarGrid stroke="#334155" />
+                            <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }} />
+                            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                            <Radar name="My Stats" dataKey="A" stroke="#3b82f6" strokeWidth={3} fill="#3b82f6" fillOpacity={0.5} />
+                            <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} itemStyle={{ color: '#60a5fa' }} formatter={(val, name, props) => [val, props.payload.full]} labelStyle={{display: 'none'}} />
+                        </RadarChart>
+                    </ResponsiveContainer>
+                </div>
+            </section>
+        )}
+
+        <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden transition-all">
           <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 rounded-full blur-[80px] opacity-20 -mr-10 -mt-10 pointer-events-none"></div>
-          <div className="flex justify-between items-end mb-6 relative"><div><h3 className="text-lg font-black text-white flex items-center gap-2">부상 히트맵 <span className="text-red-500 animate-pulse"><Icons.AlertCircle /></span></h3><p className="text-xs font-bold text-slate-400 mt-1">최근 통증 부위 (재활 기록만)</p></div><div className="text-right"><span className="block text-3xl font-black text-white">{rehabLogs.length}</span><span className="text-xs font-bold text-slate-400">건의 통증</span></div></div>
-          <div className="flex flex-wrap gap-2 relative z-10">{bodyParts.map((part) => { const count = bodyPartCounts[part] || 0; return (<div key={part} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-300 ${getSeverityColor(count)}`}>{part} {count > 0 && <span className="ml-1 opacity-90 text-[10px]">({count})</span>}</div>) })}</div>
+          
+          <div className="flex flex-col gap-4 mb-6 relative z-10">
+            <div className="flex justify-between items-end">
+                <div>
+                    <h3 className="text-lg font-black text-white flex items-center gap-2">부상 히트맵 <span className="text-red-500 animate-pulse"><Icons.AlertCircle /></span></h3>
+                    <p className="text-xs font-bold text-slate-400 mt-1">최근 통증 부위 (재활 기록만)</p>
+                </div>
+                <div className="text-right">
+                    <span className="block text-3xl font-black text-white">{rehabLogs.length}</span>
+                    <span className="text-xs font-bold text-slate-400">건의 통증</span>
+                </div>
+            </div>
+
+            <div className="flex bg-slate-800 p-1 rounded-xl">
+                {['1w', '1m', '6m', '1y', 'all'].map((range) => (
+                    <button 
+                        key={range}
+                        onClick={() => setHeatmapRange(range as any)}
+                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${heatmapRange === range ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                        {range === '1w' ? '1주' : range === '1m' ? '1달' : range === '6m' ? '6달' : range === '1y' ? '1년' : '전체'}
+                    </button>
+                ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 relative z-10">
+            {Object.keys(bodyPartCounts).length === 0 ? (
+                <p className="text-xs text-slate-500 font-bold w-full text-center py-4">해당 기간에 통증 기록이 없습니다. 👍</p>
+            ) : (
+                bodyParts.map((part) => { 
+                    const count = bodyPartCounts[part] || 0; 
+                    if (count === 0) return null;
+                    return (
+                        <div key={part} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-300 ${getSeverityColor(count)}`}>
+                            {part} <span className="ml-1 opacity-90 text-[10px]">({count})</span>
+                        </div>
+                    ) 
+                })
+            )}
+          </div>
         </section>
 
         <section className="bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5">
@@ -291,10 +457,9 @@ export default function Dashboard() {
 
         <section>
           <div className="flex justify-between items-center mb-4 px-1"><h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3><div className="flex gap-2"><button onClick={handleDownloadPDF} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700">📄 리포트 저장</button>{selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}</div></div>
-          <div className="space-y-3">{loading ? (<div className="text-center py-10 font-bold text-slate-600 animate-pulse">로딩 중...</div>) : filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { const isWorkout = log.log_type === 'workout' || (log.pain_score && !log.content.includes('통증')); return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group"><div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isWorkout ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>{log.image_url ? <img src={log.image_url} alt="인증" className="w-full h-full object-cover" /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />)}</div><div><div className="font-black text-white text-sm mb-0.5">{log.title}</div><div className="text-xs font-bold text-slate-500 line-clamp-1">{log.content}</div></div></div><div className="flex items-center gap-3"><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-500">점</div></div></div></div>) }))}</div>
+          <div className="space-y-3">{loading ? (<div className="text-center py-10 font-bold text-slate-600 animate-pulse">로딩 중...</div>) : filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { const isWorkout = log.log_type === 'workout' || (log.pain_score && !log.content.includes('통증')); return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group"><div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isWorkout ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>{log.image_url ? <img src={log.image_url} alt="인증" className="w-full h-full object-cover" /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />)}</div><div><div className="font-black text-white text-sm mb-0.5">{log.title}</div><div className="text-xs font-bold text-slate-500 line-clamp-1">{log.content}</div></div></div><div className="flex items-center gap-3"><button onClick={() => handleCopyLog(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/10 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-500">점</div></div></div></div>) }))}</div>
         </section>
 
-        {/* 🆕 면책 조항 버튼 추가 (맨 아래) */}
         <section className="mt-8 mb-4 text-center">
             <button 
                 onClick={() => setIsDisclaimerOpen(true)} 
@@ -362,8 +527,13 @@ export default function Dashboard() {
                         <p className="text-xs font-bold text-slate-400 mb-2">🤖 AI 분석 피드백</p>
                         <p className="font-bold leading-relaxed text-slate-200">{analysisData.advice}</p>
                     </div>
-                    {/* 👇 분석 모달 안에도 면책 조항 링크 추가 (중요) */}
-                    <button onClick={() => { setIsAnalysisOpen(false); setIsDisclaimerOpen(true); }} className="text-[10px] text-slate-500 underline text-center w-full hover:text-slate-300">⚠️ 분석 결과는 의료적 진단이 아닙니다. (면책 조항 보기)</button>
+                    {/* 👇 병원 찾기 버튼 (8점 이상일 때 표시) */}
+                    {Number(analysisData.avgPain) >= 8 && (
+                        <a href="https://map.naver.com/p/search/정형외과" target="_blank" rel="noreferrer" className="block w-full py-3 mt-2 bg-red-600 hover:bg-red-500 text-white font-bold text-center rounded-xl animate-pulse shadow-lg transition flex items-center justify-center gap-2">
+                            <Icons.Map /> 🏥 근처 정형외과 찾기 (네이버)
+                        </a>
+                    )}
+                    <button onClick={() => { setIsAnalysisOpen(false); setIsDisclaimerOpen(true); }} className="text-[10px] text-slate-500 underline text-center w-full hover:text-slate-300 mt-2">⚠️ 분석 결과는 의료적 진단이 아닙니다. (면책 조항 보기)</button>
                 </div>
                 <button onClick={() => setIsAnalysisOpen(false)} className="mt-4 w-full py-3 bg-slate-800 text-white border border-white/10 font-bold rounded-xl hover:bg-slate-700 transition">닫기</button>
             </div>

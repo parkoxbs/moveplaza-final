@@ -22,6 +22,12 @@ const containsBadWord = (text: string) => {
   return BAD_WORDS.some(word => text.includes(word));
 };
 
+// 아이콘
+const Icons = {
+  Search: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>,
+  X: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+}
+
 type Profile = { 
   id: string; 
   username: string; 
@@ -84,6 +90,9 @@ export default function CommunityPage() {
   const [showNoticeForm, setShowNoticeForm] = useState(false);
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeContent, setNoticeContent] = useState('');
+
+  // 🔍 검색어 상태
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => { fetchData(); }, []);
 
@@ -199,6 +208,15 @@ export default function CommunityPage() {
   };
   const handleDeleteNotice = async (id: number) => { if (!confirm("삭제?")) return; await supabase.from('notices').delete().eq('id', id); fetchData(); };
 
+  // 🔍 검색 필터링
+  const filteredLogs = logs.filter(log => {
+    const term = searchTerm.toLowerCase();
+    const titleMatch = log.title?.toLowerCase().includes(term);
+    const contentMatch = log.content.toLowerCase().includes(term);
+    const userMatch = log.profile?.username.toLowerCase().includes(term);
+    return titleMatch || contentMatch || userMatch;
+  });
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white"><p className="text-xl font-bold animate-pulse text-blue-500">로딩 중...</p></div>;
 
   return (
@@ -225,6 +243,30 @@ export default function CommunityPage() {
                 )}
             </div>
 
+            {/* 🔍 검색창 */}
+            <div className="sticky top-20 z-40">
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
+                        <Icons.Search />
+                    </div>
+                    <input 
+                        type="text" 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="관심 있는 부위나 내용을 검색해보세요 (예: 십자인대, 하체)" 
+                        className="w-full pl-12 pr-10 py-4 bg-slate-900 border border-white/10 rounded-2xl text-white font-bold placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent shadow-lg transition-all"
+                    />
+                    {searchTerm && (
+                        <button 
+                            onClick={() => setSearchTerm('')}
+                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-white transition-colors"
+                        >
+                            <Icons.X />
+                        </button>
+                    )}
+                </div>
+            </div>
+
             {/* 공지 입력창 */}
             {currentUser?.email === ADMIN_EMAIL && showNoticeForm && (
                 <div className="bg-slate-900 p-6 rounded-3xl border border-blue-500/30">
@@ -235,8 +277,8 @@ export default function CommunityPage() {
                 </div>
             )}
 
-            {/* 공지 리스트 */}
-            {notices.length > 0 && (
+            {/* 공지 리스트 (검색어 없을 때만 보임) */}
+            {!searchTerm && notices.length > 0 && (
                 <div className="bg-slate-900/30 p-5 rounded-3xl border border-white/5 space-y-3">
                     <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Notice</h3>
                     {notices.map((notice) => (
@@ -253,8 +295,8 @@ export default function CommunityPage() {
                 </div>
             )}
 
-            {/* 랭킹 */}
-            {ranking.length > 0 && (
+            {/* 랭킹 (검색어 없을 때만 보임) */}
+            {!searchTerm && ranking.length > 0 && (
                 <div className="bg-gradient-to-br from-slate-900 to-black rounded-3xl p-6 md:p-8 text-white shadow-2xl relative overflow-hidden border border-white/10">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
                     <h2 className="text-xl font-black mb-6 flex items-center gap-2">🏆 명예의 전당 (TOP 3)</h2>
@@ -266,78 +308,85 @@ export default function CommunityPage() {
                 </div>
             )}
 
-            {/* 피드 목록 */}
+            {/* 피드 목록 (필터링된 결과) */}
             <div className="space-y-6">
-            {logs.map((log) => {
-                const isExpanded = expandedComments[log.id];
-                const visibleComments = isExpanded ? log.comments : log.comments.slice(0, 3);
-                const hiddenCount = log.comments.length - 3;
-
-                return (
-                <div key={log.id} className="bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5">
-                <div className="flex items-center gap-3 mb-5 border-b border-white/5 pb-4">
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800 border border-white/10">
-                    {log.profile?.avatar_url ? <img src={log.profile.avatar_url} alt="프사" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-2xl">👤</div>}
-                    </div>
-                    <div>
-                    <div className="flex items-center gap-1.5">
-                        <p className="font-black text-white text-lg">{log.profile?.username || '이름 없음'}</p>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${log.profile?.color || 'bg-slate-800 text-slate-400'}`}>
-                            {log.profile?.emoji} {log.profile?.level}
-                        </span>
-                    </div>
-                    <p className="text-sm text-slate-400 font-bold">{log.profile?.sport || '운동'} · {log.profile?.position || '미설정'}</p>
-                    </div>
-                    <div className="ml-auto text-sm text-slate-500 font-medium">{new Date(log.created_at).toLocaleDateString()}</div>
+            {filteredLogs.length === 0 ? (
+                <div className="text-center py-20 bg-slate-900/30 rounded-3xl border border-dashed border-white/10">
+                    <p className="text-4xl mb-4">🌫️</p>
+                    <p className="text-slate-500 font-bold">검색 결과가 없습니다.</p>
                 </div>
+            ) : (
+                filteredLogs.map((log) => {
+                    const isExpanded = expandedComments[log.id];
+                    const visibleComments = isExpanded ? log.comments : log.comments.slice(0, 3);
+                    const hiddenCount = log.comments.length - 3;
 
-                <div className="mb-5">
-                    <div className="mb-2"> <span className={`text-[10px] px-2 py-1 rounded-md font-black tracking-wide uppercase ${log.log_type === 'workout' ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}> {log.log_type === 'workout' ? 'WORKOUT' : 'REHAB'} </span> </div>
-                    {log.title && <h2 className="text-xl font-bold text-white mb-2 break-all">{log.title}</h2>}
-                    <p className="text-slate-300 font-medium text-lg whitespace-pre-wrap break-all mb-4">{log.content}</p>
-                    {log.image_url && ( <div className="mb-4 rounded-2xl overflow-hidden border border-white/10 shadow-sm"> {log.media_type === 'video' ? ( <video src={log.image_url} controls className="w-full h-auto" /> ) : ( <img src={log.image_url} alt="인증샷" className="w-full h-auto object-cover" /> )} </div> )}
-                </div>
-
-                <div className="flex items-center justify-between mb-6">
-                    <div className={`px-4 py-2 rounded-xl text-sm font-bold ${log.pain_score > 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}> 강도 {log.pain_score}점 </div>
-                    <button onClick={() => toggleLike(log.id, log.is_liked)} className={`flex items-center gap-2 font-bold text-lg transition px-4 py-2 rounded-full border ${log.is_liked ? 'text-red-500 bg-red-500/10 border-red-500/20' : 'text-slate-400 hover:text-red-500 border-white/10 hover:bg-red-500/10'}`}> {log.is_liked ? '❤️' : '🤍'} {log.like_count || 0} </button>
-                </div>
-
-                <div className="bg-slate-950 p-5 rounded-2xl border border-white/5">
-                    <div className="space-y-3 mb-4">
-                    {visibleComments.map(comment => (
-                        <div key={comment.id} className="flex gap-2 items-start text-sm group">
-                            <span className="font-bold text-slate-300 shrink-0">{comment.profile?.username || '익명'}:</span>
-                            <span className="text-slate-400 font-medium break-all flex-1">{comment.content}</span>
-                            
-                            <button onClick={() => toggleCommentLike(comment.id, comment.is_liked)} className={`text-xs flex items-center gap-1 font-bold ${comment.is_liked ? 'text-red-500' : 'text-slate-600 hover:text-red-400'}`}>
-                                <span>{comment.is_liked ? '❤️' : '🤍'}</span>
-                                {comment.like_count > 0 && <span>{comment.like_count}</span>}
-                            </button>
-
-                            {currentUser?.id === comment.user_id && <button onClick={() => deleteComment(comment.id)} className="text-slate-600 hover:text-red-500 font-bold px-1 text-xs">✕</button>}
+                    return (
+                    <div key={log.id} className="bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5">
+                        <div className="flex items-center gap-3 mb-5 border-b border-white/5 pb-4">
+                            <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800 border border-white/10">
+                            {log.profile?.avatar_url ? <img src={log.profile.avatar_url} alt="프사" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-2xl">👤</div>}
+                            </div>
+                            <div>
+                            <div className="flex items-center gap-1.5">
+                                <p className="font-black text-white text-lg">{log.profile?.username || '이름 없음'}</p>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${log.profile?.color || 'bg-slate-800 text-slate-400'}`}>
+                                    {log.profile?.emoji} {log.profile?.level}
+                                </span>
+                            </div>
+                            <p className="text-sm text-slate-400 font-bold">{log.profile?.sport || '운동'} · {log.profile?.position || '미설정'}</p>
+                            </div>
+                            <div className="ml-auto text-sm text-slate-500 font-medium">{new Date(log.created_at).toLocaleDateString()}</div>
                         </div>
-                    ))}
-                    {/* 👇 글자색 수정함 (slate-600 -> slate-400) */}
-                    {log.comments.length === 0 && <p className="text-xs text-slate-400 font-bold">첫 댓글을 남겨보세요!</p>}
-                    
-                    {log.comments.length > 3 && (
-                        <button 
-                            onClick={() => toggleCommentView(log.id)}
-                            className="text-xs font-bold text-blue-400 hover:text-blue-300 mt-2 block w-full text-left"
-                        >
-                            {isExpanded ? '댓글 접기 ▲' : `댓글 ${hiddenCount}개 더 보기 ▼`}
-                        </button>
-                    )}
-                    </div>
 
-                    <div className="flex gap-2">
-                    <input type="text" value={commentInputs[log.id] || ''} onChange={(e) => setCommentInputs({...commentInputs, [log.id]: e.target.value})} onKeyDown={(e) => e.key === 'Enter' && addComment(log.id)} placeholder="댓글 입력..." className="flex-1 px-4 py-3 rounded-xl border border-white/10 bg-slate-800 text-white font-medium placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-                    <button onClick={() => addComment(log.id)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-500">등록</button>
+                        <div className="mb-5">
+                            <div className="mb-2"> <span className={`text-[10px] px-2 py-1 rounded-md font-black tracking-wide uppercase ${log.log_type === 'workout' ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}> {log.log_type === 'workout' ? 'WORKOUT' : 'REHAB'} </span> </div>
+                            {log.title && <h2 className="text-xl font-bold text-white mb-2 break-all">{log.title}</h2>}
+                            <p className="text-slate-300 font-medium text-lg whitespace-pre-wrap break-all mb-4">{log.content}</p>
+                            {log.image_url && ( <div className="mb-4 rounded-2xl overflow-hidden border border-white/10 shadow-sm"> {log.media_type === 'video' ? ( <video src={log.image_url} controls className="w-full h-auto" /> ) : ( <img src={log.image_url} alt="인증샷" className="w-full h-auto object-cover" /> )} </div> )}
+                        </div>
+
+                        <div className="flex items-center justify-between mb-6">
+                            <div className={`px-4 py-2 rounded-xl text-sm font-bold ${log.pain_score > 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}> 강도 {log.pain_score}점 </div>
+                            <button onClick={() => toggleLike(log.id, log.is_liked)} className={`flex items-center gap-2 font-bold text-lg transition px-4 py-2 rounded-full border ${log.is_liked ? 'text-red-500 bg-red-500/10 border-red-500/20' : 'text-slate-400 hover:text-red-500 border-white/10 hover:bg-red-500/10'}`}> {log.is_liked ? '❤️' : '🤍'} {log.like_count || 0} </button>
+                        </div>
+
+                        <div className="bg-slate-950 p-5 rounded-2xl border border-white/5">
+                            <div className="space-y-3 mb-4">
+                            {visibleComments.map(comment => (
+                                <div key={comment.id} className="flex gap-2 items-start text-sm group">
+                                    <span className="font-bold text-slate-300 shrink-0">{comment.profile?.username || '익명'}:</span>
+                                    <span className="text-slate-400 font-medium break-all flex-1">{comment.content}</span>
+                                    
+                                    <button onClick={() => toggleCommentLike(comment.id, comment.is_liked)} className={`text-xs flex items-center gap-1 font-bold ${comment.is_liked ? 'text-red-500' : 'text-slate-600 hover:text-red-400'}`}>
+                                        <span>{comment.is_liked ? '❤️' : '🤍'}</span>
+                                        {comment.like_count > 0 && <span>{comment.like_count}</span>}
+                                    </button>
+
+                                    {currentUser?.id === comment.user_id && <button onClick={() => deleteComment(comment.id)} className="text-slate-600 hover:text-red-500 font-bold px-1 text-xs">✕</button>}
+                                </div>
+                            ))}
+                            {log.comments.length === 0 && <p className="text-xs text-slate-400 font-bold">첫 댓글을 남겨보세요!</p>}
+                            
+                            {log.comments.length > 3 && (
+                                <button 
+                                    onClick={() => toggleCommentView(log.id)}
+                                    className="text-xs font-bold text-blue-400 hover:text-blue-300 mt-2 block w-full text-left"
+                                >
+                                    {isExpanded ? '댓글 접기 ▲' : `댓글 ${hiddenCount}개 더 보기 ▼`}
+                                </button>
+                            )}
+                            </div>
+
+                            <div className="flex gap-2">
+                            <input type="text" value={commentInputs[log.id] || ''} onChange={(e) => setCommentInputs({...commentInputs, [log.id]: e.target.value})} onKeyDown={(e) => e.key === 'Enter' && addComment(log.id)} placeholder="댓글 입력..." className="flex-1 px-4 py-3 rounded-xl border border-white/10 bg-slate-800 text-white font-medium placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                            <button onClick={() => addComment(log.id)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-500">등록</button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                </div>
-            )})}
+                    )
+                })
+            )}
             </div>
         </div>
     </div>
