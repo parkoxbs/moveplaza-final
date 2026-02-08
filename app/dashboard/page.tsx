@@ -25,10 +25,10 @@ const Icons = {
   X: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><path d="M18 6 6 18M6 6l12 12"/></svg>,
   Share: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>,
   Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
-  Camera: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+  Camera: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
+  Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
 }
 
-// 레벨 계산
 const getLevel = (count: number) => {
   if (count >= 50) return { name: 'World Class', rank: '월드 클래스', emoji: '👑', color: 'bg-purple-600 text-white', next: 1000 };
   if (count >= 30) return { name: 'Pro', rank: '프로', emoji: '🔥', color: 'bg-red-500 text-white', next: 50 };
@@ -42,17 +42,18 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState("")
   
-  // 기능용 Refs
   const reportRef = useRef<HTMLDivElement>(null)
   const shareCardRef = useRef<HTMLDivElement>(null)
   const [shareData, setShareData] = useState<any>(null)
+  
+  // 🆕 결과 이미지 팝업용 상태
+  const [resultImage, setResultImage] = useState<string | null>(null)
+  const [isResultOpen, setIsResultOpen] = useState(false)
 
-  // 상태들
   const [streak, setStreak] = useState(0)
   const [myLevel, setMyLevel] = useState<any>(getLevel(0))
   const [todayCondition, setTodayCondition] = useState<'good' | 'normal' | 'bad' | null>(null)
 
-  // 모달 및 입력 폼
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [logType, setLogType] = useState<'workout' | 'rehab'>('workout')
   const [title, setTitle] = useState('')
@@ -65,32 +66,20 @@ export default function Dashboard() {
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreview, setMediaPreview] = useState<string | null>(null)
 
-  const bodyParts = [
-    "목", "승모근", "어깨", "가슴", "등", "복근", "허리",
-    "삼두", "이두", "전완근", "손목", "손",
-    "엉덩이", "고관절", "허벅지(앞)", "허벅지(뒤)", "무릎", "종아리", "발목", "발"
-  ]
+  const bodyParts = ["목", "승모근", "어깨", "가슴", "등", "복근", "허리", "삼두", "이두", "전완근", "손목", "손", "엉덩이", "고관절", "허벅지(앞)", "허벅지(뒤)", "무릎", "종아리", "발목", "발"]
 
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
-    
     const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single()
     setUserName(profile?.username || user.email?.split("@")[0] || "선수")
-
     const { data } = await supabase.from('logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-    if (data) {
-        setLogs(data)
-        setMyLevel(getLevel(data.length))
-        calculateStreak(data)
-    }
-
+    if (data) { setLogs(data); setMyLevel(getLevel(data.length)); calculateStreak(data); }
     const today = new Date().toISOString().split('T')[0]
     const { data: conditionData } = await supabase.from('daily_conditions').select('*').eq('user_id', user.id).gte('created_at', `${today}T00:00:00`).limit(1)
     if (conditionData && conditionData.length > 0) setTodayCondition(conditionData[0].status)
-
     setLoading(false)
   }
 
@@ -120,42 +109,13 @@ export default function Dashboard() {
     toast.success("컨디션 기록 완료!")
   }
 
-  // 📄 PDF 다운로드 (백지 수정 및 스크롤 전체 캡처)
-  const handleDownloadPDF = async () => {
-    if (!reportRef.current) return
-    const t = toast.loading("PDF 리포트 생성 중...")
-    try {
-      const element = reportRef.current
-      const width = element.scrollWidth
-      const height = element.scrollHeight
-      const dataUrl = await toPng(element, { 
-        cacheBust: true, 
-        pixelRatio: 2, 
-        backgroundColor: '#ffffff', 
-        width: width, 
-        height: height, 
-        style: { padding: '40px', background: 'white' } 
-      })
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      const imgProps = pdf.getImageProperties(dataUrl)
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight)
-      pdf.save(`${userName}_Moveplaza_Report.pdf`)
-      toast.success("PDF 저장 완료!", { id: t })
-    } catch (e) { console.error(e); toast.error("PDF 생성 실패 ㅠ", { id: t }) }
-  }
-
   const handleAddLog = async () => {
     if (!title.trim()) return toast.error("제목을 입력해주세요!")
     setUploading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    
     if (user) {
       try {
-        let mediaUrl = null;
-        let mediaType = 'image';
-
+        let mediaUrl = null; let mediaType = 'image';
         if (mediaFile) {
            const fileExt = mediaFile.name.split('.').pop();
            const filePath = `${user.id}/${Date.now()}.${fileExt}`;
@@ -165,41 +125,18 @@ export default function Dashboard() {
            mediaUrl = data.publicUrl;
            mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
         }
-
         const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''
-        
-        const { error } = await supabase.from('logs').insert({
-          user_id: user.id,
-          title,
-          content: partsString + content,
-          pain_score: score,
-          log_type: logType,
-          is_public: isPublic,
-          image_url: mediaUrl,
-          media_type: mediaType,
-          created_at: new Date().toISOString()
-        })
-
+        const { error } = await supabase.from('logs').insert({ user_id: user.id, title, content: partsString + content, pain_score: score, log_type: logType, is_public: isPublic, image_url: mediaUrl, media_type: mediaType, created_at: new Date().toISOString() })
         if (error) throw error;
-
-        toast.success("기록 저장 완료! 🎉")
-        setIsModalOpen(false)
-        setTitle(''); setContent(''); setScore(5); setSelectedParts([]); 
-        setMediaFile(null); setMediaPreview(null);
-        fetchData()
-
-      } catch (e: any) {
-        toast.error("저장 실패: " + e.message)
-      }
+        toast.success("기록 저장 완료! 🎉"); setIsModalOpen(false); setTitle(''); setContent(''); setScore(5); setSelectedParts([]); setMediaFile(null); setMediaPreview(null); fetchData()
+      } catch (e: any) { toast.error("저장 실패: " + e.message) }
     }
     setUploading(false)
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0]
-      setMediaFile(file)
-      setMediaPreview(URL.createObjectURL(file))
+      const file = e.target.files[0]; setMediaFile(file); setMediaPreview(URL.createObjectURL(file))
     }
   }
 
@@ -209,108 +146,96 @@ export default function Dashboard() {
     if (!error) { toast.success('삭제 완료!'); setLogs(logs.filter(l => l.id !== id)) }
   }
 
-  // 📸 공유 기능 (인스타 브라우저 대응: Web Share API)
+  const togglePart = (part: string) => {
+    if (selectedParts.includes(part)) setSelectedParts(selectedParts.filter(p => p !== part))
+    else setSelectedParts([...selectedParts, part])
+  }
+
+  // 📸 공유 기능 (인스타 브라우저용 팝업 방식)
   const handleShare = async (log: any) => {
     setShareData(log)
-    const t = toast.loading("카드 생성 중...")
+    const t = toast.loading("카드 만드는 중... 🎨")
     
+    // 렌더링 대기
     setTimeout(async () => {
       if (shareCardRef.current) {
         try {
-          // 1. 이미지 생성 (다크모드 배경 강제)
-          const dataUrl = await toPng(shareCardRef.current, { 
-            cacheBust: true, 
-            pixelRatio: 3,
-            backgroundColor: '#0f172a' 
-          })
-
-          // 2. Blob으로 변환 (모바일 공유용)
-          const blob = await (await fetch(dataUrl)).blob();
-          const file = new File([blob], "moveplaza_share.png", { type: "image/png" });
-
-          // 3. Web Share API 시도 (모바일)
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: 'Moveplaza 기록',
-              text: '오늘의 운동 기록을 확인하세요! 💪',
-            });
-            toast.success("공유 창이 열렸습니다!", { id: t });
-          } else {
-            // 4. PC/미지원 브라우저용 다운로드
-            const link = document.createElement('a');
-            link.download = `Moveplaza_Share.png`;
-            link.href = dataUrl;
-            link.click();
-            toast.success("갤러리에 저장되었습니다! (PC)", { id: t });
-          }
+          const dataUrl = await toPng(shareCardRef.current, { cacheBust: true, pixelRatio: 3, backgroundColor: '#0f172a' })
+          
+          // 이미지를 상태에 저장해서 팝업을 띄움
+          setResultImage(dataUrl)
+          setIsResultOpen(true)
+          
+          toast.dismiss(t)
+          toast.success("사진이 생성되었습니다!")
         } catch (error) {
           console.error(error);
-          toast.error("인스타그램 브라우저에서는 저장이 제한될 수 있습니다. 'Chrome'이나 'Safari' 앱으로 열어주세요.", { id: t, duration: 5000 });
+          toast.error("실패 ㅠ 다시 시도해주세요.", { id: t });
         }
         setShareData(null);
       }
     }, 1000);
   }
 
-  const togglePart = (part: string) => {
-    if (selectedParts.includes(part)) setSelectedParts(selectedParts.filter(p => p !== part))
-    else setSelectedParts([...selectedParts, part])
+  // 📄 PDF 다운로드 (이것도 동일하게 팝업이 안전함, 하지만 일단 Web Share 시도)
+  const handleDownloadPDF = async () => {
+    if (!reportRef.current) return
+    const t = toast.loading("리포트 생성 중...")
+    try {
+        const element = reportRef.current
+        const width = element.scrollWidth
+        const height = element.scrollHeight
+        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff', width: width, height: height, style: { padding: '20px', background: 'white' } })
+        
+        // 미리보기 대신 바로 PDF 저장 시도 (인스타에서 안되면 알림)
+        const pdf = new jsPDF('p', 'mm', 'a4')
+        const imgProps = pdf.getImageProperties(dataUrl)
+        const pdfWidth = pdf.internal.pageSize.getWidth()
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
+        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight)
+        
+        // 모바일 Web Share API 시도
+        const pdfBlob = pdf.output('blob');
+        const file = new File([pdfBlob], `Moveplaza_Report.pdf`, { type: 'application/pdf' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+             await navigator.share({ files: [file], title: 'Moveplaza 리포트' });
+             toast.success("공유 창 확인!", { id: t });
+        } else {
+             // PC나 미지원 환경은 그냥 저장
+             pdf.save(`${userName}_Moveplaza_Report.pdf`)
+             toast.success("저장 완료!", { id: t })
+        }
+    } catch (e) { toast.error("인스타에서는 PDF 저장이 안될 수 있어요 ㅠ", { id: t }) }
   }
 
+
   const rehabLogs = logs.filter((log: any) => { if (log.type === 'workout') return false; if (log.intensity) return false; return true; })
-  const bodyPartCounts = rehabLogs.reduce((acc: any, log: any) => {
-    if (log.body_part) acc[log.body_part] = (acc[log.body_part] || 0) + 1
-    const match = log.content?.match(/^\[(.*?)\]/); if (match) match[1].split(', ').forEach((p: string) => acc[p] = (acc[p] || 0) + 1);
-    return acc
-  }, {} as any)
-  const getSeverityColor = (count: number) => {
-    if (count >= 5) return "bg-red-500 text-white border-red-600 shadow-md shadow-red-200"; if (count >= 3) return "bg-orange-500 text-white border-orange-600 shadow-md shadow-orange-200"; if (count >= 1) return "bg-yellow-400 text-white border-yellow-500 shadow-md shadow-yellow-200"; return "bg-white text-gray-500 border-gray-200 hover:bg-gray-50";
-  }
+  const bodyPartCounts = rehabLogs.reduce((acc: any, log: any) => { if (log.body_part) acc[log.body_part] = (acc[log.body_part] || 0) + 1; const match = log.content?.match(/^\[(.*?)\]/); if (match) match[1].split(', ').forEach((p: string) => acc[p] = (acc[p] || 0) + 1); return acc; }, {} as any)
+  const getSeverityColor = (count: number) => { if (count >= 5) return "bg-red-500 text-white border-red-600 shadow-md shadow-red-200"; if (count >= 3) return "bg-orange-500 text-white border-orange-600 shadow-md shadow-orange-200"; if (count >= 1) return "bg-yellow-400 text-white border-yellow-500 shadow-md shadow-yellow-200"; return "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"; }
   const filteredLogs = selectedDate ? logs.filter(l => new Date(l.created_at).toDateString() === selectedDate.toDateString()) : logs
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-24">
       <Toaster position="top-center" />
       
-      {/* 📸 공유용 숨겨진 카드 (사진 있으면 배경으로 깔림) */}
+      {/* 📸 공유용 숨겨진 카드 */}
       {shareData && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-1] opacity-0 pointer-events-none">
           <div ref={shareCardRef} className="w-[500px] h-[500px] bg-slate-900 p-8 flex flex-col justify-between text-white relative overflow-hidden font-sans">
-            
-            {/* 👇 배경 설정 (사진 vs 그라데이션) */}
             {shareData.image_url ? (
               <>
                 <img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 z-0"></div>
               </>
             ) : (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 z-0"></div>
-                <div className="absolute top-[-50px] right-[-50px] w-[200px] h-[200px] bg-blue-600 rounded-full blur-[90px] opacity-60 z-0"></div>
-                <div className="absolute bottom-[-50px] left-[-50px] w-[200px] h-[200px] bg-red-600 rounded-full blur-[90px] opacity-50 z-0"></div>
-              </>
+              <><div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 z-0"></div><div className="absolute top-[-50px] right-[-50px] w-[200px] h-[200px] bg-blue-600 rounded-full blur-[90px] opacity-60 z-0"></div><div className="absolute bottom-[-50px] left-[-50px] w-[200px] h-[200px] bg-red-600 rounded-full blur-[90px] opacity-50 z-0"></div></>
             )}
-
             <div className="z-10 relative">
-              <div className="flex justify-between items-start mb-4">
-                <span className={`px-4 py-1.5 rounded-full text-sm font-black tracking-wide ${shareData.log_type === 'workout' ? 'bg-blue-600' : 'bg-red-600'}`}>{shareData.log_type === 'workout' ? 'WORKOUT LOG' : 'REHAB LOG'}</span>
-                <p className="text-white/80 font-bold text-sm">{new Date(shareData.created_at).toLocaleDateString()}</p>
-              </div>
-              <h1 className="text-4xl font-black leading-tight mb-4 tracking-tight drop-shadow-lg">{shareData.title}</h1>
-              <p className="text-white/90 text-lg font-medium leading-relaxed line-clamp-4 drop-shadow-md">{shareData.content}</p>
+              <div className="flex justify-between items-start mb-4"><span className={`px-4 py-1.5 rounded-full text-sm font-black tracking-wide ${shareData.log_type === 'workout' ? 'bg-blue-600' : 'bg-red-600'}`}>{shareData.log_type === 'workout' ? 'WORKOUT LOG' : 'REHAB LOG'}</span><p className="text-white/80 font-bold text-sm">{new Date(shareData.created_at).toLocaleDateString()}</p></div>
+              <h1 className="text-4xl font-black leading-tight mb-4 tracking-tight drop-shadow-lg">{shareData.title}</h1><p className="text-white/90 text-lg font-medium leading-relaxed line-clamp-4 drop-shadow-md">{shareData.content}</p>
             </div>
-            
-            <div className="z-10 relative border-t border-white/20 pt-6 flex justify-between items-end">
-              <div>
-                <p className="text-white/70 text-xs font-black tracking-widest mb-1">INTENSITY</p>
-                <p className="text-5xl font-black text-white drop-shadow-lg">{shareData.pain_score}<span className="text-xl text-white/60 ml-1">/ 10</span></p>
-              </div>
-              <div className="text-right">
-                <p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg">MOVEPLAZA</p>
-                <p className="text-[10px] text-white/70 font-bold tracking-widest uppercase">Athlete Performance System</p>
-              </div>
-            </div>
+            <div className="z-10 relative border-t border-white/20 pt-6 flex justify-between items-end"><div><p className="text-white/70 text-xs font-black tracking-widest mb-1">INTENSITY</p><p className="text-5xl font-black text-white drop-shadow-lg">{shareData.pain_score}<span className="text-xl text-white/60 ml-1">/ 10</span></p></div><div className="text-right"><p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg">MOVEPLAZA</p><p className="text-[10px] text-white/70 font-bold tracking-widest uppercase">Athlete Performance System</p></div></div>
           </div>
         </div>
       )}
@@ -374,6 +299,22 @@ export default function Dashboard() {
                <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100"><input type="checkbox" id="public" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-blue-600"/><label htmlFor="public" className="text-sm font-bold text-blue-900 cursor-pointer">광장에 자랑하기 (공개)</label></div>
             </div>
             <div className="p-4 border-t border-gray-100 bg-white"><button onClick={handleAddLog} disabled={uploading} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-slate-800 transition disabled:opacity-50">{uploading ? '저장 중...' : '기록 저장 완료 ✨'}</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* 🟢 결과 이미지 팝업 (인스타그램 오류 해결용) */}
+      {isResultOpen && resultImage && (
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-4 animate-fade-in">
+          <div className="relative max-w-sm w-full">
+            <h3 className="text-white font-bold text-center mb-4 text-lg">👇 사진을 꾹 눌러서 저장하세요!</h3>
+            <img src={resultImage} alt="결과" className="w-full rounded-2xl shadow-2xl border border-white/10" />
+            <button 
+              onClick={() => setIsResultOpen(false)} 
+              className="mt-8 w-full py-4 bg-white text-black font-extrabold rounded-xl shadow-lg hover:bg-gray-200 transition"
+            >
+              닫기
+            </button>
           </div>
         </div>
       )}
