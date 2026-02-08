@@ -1,15 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from "@supabase/supabase-js"; // 👈 여기 수정됨
+import { createClient } from "@supabase/supabase-js"; 
 import { useRouter } from 'next/navigation';
-import toast, { Toaster } from 'react-hot-toast'; // 👈 알림창 추가
+import toast, { Toaster } from 'react-hot-toast'; 
 
-// 👇 1. Supabase 주소와 키를 여기에 붙여넣으세요! (대시보드랑 똑같이)
+// 👇 [중요] 대시보드 파일에 있는 '진짜 주소'와 '진짜 키'를 여기에 복붙하세요!!!!
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 
-// 👈 파일 내부에서 직접 생성 (에러 방지)
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default function MyPage() {
@@ -17,7 +16,6 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  // 👤 프로필 상태들
   const [id, setId] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [sport, setSport] = useState('');
@@ -26,22 +24,31 @@ export default function MyPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    getProfile();
-  }, []);
+  useEffect(() => { getProfile(); }, []);
 
-  // 📥 내 정보 불러오기
   const getProfile = async () => {
+    // 1. 로그인 상태 체크
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push('/login'); return; }
+    
+    // 로그인이 안 되어 있으면 쫓아냄
+    if (!user) { 
+      toast.error("로그인이 필요합니다!");
+      router.push('/login'); 
+      return; 
+    }
 
     setId(user.id);
 
+    // 2. 프로필 정보 가져오기
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
+
+    if (error && error.code !== 'PGRST116') {
+        console.error("프로필 로딩 에러:", error);
+    }
 
     if (data) {
       setUsername(data.username || '');
@@ -53,7 +60,6 @@ export default function MyPage() {
     setLoading(false);
   };
 
-  // 💾 프로필 저장하기
   const updateProfile = async () => {
     if (!id) return;
     setSaving(true);
@@ -62,14 +68,14 @@ export default function MyPage() {
     try {
       let finalAvatarUrl = avatarUrl;
 
-      // 1. 새 프사 파일이 있으면 업로드
+      // 이미지 파일이 선택되었으면 업로드
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const fileName = `avatar_${id}_${Date.now()}.${fileExt}`;
         const filePath = `${id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('images') // 기존 이미지 버킷 사용
+          .from('images')
           .upload(filePath, avatarFile, { upsert: true });
 
         if (uploadError) throw uploadError;
@@ -78,7 +84,7 @@ export default function MyPage() {
         finalAvatarUrl = data.publicUrl;
       }
 
-      // 2. DB 업데이트
+      // DB 업데이트
       const updates = {
         id,
         username,
@@ -92,8 +98,8 @@ export default function MyPage() {
       const { error } = await supabase.from('profiles').upsert(updates);
       if (error) throw error;
 
-      toast.success("프로필이 멋지게 바뀌었어요! 😎", { id: noti });
-      setAvatarUrl(finalAvatarUrl); // 화면 갱신
+      toast.success("프로필 저장 완료! 😎", { id: noti });
+      setAvatarUrl(finalAvatarUrl);
       setAvatarFile(null);
 
     } catch (error: any) {
@@ -109,12 +115,10 @@ export default function MyPage() {
     router.push('/login');
   };
 
-  // 📸 프사 미리보기 처리
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
     setAvatarFile(file);
-    // 미리보기 URL 생성
     setAvatarUrl(URL.createObjectURL(file));
   };
 
@@ -122,12 +126,11 @@ export default function MyPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8 flex items-center justify-center">
-      {/* 알림창 표시용 */}
       <Toaster position="top-center" />
 
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-200">
         
-        {/* 상단 배경 (꾸밈용) */}
+        {/* 상단 배경 */}
         <div className="h-32 bg-blue-900 w-full relative">
           <button 
             onClick={() => router.push('/dashboard')}
@@ -138,7 +141,7 @@ export default function MyPage() {
         </div>
 
         <div className="px-8 pb-8">
-          {/* 📸 프사 영역 (겹쳐서 배치) */}
+          {/* 프사 영역 */}
           <div className="relative -mt-16 mb-6 flex justify-center">
             <div className="relative">
               <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-200">
@@ -148,7 +151,6 @@ export default function MyPage() {
                   <div className="w-full h-full flex items-center justify-center text-4xl">👤</div>
                 )}
               </div>
-              {/* 카메라 아이콘 (업로드 버튼) */}
               <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full shadow-md cursor-pointer hover:bg-blue-700 transition transform hover:scale-110">
                 📷
               </label>
@@ -162,7 +164,7 @@ export default function MyPage() {
             </div>
           </div>
 
-          {/* 📝 입력 폼 */}
+          {/* 입력 폼 */}
           <div className="space-y-5">
             <div className="text-center mb-6">
               <h1 className="text-2xl font-extrabold text-black">내 프로필 설정 🛠️</h1>
@@ -204,12 +206,12 @@ export default function MyPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-extrabold text-gray-700 mb-1">한줄 소개 / 각오 🔥</label>
+              <label className="block text-sm font-extrabold text-gray-700 mb-1">한줄 소개</label>
               <input 
                 type="text" 
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="예: 무릎 재활하고 필드 복귀하자!"
+                placeholder="각오 한마디!"
                 className="w-full p-3 border-2 border-gray-200 rounded-xl font-bold text-black focus:border-blue-500 focus:outline-none bg-gray-50 focus:bg-white"
               />
             </div>
