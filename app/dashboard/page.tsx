@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import toast, { Toaster } from 'react-hot-toast'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
+// 👇 Tooltip 다시 추가했습니다!
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { toPng } from 'html-to-image'
 import jsPDF from 'jspdf'
@@ -296,10 +297,35 @@ export default function Dashboard() {
           <div className="flex flex-wrap gap-2 relative z-10">{bodyParts.map((part) => { const count = bodyPartCounts[part] || 0; return (<div key={part} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-300 ${getSeverityColor(count)}`}>{part} {count > 0 && <span className="ml-1 opacity-90 text-[10px]">({count})</span>}</div>) })}</div>
         </section>
 
-        {/* 3. 캘린더 & 차트 */}
+        {/* 3. 캘린더 & 차트 (Tooltip 개선됨) */}
         <section className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100">
            <h3 className="font-extrabold text-slate-900 mb-4">활동 흐름</h3>
-           <div className="h-40 mb-6"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse()}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="created_at" tickFormatter={(d) => new Date(d).getDate() + '일'} tick={{fontSize:10}} axisLine={false} tickLine={false} /><Tooltip contentStyle={{borderRadius:'12px', border:'none', boxShadow:'0 4px 6px -1px rgb(0 0 0 / 0.1)'}} /><Line type="monotone" dataKey="pain_score" stroke="#2563eb" strokeWidth={3} dot={{r:3}} activeDot={{r:5}} isAnimationActive={false} /></LineChart></ResponsiveContainer></div>
+           <div className="h-40 mb-6">
+             <ResponsiveContainer width="100%" height="100%">
+               <LineChart data={logs.slice(0, 7).reverse()}>
+                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                 <XAxis dataKey="created_at" tickFormatter={(d) => new Date(d).getDate() + '일'} tick={{fontSize:10}} axisLine={false} tickLine={false} />
+                 
+                 {/* 👇 여기가 핵심! 위치를 상단(y: 0)으로 고정해서 그래프를 가리지 않게 함 */}
+                 <Tooltip 
+                   position={{ y: 0 }} 
+                   contentStyle={{ 
+                     backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                     border: 'none', 
+                     borderRadius: '8px', 
+                     boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                     fontSize: '12px',
+                     padding: '4px 8px',
+                     fontWeight: 'bold'
+                   }} 
+                   labelStyle={{ display: 'none' }} // 날짜 중복 표시 제거 (깔끔하게)
+                   formatter={(value, name, props) => [`${value}점`, `${new Date(props.payload.created_at).getDate()}일 기록`]} // 내용 커스텀
+                 />
+                 
+                 <Line type="monotone" dataKey="pain_score" stroke="#2563eb" strokeWidth={3} dot={{r:3}} activeDot={{r:5}} isAnimationActive={false} />
+               </LineChart>
+             </ResponsiveContainer>
+           </div>
            <style jsx global>{` .react-calendar { border: none; width: 100%; font-family: inherit; } .react-calendar__tile--active { background: #1e3a8a !important; color: white !important; border-radius: 8px; } .react-calendar__tile--now { background: #eff6ff !important; color: #1e3a8a !important; border-radius: 8px; font-weight: bold; } `}</style>
            <Calendar onClickDay={setSelectedDate} value={selectedDate} tileContent={({ date }) => logs.some(l => new Date(l.created_at).toDateString() === date.toDateString()) ? <div className="flex justify-center mt-1"><div className="w-1 h-1 bg-blue-600 rounded-full"></div></div> : null} />
         </section>
