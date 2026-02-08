@@ -11,7 +11,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { toPng } from 'html-to-image'
 import jsPDF from 'jspdf'
 
-// 👇 1. Supabase 주소와 키 입력
+// 👇 1. Supabase 주소와 키 입력 (본인 걸로!)
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 
@@ -46,7 +46,7 @@ export default function Dashboard() {
   const shareCardRef = useRef<HTMLDivElement>(null)
   const [shareData, setShareData] = useState<any>(null)
   
-  // 🆕 결과 이미지 팝업용 상태
+  // 결과 이미지 팝업용 상태
   const [resultImage, setResultImage] = useState<string | null>(null)
   const [isResultOpen, setIsResultOpen] = useState(false)
 
@@ -109,6 +109,41 @@ export default function Dashboard() {
     toast.success("컨디션 기록 완료!")
   }
 
+  // 📄 PDF 다운로드 (모바일 공유 기능 사용)
+  const handleDownloadPDF = async () => {
+    if (!reportRef.current) return
+    const t = toast.loading("리포트 생성 중... 잠시만요!")
+    setTimeout(async () => {
+      try {
+        if(!reportRef.current) return;
+        const element = reportRef.current
+        const width = element.scrollWidth
+        const height = element.scrollHeight
+        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff', width: width, height: height, style: { padding: '20px', background: 'white' } })
+        const pdf = new jsPDF('p', 'mm', 'a4')
+        const imgProps = pdf.getImageProperties(dataUrl)
+        const pdfWidth = pdf.internal.pageSize.getWidth()
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
+        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight)
+        
+        // 모바일 Web Share API 시도
+        const pdfBlob = pdf.output('blob');
+        const file = new File([pdfBlob], `Moveplaza_Report.pdf`, { type: 'application/pdf' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+             await navigator.share({ files: [file], title: 'Moveplaza 리포트' });
+             toast.dismiss(t);
+        } else {
+             pdf.save(`${userName}_Moveplaza_Report.pdf`)
+             toast.success("다운로드 완료! (PC)", { id: t })
+        }
+      } catch (e) { 
+        console.error(e); 
+        toast.error("인스타그램 정책상 저장이 차단되었습니다 ㅠ 캡처를 이용해주세요.", { id: t, duration: 5000 }) 
+      }
+    }, 1000);
+  }
+
   const handleAddLog = async () => {
     if (!title.trim()) return toast.error("제목을 입력해주세요!")
     setUploading(true)
@@ -151,23 +186,17 @@ export default function Dashboard() {
     else setSelectedParts([...selectedParts, part])
   }
 
-  // 📸 공유 기능 (인스타 브라우저용 팝업 방식)
-  const handleShare = async (log: any) => {
+  // 📸 공유 버튼 클릭 시: 이미지 생성 후 팝업 띄움
+  const handleShareClick = async (log: any) => {
     setShareData(log)
     const t = toast.loading("카드 만드는 중... 🎨")
-    
-    // 렌더링 대기
     setTimeout(async () => {
       if (shareCardRef.current) {
         try {
           const dataUrl = await toPng(shareCardRef.current, { cacheBust: true, pixelRatio: 3, backgroundColor: '#0f172a' })
-          
-          // 이미지를 상태에 저장해서 팝업을 띄움
-          setResultImage(dataUrl)
-          setIsResultOpen(true)
-          
+          setResultImage(dataUrl) // 생성된 이미지 저장
+          setIsResultOpen(true)   // 팝업 열기
           toast.dismiss(t)
-          toast.success("사진이 생성되었습니다!")
         } catch (error) {
           console.error(error);
           toast.error("실패 ㅠ 다시 시도해주세요.", { id: t });
@@ -177,38 +206,40 @@ export default function Dashboard() {
     }, 1000);
   }
 
-  // 📄 PDF 다운로드 (이것도 동일하게 팝업이 안전함, 하지만 일단 Web Share 시도)
-  const handleDownloadPDF = async () => {
-    if (!reportRef.current) return
-    const t = toast.loading("리포트 생성 중...")
+  // 💾 팝업 내 "저장 버튼" 클릭 시: 실제 공유/저장 실행
+  const handleSaveResultImage = async (dataUrl: string) => {
+    const t = toast.loading("저장/공유 창 여는 중...")
     try {
-        const element = reportRef.current
-        const width = element.scrollWidth
-        const height = element.scrollHeight
-        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff', width: width, height: height, style: { padding: '20px', background: 'white' } })
-        
-        // 미리보기 대신 바로 PDF 저장 시도 (인스타에서 안되면 알림)
-        const pdf = new jsPDF('p', 'mm', 'a4')
-        const imgProps = pdf.getImageProperties(dataUrl)
-        const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
-        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight)
-        
-        // 모바일 Web Share API 시도
-        const pdfBlob = pdf.output('blob');
-        const file = new File([pdfBlob], `Moveplaza_Report.pdf`, { type: 'application/pdf' });
+      // DataURL을 파일 객체로 변환
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], "moveplaza_card.png", { type: "image/png" });
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-             await navigator.share({ files: [file], title: 'Moveplaza 리포트' });
-             toast.success("공유 창 확인!", { id: t });
-        } else {
-             // PC나 미지원 환경은 그냥 저장
-             pdf.save(`${userName}_Moveplaza_Report.pdf`)
-             toast.success("저장 완료!", { id: t })
-        }
-    } catch (e) { toast.error("인스타에서는 PDF 저장이 안될 수 있어요 ㅠ", { id: t }) }
+      // 모바일 공유 기능 호출
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'Moveplaza 공유 카드',
+            text: '나의 운동 기록 카드입니다!',
+          });
+          toast.dismiss(t);
+      } else {
+          // PC 등 미지원 환경 (다운로드 시도)
+          const link = document.createElement('a');
+          link.download = 'moveplaza_card.png';
+          link.href = dataUrl;
+          link.click();
+          toast.success("PC: 다운로드됨 / 모바일: '공유'를 지원하지 않는 브라우저입니다.", { id: t, duration: 4000 });
+      }
+    } catch (error: any) {
+      // 사용자가 공유창을 닫은 경우(AbortError)는 에러 아님
+      if (error.name !== 'AbortError') {
+          console.error(error);
+          toast.error("인스타그램 정책상 저장이 차단되었습니다. 캡처를 이용해주세요 ㅠ", { id: t, duration: 5000 });
+      } else {
+          toast.dismiss(t);
+      }
+    }
   }
-
 
   const rehabLogs = logs.filter((log: any) => { if (log.type === 'workout') return false; if (log.intensity) return false; return true; })
   const bodyPartCounts = rehabLogs.reduce((acc: any, log: any) => { if (log.body_part) acc[log.body_part] = (acc[log.body_part] || 0) + 1; const match = log.content?.match(/^\[(.*?)\]/); if (match) match[1].split(', ').forEach((p: string) => acc[p] = (acc[p] || 0) + 1); return acc; }, {} as any)
@@ -224,10 +255,7 @@ export default function Dashboard() {
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-1] opacity-0 pointer-events-none">
           <div ref={shareCardRef} className="w-[500px] h-[500px] bg-slate-900 p-8 flex flex-col justify-between text-white relative overflow-hidden font-sans">
             {shareData.image_url ? (
-              <>
-                <img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 z-0"></div>
-              </>
+              <><img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" /><div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 z-0"></div></>
             ) : (
               <><div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 z-0"></div><div className="absolute top-[-50px] right-[-50px] w-[200px] h-[200px] bg-blue-600 rounded-full blur-[90px] opacity-60 z-0"></div><div className="absolute bottom-[-50px] left-[-50px] w-[200px] h-[200px] bg-red-600 rounded-full blur-[90px] opacity-50 z-0"></div></>
             )}
@@ -279,7 +307,7 @@ export default function Dashboard() {
         {/* 4. 로그 리스트 */}
         <section>
           <div className="flex justify-between items-center mb-4 px-1"><h3 className="text-xl font-black text-slate-900">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3><div className="flex gap-2"><button onClick={handleDownloadPDF} className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-bold hover:bg-slate-200">📄 리포트 저장</button>{selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-gray-200 px-2 py-1 rounded-lg font-bold">전체보기</button>}</div></div>
-          <div className="space-y-3">{loading ? (<div className="text-center py-10 font-bold text-slate-300">로딩 중...</div>) : filteredLogs.length === 0 ? (<div className="text-center py-12 bg-white rounded-3xl border-2 border-dashed border-slate-200"><p className="text-slate-400 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-600 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { const isWorkout = log.log_type === 'workout' || (log.pain_score && !log.content.includes('통증')); return (<div key={log.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition hover:shadow-md hover:scale-[1.01] cursor-default group"><div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden shrink-0 ${isWorkout ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>{log.image_url ? <img src={log.image_url} alt="인증" className="w-full h-full object-cover" /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />)}</div><div><div className="font-black text-slate-900 text-sm mb-0.5">{log.title}</div><div className="text-xs font-bold text-slate-500 line-clamp-1">{log.content}</div></div></div><div className="flex items-center gap-3"><button onClick={() => handleShare(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-50 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500' : 'text-slate-900'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-400">점</div></div></div></div>) }))}</div>
+          <div className="space-y-3">{loading ? (<div className="text-center py-10 font-bold text-slate-300">로딩 중...</div>) : filteredLogs.length === 0 ? (<div className="text-center py-12 bg-white rounded-3xl border-2 border-dashed border-slate-200"><p className="text-slate-400 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-600 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { const isWorkout = log.log_type === 'workout' || (log.pain_score && !log.content.includes('통증')); return (<div key={log.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition hover:shadow-md hover:scale-[1.01] cursor-default group"><div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden shrink-0 ${isWorkout ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>{log.image_url ? <img src={log.image_url} alt="인증" className="w-full h-full object-cover" /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />)}</div><div><div className="font-black text-slate-900 text-sm mb-0.5">{log.title}</div><div className="text-xs font-bold text-slate-500 line-clamp-1">{log.content}</div></div></div><div className="flex items-center gap-3"><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-50 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500' : 'text-slate-900'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-400">점</div></div></div></div>) }))}</div>
         </section>
       </main>
 
@@ -303,15 +331,24 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 🟢 결과 이미지 팝업 (인스타그램 오류 해결용) */}
+      {/* 🟢 결과 이미지 팝업 (저장 버튼 추가됨!) */}
       {isResultOpen && resultImage && (
         <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-4 animate-fade-in">
-          <div className="relative max-w-sm w-full">
-            <h3 className="text-white font-bold text-center mb-4 text-lg">👇 사진을 꾹 눌러서 저장하세요!</h3>
+          <div className="relative max-w-sm w-full space-y-4">
+            <h3 className="text-white font-bold text-center text-lg animate-pulse">👇 아래 버튼을 눌러 저장하세요!</h3>
             <img src={resultImage} alt="결과" className="w-full rounded-2xl shadow-2xl border border-white/10" />
+            
+            {/* ✨ 새로 추가된 저장 버튼 ✨ */}
+            <button 
+              onClick={() => handleSaveResultImage(resultImage)} 
+              className="w-full py-4 bg-blue-600 text-white font-extrabold rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
+            >
+              <Icons.Download /> 이미지 저장 / 공유하기
+            </button>
+
             <button 
               onClick={() => setIsResultOpen(false)} 
-              className="mt-8 w-full py-4 bg-white text-black font-extrabold rounded-xl shadow-lg hover:bg-gray-200 transition"
+              className="w-full py-4 bg-white text-black font-extrabold rounded-xl shadow-lg hover:bg-gray-200 transition"
             >
               닫기
             </button>
