@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
+// 👇 createBrowserClient 사용 필수
 import { createBrowserClient } from "@supabase/ssr"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -12,8 +13,10 @@ import jsPDF from 'jspdf'
 import BodyMap from "..//components/BodyMap"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
+// 👇 하단 메뉴바 불러오기
 import BottomNav from "..//components/BottomNav"
 
+// 👇 1. Supabase 주소와 키 입력
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 
@@ -458,7 +461,8 @@ export default function Dashboard() {
     else setSelectedParts([...selectedParts, part])
   }
 
-  // 👇 [최종 수정] 매거진 커버 스타일 (중앙 비우고 하단 집중)
+  // 👇 [디자인 전면 교체] 매거진 커버 스타일 (중앙 비우고 하단 집중)
+  // 👇 + 1.5초 후 자동 다운로드 기능 포함
   const handleShareClick = async (log: any) => {
     setShareData(log)
     const t = toast.loading("카드 디자인 중... 🎨")
@@ -474,7 +478,7 @@ export default function Dashboard() {
           })
           
           const link = document.createElement('a');
-          link.download = `moveplaza_poster_${Date.now()}.png`;
+          link.download = `moveplaza_magazine_${Date.now()}.png`;
           link.href = dataUrl;
           link.click();
           
@@ -543,7 +547,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
-      {/* 👇 [최종 수정] 매거진 커버 스타일 (중앙 비우고 하단 집중) */}
+      {/* 👇 [최종 수정] 매거진 커버 스타일 (중앙 비우고 하단 집중, 화면 뒤로 숨김) */}
       {shareData && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-50] opacity-100 pointer-events-none">
           <div ref={shareCardRef} className="w-[450px] h-[650px] relative bg-slate-950 overflow-hidden font-sans">
@@ -566,6 +570,8 @@ export default function Dashboard() {
                           </span>
                       ))}
                   </div>
+                  {/* 텍스처 오버레이 */}
+                  <svg className="absolute inset-0 w-full h-full opacity-20 mix-blend-overlay" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noise)"/></svg>
               </div>
             )}
 
@@ -619,7 +625,7 @@ export default function Dashboard() {
                                 <span className={`text-5xl font-black italic tracking-tighter drop-shadow-2xl ${shareData.match_result === 'win' ? 'text-blue-400' : (shareData.match_result === 'lose' ? 'text-red-400' : 'text-slate-200')}`}>
                                     {shareData.match_result === 'win' ? 'WIN' : (shareData.match_result === 'lose' ? 'LOSE' : 'DRAW')}
                                 </span>
-                                <div className="text-white font-bold text-lg mt-[-5px]">
+                                <div className="text-white font-bold text-lg mt-[-5px] drop-shadow-md">
                                     {shareData.goals}G {shareData.assists}A
                                 </div>
                             </div>
@@ -628,7 +634,7 @@ export default function Dashboard() {
                                 <span className="text-[80px] font-black text-white tracking-tighter drop-shadow-2xl">
                                     {shareData.pain_score}
                                 </span>
-                                <span className="text-2xl font-bold text-white/60 mb-3 ml-1">/10</span>
+                                <span className="text-2xl font-bold text-white/60 mb-3 ml-1 drop-shadow-md">/10</span>
                             </div>
                         )}
                     </div>
@@ -924,9 +930,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 기록 추가 모달 */}
+      {/* 👇 [수정됨] 기록 추가 모달 - z-index를 100으로 올려서 언더바 위로 덮어씌움 */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
           <div className="bg-slate-900 border border-white/10 w-full max-w-md h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-modal">
             <div className="p-4 border-b border-white/5 flex justify-between items-center bg-slate-900"><h3 className="font-extrabold text-lg text-white">새로운 기록 남기기 ✍️</h3><button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full transition text-slate-400"><Icons.X /></button></div>
             <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-900">
