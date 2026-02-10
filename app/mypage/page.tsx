@@ -1,20 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from "@supabase/supabase-js"; 
+// 👇 [핵심 수정] ssr 패키지로 변경 (쿠키 인식용)
+import { createBrowserClient } from "@supabase/ssr"; 
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast'; 
 
-// 👇 1. Supabase 주소와 키를 입력하세요!
+// 👇 1. Supabase 주소와 키
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 
-const supabase = createClient(supabaseUrl, supabaseKey)
+// 👇 브라우저 클라이언트 생성
+const supabase = createBrowserClient(supabaseUrl, supabaseKey)
 
 // ✅ [설정] 관리자 이메일
 const ADMIN_EMAIL = "agricb83@gmail.com"; 
 
-// 레벨 시스템 (대시보드와 동일하게 맞춤)
+// 레벨 시스템 (대시보드와 동일)
 const LEVEL_SYSTEM = [
   { name: 'Rookie', rank: '루키', emoji: '🐣', min: 0, color: 'text-green-400', bg: 'bg-green-500/20' },
   { name: 'Beginner', rank: '비기너', emoji: '🌱', min: 15, color: 'text-teal-400', bg: 'bg-teal-500/20' },
@@ -43,7 +45,6 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  // 프로필 데이터
   const [id, setId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [username, setUsername] = useState('');
@@ -53,13 +54,8 @@ export default function MyPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
-  // 스탯 데이터
   const [stats, setStats] = useState({ totalLogs: 0, goals: 0, assists: 0, matches: 0, winRate: 0 });
-
-  // 수정 모드 상태
   const [isEditing, setIsEditing] = useState(false);
-
-  // 건의함 관련 상태
   const [isAdmin, setIsAdmin] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isMailboxOpen, setIsMailboxOpen] = useState(false);
@@ -67,8 +63,14 @@ export default function MyPage() {
   useEffect(() => { getProfile(); }, []);
 
   const getProfile = async () => {
+    // 👇 로컬 스토리지 대신 쿠키에서 세션 확인
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast.error("로그인이 필요합니다!"); router.push('/login'); return; }
+    
+    if (!user) { 
+        toast.error("로그인이 필요합니다!"); 
+        router.replace('/login'); // push 대신 replace 사용 (뒤로가기 방지)
+        return; 
+    }
     
     setId(user.id);
     setEmail(user.email || null);
@@ -78,7 +80,6 @@ export default function MyPage() {
         fetchSuggestions();
     }
 
-    // 1. 프로필 정보 가져오기
     const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
     if (data) {
       setUsername(data.username || '');
@@ -88,7 +89,6 @@ export default function MyPage() {
       setAvatarUrl(data.avatar_url || null);
     }
 
-    // 2. 기록 데이터 가져와서 스탯 계산
     const { data: logs } = await supabase.from('logs').select('*').eq('user_id', user.id);
     if (logs) {
         const matches = logs.filter(l => l.log_type === 'match');
@@ -139,11 +139,17 @@ export default function MyPage() {
       toast.success("프로필 저장 완료! 😎", { id: noti });
       setAvatarUrl(finalAvatarUrl);
       setAvatarFile(null);
-      setIsEditing(false); // 저장 후 수정 모드 종료
+      setIsEditing(false);
     } catch (error: any) { toast.error("저장 실패: " + error.message, { id: noti }); } finally { setSaving(false); }
   };
 
-  const handleLogout = async () => { await supabase.auth.signOut(); toast('로그아웃 👋'); router.push('/login'); };
+  const handleLogout = async () => { 
+      await supabase.auth.signOut(); 
+      toast('로그아웃 👋'); 
+      router.refresh(); // 미들웨어가 로그아웃 인식하도록 새로고침
+      router.replace('/'); 
+  };
+  
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => { if (!e.target.files || e.target.files.length === 0) return; const file = e.target.files[0]; setAvatarFile(file); setAvatarUrl(URL.createObjectURL(file)); };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold bg-slate-950 text-white">로딩 중... ⏳</div>;
@@ -156,7 +162,6 @@ export default function MyPage() {
 
       <div className="max-w-md w-full bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-white/10">
         
-        {/* 상단 배경 */}
         <div className="h-32 bg-blue-900 w-full relative">
           <button onClick={() => router.push('/dashboard')} className="absolute top-4 left-4 bg-black/20 hover:bg-black/40 text-white px-3 py-1 rounded-lg text-sm font-bold backdrop-blur-sm transition">← 대시보드로</button>
           {!isEditing && (
@@ -166,7 +171,6 @@ export default function MyPage() {
 
         <div className="px-8 pb-8">
           
-          {/* 1. 프로필 카드 섹션 */}
           <div className="relative -mt-16 mb-6 text-center">
             <div className="relative inline-block">
                 <div className={`w-32 h-32 rounded-full border-4 border-slate-900 shadow-xl overflow-hidden bg-slate-800 flex items-center justify-center text-6xl ${myLevel.color}`}>
@@ -193,7 +197,6 @@ export default function MyPage() {
             )}
           </div>
 
-          {/* 2. 시즌 스탯 섹션 (수정 모드 아닐 때만 보임) */}
           {!isEditing && (
               <div className="bg-slate-900 rounded-2xl border border-white/10 shadow-lg relative overflow-hidden mb-6 p-1">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/10 rounded-full blur-[40px]"></div>
@@ -212,7 +215,6 @@ export default function MyPage() {
               </div>
           )}
 
-          {/* 3. 수정 폼 (수정 모드일 때만 보임) */}
           {isEditing && (
             <div className="space-y-5 animate-fade-in">
                 <div>
@@ -240,7 +242,6 @@ export default function MyPage() {
             </div>
           )}
 
-          {/* 4. 하단 버튼들 */}
           {!isEditing && (
               <div className="mt-4 space-y-3">
                   {isAdmin && (
@@ -255,7 +256,6 @@ export default function MyPage() {
         </div>
       </div>
 
-      {/* 📬 건의함 모달 (관리자용) - 기존 코드 유지 */}
       {isMailboxOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsMailboxOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm max-h-[80vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>

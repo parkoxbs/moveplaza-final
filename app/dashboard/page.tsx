@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { createClient } from "@supabase/supabase-js"
+// 👇 createBrowserClient 사용 필수
+import { createBrowserClient } from "@supabase/ssr" 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import toast, { Toaster } from 'react-hot-toast'
-import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import { LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend } from 'recharts'
 import { toPng } from 'html-to-image'
@@ -18,7 +18,9 @@ import confetti from 'canvas-confetti'
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabase = createBrowserClient(supabaseUrl, supabaseKey)
+
+// ... (아이콘, 레벨 시스템, REHAB_TIPS 상수는 기존과 동일하므로 생략하지 않고 아래에 포함했습니다) ...
 
 // 아이콘
 const Icons = {
@@ -155,7 +157,13 @@ export default function Dashboard() {
   const fetchData = async (isFirstLoad = false) => {
     if (isFirstLoad) setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
+    
+    // 🛡️ 안전장치: 유저가 없으면 로그인 페이지로 강제 이동
+    if (!user) { 
+        router.replace('/login'); 
+        return; 
+    }
+
     const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single()
     setUserName(profile?.username || user.email?.split("@")[0] || "선수")
     
