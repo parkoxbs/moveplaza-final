@@ -604,6 +604,20 @@ export default function Dashboard() {
                 </section>
             )}
 
+            {/* 👇 2번: 라인업 빌더 버튼 추가 (여기!) */}
+            <section className="mb-4">
+                <Link href="/lineup" className="block w-full bg-gradient-to-r from-green-600 to-emerald-600 rounded-3xl p-5 shadow-lg border border-white/10 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-[40px] -mr-5 -mt-5 group-hover:scale-110 transition"></div>
+                    <div className="relative z-10 flex justify-between items-center">
+                        <div>
+                            <h3 className="text-lg font-black text-white italic tracking-wider">LINEUP BUILDER</h3>
+                            <p className="text-xs text-green-100 font-bold mt-1">나만의 베스트 11 전술판 만들기 ⚽</p>
+                        </div>
+                        <div className="text-3xl group-hover:rotate-12 transition">📋</div>
+                    </div>
+                </Link>
+            </section>
+
             <section className="grid grid-cols-1 gap-4">
                 <div className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-5 border border-white/5 flex items-center justify-between">
                     <div><h2 className="font-extrabold text-white text-sm mb-1">오늘 컨디션 👋</h2><p className="text-slate-400 font-bold text-xs">부상 방지 체크!</p></div>
