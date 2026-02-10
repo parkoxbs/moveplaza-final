@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-// 👇 createBrowserClient 사용 필수
 import { createBrowserClient } from "@supabase/ssr"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -13,6 +12,8 @@ import jsPDF from 'jspdf'
 import BodyMap from "..//components/BodyMap"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
+// 👇 [추가] 하단 메뉴바 불러오기
+import BottomNav from "..//components/BottomNav"
 
 // 👇 1. Supabase 주소와 키 입력
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
@@ -209,7 +210,7 @@ export default function Dashboard() {
     setLoading(false)
   }
 
-  // ... (triggerConfetti, processChartData, calculateStats, analyzeLogs, calculateStreak, handleConditionCheck, handleCopyLog 함수들은 기존과 동일) ...
+  // ... (이하 함수들은 기존과 동일, UI에서 상단바 제거 및 하단바 추가됨) ...
   const triggerConfetti = () => {
     const duration = 3000;
     const animationEnd = Date.now() + duration;
@@ -272,7 +273,6 @@ export default function Dashboard() {
     const uniqueDays = new Set(data.map(l => new Date(l.created_at).toDateString())).size;
     const consistency = Math.min(uniqueDays * 5, 100); 
     
-    // 🆕 강도 계산: Match 기록도 운동 강도로 포함
     const workoutLogs = data.filter(l => l.log_type === 'workout' || l.log_type === 'match');
     const avgScore = workoutLogs.length > 0 
         ? workoutLogs.reduce((acc, cur) => acc + cur.pain_score, 0) / workoutLogs.length 
@@ -375,7 +375,6 @@ export default function Dashboard() {
     setScore(log.pain_score);
     setLogType(log.log_type);
     
-    // 🆕 복사할 때 경기 데이터도 가져오기
     if (log.log_type === 'match') {
         setGoals(log.goals || 0);
         setAssists(log.assists || 0);
@@ -414,7 +413,6 @@ export default function Dashboard() {
         }
         const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''
         
-        // 🆕 경기 데이터 포함해서 저장
         const { error } = await supabase.from('logs').insert({ 
             user_id: user.id, 
             title, 
@@ -425,17 +423,14 @@ export default function Dashboard() {
             image_url: mediaUrl, 
             media_type: mediaType, 
             created_at: new Date().toISOString(),
-            // 👇 축구 스탯 추가
             goals: logType === 'match' ? goals : 0,
             assists: logType === 'match' ? assists : 0,
             match_result: logType === 'match' ? matchResult : 'none',
-            // 👇 장비(축구화) 추가
-            gear_id: selectedGearId // 선택된 장비 ID 저장
+            gear_id: selectedGearId
         })
         if (error) throw error;
         toast.success("기록 저장 완료! 🎉"); 
         setIsModalOpen(false); 
-        // 초기화
         setTitle(''); setContent(''); setScore(5); setSelectedParts([]); setMediaFile(null); setMediaPreview(null); 
         setGoals(0); setAssists(0); setMatchResult('none'); setLogType('workout'); setSelectedGearId(null);
         fetchData(false)
@@ -564,16 +559,11 @@ export default function Dashboard() {
       
       </div><div className="z-10 relative border-t border-white/20 pt-6 flex justify-between items-end"><div><p className="text-white/70 text-xs font-black tracking-widest mb-1">INTENSITY</p><p className="text-5xl font-black text-white drop-shadow-lg">{shareData.pain_score}<span className="text-xl text-white/60 ml-1">/ 10</span></p></div><div className="text-right"><p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg">MOVEPLAZA</p><p className="text-[10px] text-white/70 font-bold tracking-widest uppercase">Athlete Performance System</p></div></div></div></div>)}
 
+      {/* ✅ 헤더 수정: 상단 메뉴 삭제 (하단바로 이동) */}
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
         <div className="max-w-md mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.reload()}><div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">M</div><span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span></div>
-          {/* 👇 [수정] 상단 메뉴에 '장비' 링크 추가 */}
-          <div className="flex items-center gap-4 text-sm font-bold text-slate-400">
-              <Link href="/gear" className="hover:text-blue-400 transition">장비</Link> {/* 👈 추가됨 */}
-              <Link href="/community" className="hover:text-blue-400 transition">광장</Link>
-              <Link href="/stats" className="hover:text-blue-400 transition">통계</Link>
-              <Link href="/mypage" className="hover:text-blue-400 transition">내 정보</Link>
-          </div>
+          {/* 상단 메뉴 삭제됨 (하단바로 이동) */}
         </div>
       </header>
 
@@ -628,7 +618,7 @@ export default function Dashboard() {
                 </section>
             )}
 
-            {/* 👇 2번: 라인업 빌더 버튼 추가 (여기!) */}
+            {/* 👇 기존 라인업 빌더 버튼 (이거 밑에 붙여넣으세요) */}
             <section className="mb-4">
                 <Link href="/lineup" className="block w-full bg-gradient-to-r from-green-600 to-emerald-600 rounded-3xl p-5 shadow-lg border border-white/10 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-[40px] -mr-5 -mt-5 group-hover:scale-110 transition"></div>
@@ -638,6 +628,20 @@ export default function Dashboard() {
                             <p className="text-xs text-green-100 font-bold mt-1">나만의 베스트 11 전술판 만들기 ⚽</p>
                         </div>
                         <div className="text-3xl group-hover:rotate-12 transition">📋</div>
+                    </div>
+                </Link>
+            </section>
+
+            {/* 👇 [여기!] 자가 체크 버튼 추가 (새로 추가할 코드) */}
+            <section className="mb-4">
+                <Link href="/self-check" className="block w-full bg-gradient-to-r from-red-600 to-pink-600 rounded-3xl p-5 shadow-lg border border-white/10 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-[40px] -mr-5 -mt-5 group-hover:scale-110 transition"></div>
+                    <div className="relative z-10 flex justify-between items-center">
+                        <div>
+                            <h3 className="text-lg font-black text-white italic tracking-wider">SELF CHECK</h3>
+                            <p className="text-xs text-red-100 font-bold mt-1">병원 가야 할까? 1분 자가 진단 🏥</p>
+                        </div>
+                        <div className="text-3xl group-hover:rotate-12 transition">🩺</div>
                     </div>
                 </Link>
             </section>
@@ -793,7 +797,8 @@ export default function Dashboard() {
       )}
 
       {/* 모달 등 하단 UI는 그대로 유지 */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 pointer-events-none flex justify-end max-w-md mx-auto z-40"><button onClick={() => setIsModalOpen(true)} className="pointer-events-auto w-16 h-16 bg-blue-600 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center justify-center text-white hover:bg-blue-500 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
+      {/* 👇 +버튼 위치 수정 (하단바 위로) */}
+      <div className="fixed bottom-20 right-6 z-40"><button onClick={() => setIsModalOpen(true)} className="w-16 h-16 bg-blue-600 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center justify-center text-white hover:bg-blue-500 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
       
       {/* 1번: 레벨업 축하 모달 */}
       <AnimatePresence>
@@ -995,6 +1000,9 @@ export default function Dashboard() {
             </div>
         </div>
       )}
+      
+      {/* 👇 [추가] 하단 탭바 (Fixed Bottom Nav) */}
+      <BottomNav />
     </div>
   )
 }
