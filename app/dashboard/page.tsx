@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react"
 // 👇 createBrowserClient 사용 필수
-import { createBrowserClient } from "@supabase/ssr" 
+import { createBrowserClient } from "@supabase/ssr"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import toast, { Toaster } from 'react-hot-toast'
@@ -19,8 +19,6 @@ const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 
 const supabase = createBrowserClient(supabaseUrl, supabaseKey)
-
-// ... (아이콘, 레벨 시스템, REHAB_TIPS 상수는 기존과 동일하므로 생략하지 않고 아래에 포함했습니다) ...
 
 // 아이콘
 const Icons = {
@@ -130,6 +128,10 @@ export default function Dashboard() {
   // 🆕 경기 전적 데이터
   const [matchStats, setMatchStats] = useState({ win: 0, draw: 0, lose: 0, goals: 0, assists: 0, total: 0 });
 
+  // 🆕 장비 목록 상태
+  const [gears, setGears] = useState<any[]>([]);
+  const [selectedGearId, setSelectedGearId] = useState<string | null>(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [logType, setLogType] = useState<'workout' | 'rehab' | 'match'>('workout') // 🆕 'match' 타입 추가
   const [title, setTitle] = useState('')
@@ -150,6 +152,7 @@ export default function Dashboard() {
   const bodyParts = ["목", "승모근", "어깨", "가슴", "등", "복근", "허리", "삼두", "이두", "전완근", "손목", "손", "엉덩이", "고관절", "허벅지(앞)", "허벅지(뒤)(햄스트링)", "무릎", "종아리", "발목", "발"]
 
   useEffect(() => { 
+    router.refresh(); // 🔥 [추가] 페이지 로드 시 라우터 갱신 (쿠키 동기화)
     fetchData(true); 
     setTodayTip(REHAB_TIPS[Math.floor(Math.random() * REHAB_TIPS.length)]);
   }, [])
@@ -169,6 +172,10 @@ export default function Dashboard() {
     
     const { data: logData } = await supabase.from('logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
     const { data: condData } = await supabase.from('daily_conditions').select('*').eq('user_id', user.id).order('created_at', { ascending: true })
+    
+    // 🆕 장비 목록 가져오기
+    const { data: gearData } = await supabase.from('gears').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+    if (gearData) setGears(gearData);
 
     if (logData) { 
         setLogs(logData);
@@ -202,6 +209,7 @@ export default function Dashboard() {
     setLoading(false)
   }
 
+  // ... (triggerConfetti, processChartData, calculateStats, analyzeLogs, calculateStreak, handleConditionCheck, handleCopyLog 함수들은 기존과 동일) ...
   const triggerConfetti = () => {
     const duration = 3000;
     const animationEnd = Date.now() + duration;
@@ -420,14 +428,16 @@ export default function Dashboard() {
             // 👇 축구 스탯 추가
             goals: logType === 'match' ? goals : 0,
             assists: logType === 'match' ? assists : 0,
-            match_result: logType === 'match' ? matchResult : 'none'
+            match_result: logType === 'match' ? matchResult : 'none',
+            // 👇 장비(축구화) 추가
+            gear_id: selectedGearId // 선택된 장비 ID 저장
         })
         if (error) throw error;
         toast.success("기록 저장 완료! 🎉"); 
         setIsModalOpen(false); 
         // 초기화
         setTitle(''); setContent(''); setScore(5); setSelectedParts([]); setMediaFile(null); setMediaPreview(null); 
-        setGoals(0); setAssists(0); setMatchResult('none'); setLogType('workout');
+        setGoals(0); setAssists(0); setMatchResult('none'); setLogType('workout'); setSelectedGearId(null);
         fetchData(false)
       } catch (e: any) { toast.error("저장 실패: " + e.message) }
     }
@@ -557,7 +567,13 @@ export default function Dashboard() {
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
         <div className="max-w-md mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.reload()}><div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">M</div><span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span></div>
-          <div className="flex items-center gap-4 text-sm font-bold text-slate-400"><Link href="/community" className="hover:text-blue-400 transition">광장</Link><Link href="/stats" className="hover:text-blue-400 transition">통계</Link><Link href="/mypage" className="hover:text-blue-400 transition">내 정보</Link></div>
+          {/* 👇 [수정] 상단 메뉴에 '장비' 링크 추가 */}
+          <div className="flex items-center gap-4 text-sm font-bold text-slate-400">
+              <Link href="/gear" className="hover:text-blue-400 transition">장비</Link> {/* 👈 추가됨 */}
+              <Link href="/community" className="hover:text-blue-400 transition">광장</Link>
+              <Link href="/stats" className="hover:text-blue-400 transition">통계</Link>
+              <Link href="/mypage" className="hover:text-blue-400 transition">내 정보</Link>
+          </div>
         </div>
       </header>
 
@@ -880,6 +896,23 @@ export default function Dashboard() {
                        </div>
                    </div>
                )}
+
+               {/* 🆕 장비 선택 (모든 탭에서 보임) */}
+               <div>
+                   <label className="block text-sm font-bold text-slate-400 mb-2">장비 선택 (오늘 신은 축구화)</label>
+                   <select 
+                        value={selectedGearId || ''} 
+                        onChange={(e) => setSelectedGearId(e.target.value || null)} 
+                        className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                   >
+                       <option value="">선택 안함</option>
+                       {gears.map((gear) => (
+                           <option key={gear.id} value={gear.id}>
+                               {gear.brand} {gear.name} ({gear.stud_type})
+                           </option>
+                       ))}
+                   </select>
+               </div>
 
                <div><label className="block text-sm font-bold text-slate-400 mb-2">사진/영상 추가</label><div className="flex items-center gap-3"><label className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-500/10 transition overflow-hidden text-slate-500">{mediaPreview ? <img src={mediaPreview} className="w-full h-full object-cover" /> : <Icons.Camera />}<input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} /></label><span className="text-xs text-slate-500 font-bold">{mediaFile ? "파일 선택됨 ✅" : "운동 인증샷이나 통증 부위를 찍어보세요."}</span></div></div>
                

@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from "@supabase/supabase-js"; 
+// 👇 [수정] ssr 패키지 사용 (쿠키 인식용)
+import { createBrowserClient } from "@supabase/ssr"; 
 import { useRouter } from 'next/navigation';
 
 // 👇 1. Supabase 주소와 키를 입력하세요!
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
-const supabase = createClient(supabaseUrl, supabaseKey)
+
+// 👇 [수정] 브라우저 클라이언트로 변경
+const supabase = createBrowserClient(supabaseUrl, supabaseKey)
 
 // ✅ [설정] 관리자 이메일
 const ADMIN_EMAIL = "agricb83@gmail.com"; 
@@ -97,6 +100,7 @@ export default function CommunityPage() {
   useEffect(() => { fetchData(); }, []);
 
   async function fetchData() {
+    // 👇 [수정] 쿠키 기반 유저 정보 확인
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
 
@@ -227,6 +231,7 @@ export default function CommunityPage() {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">M</div>
                 <span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span>
             </div>
+            {/* 👇 [수정] 버튼 스타일 및 텍스트 변경 */}
             <button onClick={() => router.push('/dashboard')} className="text-sm font-bold text-slate-400 hover:text-blue-400 px-3 py-2 rounded-lg hover:bg-slate-900 transition">🏠 내 일지</button>
             </div>
         </header>
