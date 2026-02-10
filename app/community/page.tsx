@@ -61,8 +61,11 @@ type Log = {
   user_id: string; 
   is_public: boolean; 
   image_url?: string; 
-  log_type?: 'workout' | 'rehab'; 
+  log_type?: 'workout' | 'rehab' | 'match'; // match 추가
   media_type?: 'image' | 'video'; 
+  match_result?: 'win' | 'lose' | 'draw' | 'none'; // 경기 결과 추가
+  goals?: number;   // 골 추가
+  assists?: number; // 어시스트 추가
   profile?: Profile; 
   like_count: number; 
   is_liked: boolean; 
@@ -100,7 +103,6 @@ export default function CommunityPage() {
   useEffect(() => { fetchData(); }, []);
 
   async function fetchData() {
-    // 👇 [수정] 쿠키 기반 유저 정보 확인
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
 
@@ -231,7 +233,6 @@ export default function CommunityPage() {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">M</div>
                 <span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span>
             </div>
-            {/* 👇 [수정] 버튼 스타일 및 텍스트 변경 */}
             <button onClick={() => router.push('/dashboard')} className="text-sm font-bold text-slate-400 hover:text-blue-400 px-3 py-2 rounded-lg hover:bg-slate-900 transition">🏠 내 일지</button>
             </div>
         </header>
@@ -248,7 +249,7 @@ export default function CommunityPage() {
                 )}
             </div>
 
-            {/* 🔍 검색창 (모바일 최적화 수정됨) */}
+            {/* 🔍 검색창 */}
             <div className="sticky top-20 z-40">
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
@@ -262,10 +263,7 @@ export default function CommunityPage() {
                         className="w-full pl-12 pr-10 py-4 bg-slate-900 border border-white/10 rounded-2xl text-sm md:text-base text-white font-bold placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent shadow-lg transition-all"
                     />
                     {searchTerm && (
-                        <button 
-                            onClick={() => setSearchTerm('')}
-                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-white transition-colors"
-                        >
+                        <button onClick={() => setSearchTerm('')} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-white transition-colors">
                             <Icons.X />
                         </button>
                     )}
@@ -282,7 +280,7 @@ export default function CommunityPage() {
                 </div>
             )}
 
-            {/* 공지 리스트 (검색어 없을 때만 보임) */}
+            {/* 공지 리스트 */}
             {!searchTerm && notices.length > 0 && (
                 <div className="bg-slate-900/30 p-5 rounded-3xl border border-white/5 space-y-3">
                     <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Notice</h3>
@@ -300,7 +298,7 @@ export default function CommunityPage() {
                 </div>
             )}
 
-            {/* 랭킹 (검색어 없을 때만 보임) */}
+            {/* 랭킹 */}
             {!searchTerm && ranking.length > 0 && (
                 <div className="bg-gradient-to-br from-slate-900 to-black rounded-3xl p-6 md:p-8 text-white shadow-2xl relative overflow-hidden border border-white/10">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
@@ -313,7 +311,7 @@ export default function CommunityPage() {
                 </div>
             )}
 
-            {/* 피드 목록 (필터링된 결과) */}
+            {/* 피드 목록 */}
             <div className="space-y-6">
             {filteredLogs.length === 0 ? (
                 <div className="text-center py-20 bg-slate-900/30 rounded-3xl border border-dashed border-white/10">
@@ -328,6 +326,7 @@ export default function CommunityPage() {
 
                     return (
                     <div key={log.id} className="bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5">
+                        {/* 작성자 헤더 */}
                         <div className="flex items-center gap-3 mb-5 border-b border-white/5 pb-4">
                             <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800 border border-white/10">
                             {log.profile?.avatar_url ? <img src={log.profile.avatar_url} alt="프사" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-2xl">👤</div>}
@@ -344,18 +343,56 @@ export default function CommunityPage() {
                             <div className="ml-auto text-sm text-slate-500 font-medium">{new Date(log.created_at).toLocaleDateString()}</div>
                         </div>
 
+                        {/* 본문 */}
                         <div className="mb-5">
-                            <div className="mb-2"> <span className={`text-[10px] px-2 py-1 rounded-md font-black tracking-wide uppercase ${log.log_type === 'workout' ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}> {log.log_type === 'workout' ? 'WORKOUT' : 'REHAB'} </span> </div>
+                            {/* ✅ 수정된 배지 로직 */}
+                            <div className="mb-2"> 
+                                <span className={`text-[10px] px-2 py-1 rounded-md font-black tracking-wide uppercase ${
+                                    log.log_type === 'match' ? 'bg-yellow-500/20 text-yellow-400' : 
+                                    (log.log_type === 'workout' ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400')
+                                }`}> 
+                                    {log.log_type === 'match' ? 'MATCH' : (log.log_type === 'workout' ? 'WORKOUT' : 'REHAB')} 
+                                </span> 
+                            </div>
+                            
                             {log.title && <h2 className="text-xl font-bold text-white mb-2 break-all">{log.title}</h2>}
                             <p className="text-slate-300 font-medium text-lg whitespace-pre-wrap break-all mb-4">{log.content}</p>
+                            
+                            {/* ✅ 경기 스탯 표시 (경기 일지일 때만 보임) */}
+                            {log.log_type === 'match' && (
+                                <div className="flex gap-4 mb-4 bg-black/20 p-4 rounded-xl items-center justify-around border border-white/5">
+                                    <div className="text-center">
+                                        <p className="text-[10px] text-slate-500 font-bold mb-1">RESULT</p>
+                                        <p className={`text-lg font-black uppercase ${
+                                            log.match_result === 'win' ? 'text-blue-400' : 
+                                            (log.match_result === 'lose' ? 'text-red-400' : 'text-slate-300')
+                                        }`}>
+                                            {log.match_result === 'win' ? 'WIN' : (log.match_result === 'lose' ? 'LOSE' : 'DRAW')}
+                                        </p>
+                                    </div>
+                                    <div className="w-[1px] h-8 bg-white/10"></div>
+                                    <div className="text-center">
+                                        <p className="text-[10px] text-slate-500 font-bold mb-1">GOALS</p>
+                                        <p className="text-lg font-black text-yellow-400">{log.goals || 0}</p>
+                                    </div>
+                                    <div className="w-[1px] h-8 bg-white/10"></div>
+                                    <div className="text-center">
+                                        <p className="text-[10px] text-slate-500 font-bold mb-1">ASSISTS</p>
+                                        <p className="text-lg font-black text-emerald-400">{log.assists || 0}</p>
+                                    </div>
+                                </div>
+                            )}
+
                             {log.image_url && ( <div className="mb-4 rounded-2xl overflow-hidden border border-white/10 shadow-sm"> {log.media_type === 'video' ? ( <video src={log.image_url} controls className="w-full h-auto" /> ) : ( <img src={log.image_url} alt="인증샷" className="w-full h-auto object-cover" /> )} </div> )}
                         </div>
 
+                        {/* 하단 액션바 */}
                         <div className="flex items-center justify-between mb-6">
                             <div className={`px-4 py-2 rounded-xl text-sm font-bold ${log.pain_score > 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}> 강도 {log.pain_score}점 </div>
                             <button onClick={() => toggleLike(log.id, log.is_liked)} className={`flex items-center gap-2 font-bold text-lg transition px-4 py-2 rounded-full border ${log.is_liked ? 'text-red-500 bg-red-500/10 border-red-500/20' : 'text-slate-400 hover:text-red-500 border-white/10 hover:bg-red-500/10'}`}> {log.is_liked ? '❤️' : '🤍'} {log.like_count || 0} </button>
                         </div>
 
+                        {/* 댓글 섹션 */}
                         <div className="bg-slate-950 p-5 rounded-2xl border border-white/5">
                             <div className="space-y-3 mb-4">
                             {visibleComments.map(comment => (
@@ -384,7 +421,7 @@ export default function CommunityPage() {
                             </div>
 
                             <div className="flex gap-2">
-                            <input type="text" value={commentInputs[log.id] || ''} onChange={(e) => setCommentInputs({...commentInputs, [log.id]: e.target.value})} onKeyDown={(e) => e.key === 'Enter' && addComment(log.id)} placeholder="댓글 입력..." className="flex-1 px-4 py-3 rounded-xl border border-white/10 bg-slate-800 text-white font-medium placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                            <input type="text" value={commentInputs[log.id] || ''} onChange={(e) => setCommentInputs({...commentInputs, [log.id]: e.target.value})} onKeyDown={(e) => e.key === 'Enter' && addComment(log.id)} placeholder="댓글 입력..." className="flex-1 px-4 py-3 rounded-xl border border-white/10 bg-slate-800 text-white font-medium placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm" />
                             <button onClick={() => addComment(log.id)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-500">등록</button>
                             </div>
                         </div>
