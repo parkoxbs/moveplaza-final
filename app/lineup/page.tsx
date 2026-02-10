@@ -11,51 +11,51 @@ const Icons = {
   Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
 };
 
-// 📍 포메이션 좌표 데이터 (최전방 공격수 위치 하향 조정됨 ✅)
+// 📍 포메이션 좌표 데이터
 const FORMATIONS: any = {
   '4-3-3': [
     { top: '90%', left: '50%' }, // GK
     { top: '75%', left: '15%' }, { top: '75%', left: '38%' }, { top: '75%', left: '62%' }, { top: '75%', left: '85%' }, // DF
     { top: '52%', left: '25%' }, { top: '55%', left: '50%' }, { top: '52%', left: '75%' }, // MF
-    { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }  // FW (내림)
+    { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }  // FW
   ],
   '4-4-2': [
     { top: '90%', left: '50%' }, // GK
     { top: '75%', left: '15%' }, { top: '75%', left: '38%' }, { top: '75%', left: '62%' }, { top: '75%', left: '85%' }, // DF
     { top: '50%', left: '15%' }, { top: '50%', left: '38%' }, { top: '50%', left: '62%' }, { top: '50%', left: '85%' }, // MF
-    { top: '25%', left: '35%' }, { top: '25%', left: '65%' }  // FW (내림)
+    { top: '25%', left: '35%' }, { top: '25%', left: '65%' }  // FW
   ],
   '4-2-3-1': [
     { top: '90%', left: '50%' }, // GK
     { top: '78%', left: '15%' }, { top: '78%', left: '38%' }, { top: '78%', left: '62%' }, { top: '78%', left: '85%' }, // DF
     { top: '60%', left: '35%' }, { top: '60%', left: '65%' }, // CDM
     { top: '40%', left: '15%' }, { top: '40%', left: '50%' }, { top: '40%', left: '85%' }, // CAM/Wing
-    { top: '22%', left: '50%' }  // ST (내림)
+    { top: '22%', left: '50%' }  // ST
   ],
   '3-5-2': [
     { top: '90%', left: '50%' }, // GK
     { top: '75%', left: '25%' }, { top: '75%', left: '50%' }, { top: '75%', left: '75%' }, // DF
     { top: '50%', left: '10%' }, { top: '50%', left: '30%' }, { top: '55%', left: '50%' }, { top: '50%', left: '70%' }, { top: '50%', left: '90%' }, // MF
-    { top: '25%', left: '35%' }, { top: '25%', left: '65%' }  // FW (내림)
+    { top: '25%', left: '35%' }, { top: '25%', left: '65%' }  // FW
   ],
   '3-4-3': [
     { top: '90%', left: '50%' }, // GK
     { top: '75%', left: '20%' }, { top: '75%', left: '50%' }, { top: '75%', left: '80%' }, // DF
     { top: '52%', left: '10%' }, { top: '52%', left: '35%' }, { top: '52%', left: '65%' }, { top: '52%', left: '90%' }, // MF
-    { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }  // FW (내림)
+    { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }  // FW
   ],
   '5-2-3': [
     { top: '92%', left: '50%' }, // GK
     { top: '78%', left: '10%' }, { top: '78%', left: '30%' }, { top: '78%', left: '50%' }, { top: '78%', left: '70%' }, { top: '78%', left: '90%' }, // DF
     { top: '52%', left: '35%' }, { top: '52%', left: '65%' }, // MF
-    { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }  // FW (내림)
+    { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }  // FW
   ],
   '4-1-4-1': [
     { top: '92%', left: '50%' }, // GK
     { top: '80%', left: '15%' }, { top: '80%', left: '38%' }, { top: '80%', left: '62%' }, { top: '80%', left: '85%' }, // DF
     { top: '62%', left: '50%' }, // CDM
     { top: '42%', left: '12%' }, { top: '42%', left: '35%' }, { top: '42%', left: '65%' }, { top: '42%', left: '88%' }, // MF
-    { top: '22%', left: '50%' }  // ST (내림)
+    { top: '22%', left: '50%' }  // ST
   ]
 };
 
@@ -227,7 +227,14 @@ export default function LineupPage() {
                    {/* 뱃지들 */}
                    {player.isCaptain && <span className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 border border-black rounded-full flex items-center justify-center text-[10px] font-black text-black shadow-md z-20">C</span>}
                    {player.isMOM && <span className="absolute -top-2 -left-2 text-lg drop-shadow-md animate-bounce z-20">⭐</span>}
-                   {player.goals > 0 && <span className="absolute -bottom-2 -right-2 text-[10px] bg-white text-black font-bold px-1.5 rounded-full border border-black z-20">⚽{player.goals}</span>}
+                   
+                   {/* ✅ 수정된 부분: 골 숫자 표시 (분리 및 flex 사용) */}
+                   {player.goals > 0 && (
+                       <div className="absolute -bottom-2 -right-2 bg-white border border-black rounded-full flex items-center justify-center px-1.5 py-0.5 z-20 shadow-sm gap-0.5">
+                           <span className="text-[10px] leading-none">⚽</span>
+                           <span className="text-[10px] font-black text-black leading-none font-sans">{player.goals}</span>
+                       </div>
+                   )}
                 </div>
                 
                 {/* 이름표 */}
