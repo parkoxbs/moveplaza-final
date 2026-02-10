@@ -243,7 +243,7 @@ export default function CommunityPage() {
                 )}
             </div>
 
-            {/* 🔍 검색창 */}
+            {/* 🔍 검색창 (모바일 최적화 수정됨) */}
             <div className="sticky top-20 z-40">
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
@@ -253,8 +253,8 @@ export default function CommunityPage() {
                         type="text" 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="관심 있는 부위나 내용을 검색해보세요 (예: 십자인대, 하체)" 
-                        className="w-full pl-12 pr-10 py-4 bg-slate-900 border border-white/10 rounded-2xl text-white font-bold placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent shadow-lg transition-all"
+                        placeholder="관심 부위나 내용 검색 (예: 십자인대)" 
+                        className="w-full pl-12 pr-10 py-4 bg-slate-900 border border-white/10 rounded-2xl text-sm md:text-base text-white font-bold placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent shadow-lg transition-all"
                     />
                     {searchTerm && (
                         <button 

@@ -2,35 +2,31 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-// 👇 Supabase 설정 파일이 없다면 이 부분을 지난번처럼 createClient로 바꿔야 합니다.
-// 만약 '../supabase' 파일이 있다면 그대로 두셔도 됩니다.
-import { createClient } from "@supabase/supabase-js"; 
+// 👇 여기가 핵심! 그냥 supabase-js가 아니라 'ssr' 패키지를 써야 쿠키가 저장됩니다.
+import { createBrowserClient } from "@supabase/ssr"; 
+import toast, { Toaster } from 'react-hot-toast';
 
-// 👇 1. Supabase 주소와 키 (본인 것 입력)
+// 👇 1. Supabase 주소와 키
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co";
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t";
-const supabase = createClient(supabaseUrl, supabaseKey);
+
+// 👇 브라우저 전용 클라이언트 생성 (쿠키 자동 관리)
+const supabase = createBrowserClient(supabaseUrl, supabaseKey);
 
 // 📜 [컴포넌트] 약관 보여주는 팝업창 (모달)
 function LegalModal({ title, content, onClose }: { title: string, content: React.ReactNode, onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-        {/* 헤더 */}
         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
           <h3 className="font-extrabold text-lg text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-red-500 font-bold text-xl px-2">✕</button>
         </div>
-        {/* 내용 (스크롤 가능) */}
         <div className="p-6 overflow-y-auto text-sm text-gray-600 space-y-4 leading-relaxed whitespace-pre-line">
           {content}
         </div>
-        {/* 하단 버튼 */}
         <div className="p-4 border-t border-gray-100 bg-gray-50">
-          <button 
-            onClick={onClose}
-            className="w-full bg-blue-900 text-white font-bold py-3 rounded-xl hover:bg-blue-800 transition"
-          >
+          <button onClick={onClose} className="w-full bg-blue-900 text-white font-bold py-3 rounded-xl hover:bg-blue-800 transition">
             확인했습니다
           </button>
         </div>
@@ -46,7 +42,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-  // 약관 모달 상태 관리
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
@@ -56,24 +51,33 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
+        // 1. 회원가입 로직
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        alert('✅ 회원가입 성공! 가입하신 이메일로 인증 메일을 보냈습니다. 확인해주세요.');
+        toast.success('✅ 회원가입 성공! 가입하신 이메일로 인증 메일을 보냈습니다. 확인해주세요.');
         setIsSignUp(false);
+        setLoading(false);
       } else {
+        // 2. 로그인 로직
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.push('/dashboard');
+        
+        toast.success("로그인 성공! 대시보드로 이동합니다. 🚀");
+
+        // ✅ 쿠키가 확실히 저장된 후 페이지를 '새로고침'하며 이동
+        setTimeout(() => {
+            window.location.replace('/dashboard');
+        }, 500); 
       }
     } catch (error: any) {
-      alert("오류 발생: " + error.message);
-    } finally {
+      toast.error("오류 발생: " + error.message);
       setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+      <Toaster position="top-center" />
       <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl space-y-6 border border-gray-200 relative">
         
         <div className="text-center">
@@ -159,7 +163,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* 👇 이용약관 모달 내용 */}
       {showTerms && (
         <LegalModal 
           title="이용약관 (Terms of Service)" 
@@ -182,7 +185,6 @@ export default function LoginPage() {
         />
       )}
 
-      {/* 👇 개인정보 처리방침 모달 내용 */}
       {showPrivacy && (
         <LegalModal 
           title="개인정보 처리방침 (Privacy Policy)" 

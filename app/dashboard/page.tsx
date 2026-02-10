@@ -11,7 +11,6 @@ import { LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Toolt
 import { toPng } from 'html-to-image'
 import jsPDF from 'jspdf'
 import BodyMap from "..//components/BodyMap"
-// 👇 애니메이션 라이브러리
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
 
@@ -38,7 +37,8 @@ const Icons = {
   MessageSquare: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>,
   Bulb: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>,
   Star: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-  Trophy: () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+  Trophy: () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+  Ball: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/><path d="M12 12 4.93 4.93"/><path d="M19.07 4.93 12 12"/><path d="M12 12v10"/><path d="M12 2v10"/></svg>
 }
 
 // 레벨 시스템 정의
@@ -124,12 +124,20 @@ export default function Dashboard() {
   const [stats, setStats] = useState<any[]>([]) 
   const [heatmapRange, setHeatmapRange] = useState<'1w' | '1m' | '6m' | '1y' | 'all'>('all')
   const [chartData, setChartData] = useState<any[]>([]) 
+  
+  // 🆕 경기 전적 데이터
+  const [matchStats, setMatchStats] = useState({ win: 0, draw: 0, lose: 0, goals: 0, assists: 0, total: 0 });
 
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [logType, setLogType] = useState<'workout' | 'rehab'>('workout')
+  const [logType, setLogType] = useState<'workout' | 'rehab' | 'match'>('workout') // 🆕 'match' 타입 추가
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [score, setScore] = useState(5)
+  // 🆕 경기 입력용 상태
+  const [goals, setGoals] = useState(0)
+  const [assists, setAssists] = useState(0)
+  const [matchResult, setMatchResult] = useState<'win' | 'draw' | 'lose' | 'none'>('none')
+
   const [selectedParts, setSelectedParts] = useState<string[]>([])
   const [isPublic, setIsPublic] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -168,7 +176,16 @@ export default function Dashboard() {
         calculateStreak(logData); 
         analyzeLogs(logData); 
         calculateStats(logData); 
-        processChartData(logData, condData || []); 
+        processChartData(logData, condData || []);
+        
+        // 🆕 경기 스탯 계산
+        const matches = logData.filter(l => l.log_type === 'match');
+        const win = matches.filter(l => l.match_result === 'win').length;
+        const draw = matches.filter(l => l.match_result === 'draw').length;
+        const lose = matches.filter(l => l.match_result === 'lose').length;
+        const totalGoals = matches.reduce((acc, l) => acc + (l.goals || 0), 0);
+        const totalAssists = matches.reduce((acc, l) => acc + (l.assists || 0), 0);
+        setMatchStats({ win, draw, lose, goals: totalGoals, assists: totalAssists, total: matches.length });
     }
     
     const today = new Date().toISOString().split('T')[0]
@@ -239,7 +256,8 @@ export default function Dashboard() {
     const uniqueDays = new Set(data.map(l => new Date(l.created_at).toDateString())).size;
     const consistency = Math.min(uniqueDays * 5, 100); 
     
-    const workoutLogs = data.filter(l => l.log_type === 'workout');
+    // 🆕 강도 계산: Match 기록도 운동 강도로 포함
+    const workoutLogs = data.filter(l => l.log_type === 'workout' || l.log_type === 'match');
     const avgScore = workoutLogs.length > 0 
         ? workoutLogs.reduce((acc, cur) => acc + cur.pain_score, 0) / workoutLogs.length 
         : 0;
@@ -340,6 +358,14 @@ export default function Dashboard() {
     setTitle(log.title || ''); 
     setScore(log.pain_score);
     setLogType(log.log_type);
+    
+    // 🆕 복사할 때 경기 데이터도 가져오기
+    if (log.log_type === 'match') {
+        setGoals(log.goals || 0);
+        setAssists(log.assists || 0);
+        setMatchResult(log.match_result || 'none');
+    }
+
     const contentText = (log.content || '') as string;
     const match = contentText.match(/^\[([^\]]*)\]\s*([\s\S]*)/);
     if (match) {
@@ -371,9 +397,30 @@ export default function Dashboard() {
            mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
         }
         const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''
-        const { error } = await supabase.from('logs').insert({ user_id: user.id, title, content: partsString + content, pain_score: score, log_type: logType, is_public: isPublic, image_url: mediaUrl, media_type: mediaType, created_at: new Date().toISOString() })
+        
+        // 🆕 경기 데이터 포함해서 저장
+        const { error } = await supabase.from('logs').insert({ 
+            user_id: user.id, 
+            title, 
+            content: partsString + content, 
+            pain_score: score, 
+            log_type: logType, 
+            is_public: isPublic, 
+            image_url: mediaUrl, 
+            media_type: mediaType, 
+            created_at: new Date().toISOString(),
+            // 👇 축구 스탯 추가
+            goals: logType === 'match' ? goals : 0,
+            assists: logType === 'match' ? assists : 0,
+            match_result: logType === 'match' ? matchResult : 'none'
+        })
         if (error) throw error;
-        toast.success("기록 저장 완료! 🎉"); setIsModalOpen(false); setTitle(''); setContent(''); setScore(5); setSelectedParts([]); setMediaFile(null); setMediaPreview(null); fetchData(false)
+        toast.success("기록 저장 완료! 🎉"); 
+        setIsModalOpen(false); 
+        // 초기화
+        setTitle(''); setContent(''); setScore(5); setSelectedParts([]); setMediaFile(null); setMediaPreview(null); 
+        setGoals(0); setAssists(0); setMatchResult('none'); setLogType('workout');
+        fetchData(false)
       } catch (e: any) { toast.error("저장 실패: " + e.message) }
     }
     setUploading(false)
@@ -486,7 +533,18 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
-      {shareData && (<div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-1] opacity-0 pointer-events-none"><div ref={shareCardRef} className="w-[500px] h-[500px] bg-slate-900 p-8 flex flex-col justify-between text-white relative overflow-hidden font-sans">{shareData.image_url ? (<><img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" /><div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 z-0"></div></>) : (<><div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 z-0"></div><div className="absolute top-[-50px] right-[-50px] w-[200px] h-[200px] bg-blue-600 rounded-full blur-[90px] opacity-60 z-0"></div><div className="absolute bottom-[-50px] left-[-50px] w-[200px] h-[200px] bg-red-600 rounded-full blur-[90px] opacity-50 z-0"></div></>)}<div className="z-10 relative"><div className="flex justify-between items-start mb-4"><span className={`px-4 py-1.5 rounded-full text-sm font-black tracking-wide ${shareData.log_type === 'workout' ? 'bg-blue-600' : 'bg-red-600'}`}>{shareData.log_type === 'workout' ? 'WORKOUT LOG' : 'REHAB LOG'}</span><p className="text-white/80 font-bold text-sm">{new Date(shareData.created_at).toLocaleDateString()}</p></div><h1 className="text-4xl font-black leading-tight mb-4 tracking-tight drop-shadow-lg">{shareData.title}</h1><p className="text-white/90 text-lg font-medium leading-relaxed line-clamp-4 drop-shadow-md">{shareData.content}</p></div><div className="z-10 relative border-t border-white/20 pt-6 flex justify-between items-end"><div><p className="text-white/70 text-xs font-black tracking-widest mb-1">INTENSITY</p><p className="text-5xl font-black text-white drop-shadow-lg">{shareData.pain_score}<span className="text-xl text-white/60 ml-1">/ 10</span></p></div><div className="text-right"><p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg">MOVEPLAZA</p><p className="text-[10px] text-white/70 font-bold tracking-widest uppercase">Athlete Performance System</p></div></div></div></div>)}
+      {shareData && (<div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-1] opacity-0 pointer-events-none"><div ref={shareCardRef} className="w-[500px] h-[500px] bg-slate-900 p-8 flex flex-col justify-between text-white relative overflow-hidden font-sans">{shareData.image_url ? (<><img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" /><div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 z-0"></div></>) : (<><div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 z-0"></div><div className="absolute top-[-50px] right-[-50px] w-[200px] h-[200px] bg-blue-600 rounded-full blur-[90px] opacity-60 z-0"></div><div className="absolute bottom-[-50px] left-[-50px] w-[200px] h-[200px] bg-red-600 rounded-full blur-[90px] opacity-50 z-0"></div></>)}<div className="z-10 relative"><div className="flex justify-between items-start mb-4"><span className={`px-4 py-1.5 rounded-full text-sm font-black tracking-wide ${shareData.log_type === 'workout' ? 'bg-blue-600' : (shareData.log_type === 'match' ? 'bg-yellow-500 text-black' : 'bg-red-600')}`}>{shareData.log_type === 'workout' ? 'WORKOUT LOG' : (shareData.log_type === 'match' ? 'MATCH DAY' : 'REHAB LOG')}</span><p className="text-white/80 font-bold text-sm">{new Date(shareData.created_at).toLocaleDateString()}</p></div><h1 className="text-4xl font-black leading-tight mb-4 tracking-tight drop-shadow-lg">{shareData.title}</h1><p className="text-white/90 text-lg font-medium leading-relaxed line-clamp-4 drop-shadow-md">{shareData.content}</p>
+      
+      {/* 🆕 공유 카드에 경기 스탯 표시 */}
+      {shareData.log_type === 'match' && (
+          <div className="mt-4 p-3 bg-black/30 rounded-xl flex justify-around">
+              <div className="text-center"><p className="text-xs text-white/60 font-bold">결과</p><p className={`text-xl font-black ${shareData.match_result === 'win' ? 'text-blue-400' : (shareData.match_result === 'lose' ? 'text-red-400' : 'text-slate-300')}`}>{shareData.match_result === 'win' ? 'WIN' : (shareData.match_result === 'lose' ? 'LOSE' : 'DRAW')}</p></div>
+              <div className="text-center"><p className="text-xs text-white/60 font-bold">골</p><p className="text-xl font-black text-white">{shareData.goals}</p></div>
+              <div className="text-center"><p className="text-xs text-white/60 font-bold">도움</p><p className="text-xl font-black text-white">{shareData.assists}</p></div>
+          </div>
+      )}
+      
+      </div><div className="z-10 relative border-t border-white/20 pt-6 flex justify-between items-end"><div><p className="text-white/70 text-xs font-black tracking-widest mb-1">INTENSITY</p><p className="text-5xl font-black text-white drop-shadow-lg">{shareData.pain_score}<span className="text-xl text-white/60 ml-1">/ 10</span></p></div><div className="text-right"><p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg">MOVEPLAZA</p><p className="text-[10px] text-white/70 font-bold tracking-widest uppercase">Athlete Performance System</p></div></div></div></div>)}
 
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
         <div className="max-w-md mx-auto px-5 h-16 flex items-center justify-between">
@@ -495,7 +553,6 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* 👇 3번: 로딩 중일 때 스켈레톤 UI 표시 */}
       {loading ? (
         <main className="max-w-md mx-auto px-5 pt-8 pb-32">
             <DashboardSkeleton />
@@ -517,13 +574,42 @@ export default function Dashboard() {
                 </div>
             </section>
 
+            {/* 🆕 1번: 경기 스탯 카드 (기록이 있을 때만 보임) */}
+            {matchStats.total > 0 && (
+                <section className="bg-gradient-to-br from-indigo-900 to-blue-900 rounded-3xl p-6 relative overflow-hidden shadow-2xl border border-white/10">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-[50px] -mr-10 -mt-10"></div>
+                    <h3 className="text-lg font-black text-white mb-4 flex items-center gap-2"><Icons.Ball /> SEASON STATS</h3>
+                    <div className="grid grid-cols-3 gap-2 text-center mb-6">
+                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+                            <p className="text-xs text-blue-200 font-bold mb-1">경기 수</p>
+                            <p className="text-2xl font-black text-white">{matchStats.total}</p>
+                        </div>
+                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+                            <p className="text-xs text-blue-200 font-bold mb-1">공격포인트</p>
+                            <p className="text-2xl font-black text-white">{matchStats.goals + matchStats.assists}</p>
+                        </div>
+                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+                            <p className="text-xs text-blue-200 font-bold mb-1">승률</p>
+                            <p className="text-2xl font-black text-white">{matchStats.total > 0 ? Math.round((matchStats.win / matchStats.total) * 100) : 0}%</p>
+                        </div>
+                    </div>
+                    <div className="flex justify-between items-center text-sm font-bold bg-black/20 p-3 rounded-xl">
+                        <span className="text-blue-400">{matchStats.win}승</span>
+                        <span className="text-slate-400">{matchStats.draw}무</span>
+                        <span className="text-red-400">{matchStats.lose}패</span>
+                        <span className="w-[1px] h-4 bg-white/20 mx-2"></span>
+                        <span className="text-yellow-400">{matchStats.goals}골</span>
+                        <span className="text-emerald-400">{matchStats.assists}도움</span>
+                    </div>
+                </section>
+            )}
+
             <section className="grid grid-cols-1 gap-4">
                 <div className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-5 border border-white/5 flex items-center justify-between">
                     <div><h2 className="font-extrabold text-white text-sm mb-1">오늘 컨디션 👋</h2><p className="text-slate-400 font-bold text-xs">부상 방지 체크!</p></div>
                     <div className="flex gap-2">{['good', 'normal', 'bad'].map((status) => (<button key={status} onClick={() => handleConditionCheck(status as any)} className={`flex items-center justify-center w-10 h-10 rounded-xl border-2 transition-all ${todayCondition === status ? (status === 'good' ? 'bg-green-500/20 border-green-500 scale-110' : status === 'normal' ? 'bg-yellow-500/20 border-yellow-500 scale-110' : 'bg-red-500/20 border-red-500 scale-110') : 'bg-slate-800 border-slate-700 hover:border-slate-500'}`}><span className="text-lg">{status === 'good' ? '😆' : status === 'normal' ? '🙂' : '😷'}</span></button>))}</div>
                 </div>
                 
-                {/* 🆕 등급 가이드 버튼 추가됨 */}
                 <div className={`rounded-3xl p-6 shadow-lg border-2 border-white/10 relative overflow-hidden text-white ${myLevel.color} ${myLevel.glow}`}>
                     <div className="relative z-10 flex justify-between items-end">
                         <div>
@@ -541,7 +627,6 @@ export default function Dashboard() {
                             <button onClick={() => setIsLevelModalOpen(true)} className="absolute top-0 right-0 p-2 text-white/70 hover:text-white"><Icons.Info /></button>
                             <p className="text-xs font-bold opacity-70 mb-1">다음 {myLevel.nextName}까지</p>
                             
-                            {/* 🆕 프로그레스 바 추가 */}
                             <div className="w-24 h-1.5 bg-black/20 rounded-full mt-1 overflow-hidden">
                                 <div 
                                     className="h-full bg-white/90 rounded-full transition-all duration-1000" 
@@ -554,6 +639,7 @@ export default function Dashboard() {
                 </div>
             </section>
 
+            {/* 레이더 차트 등 다른 섹션들은 그대로 유지... */}
             {logs.length > 0 && (
                 <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden">
                     <div className="flex justify-between items-center mb-4">
@@ -575,137 +661,114 @@ export default function Dashboard() {
             )}
 
             <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden transition-all">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 rounded-full blur-[80px] opacity-20 -mr-10 -mt-10 pointer-events-none"></div>
-            
-            <div className="flex flex-col gap-4 mb-6 relative z-10">
-                <div className="flex justify-between items-end">
-                    <div>
-                        <h3 className="text-lg font-black text-white flex items-center gap-2">부상 히트맵 <span className="text-red-500 animate-pulse"><Icons.AlertCircle /></span></h3>
-                        <p className="text-xs font-bold text-slate-400 mt-1">최근 통증 부위 (재활 기록만)</p>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 rounded-full blur-[80px] opacity-20 -mr-10 -mt-10 pointer-events-none"></div>
+                <div className="flex flex-col gap-4 mb-6 relative z-10">
+                    <div className="flex justify-between items-end">
+                        <div>
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">부상 히트맵 <span className="text-red-500 animate-pulse"><Icons.AlertCircle /></span></h3>
+                            <p className="text-xs font-bold text-slate-400 mt-1">최근 통증 부위 (재활 기록만)</p>
+                        </div>
+                        <div className="text-right">
+                            <span className="block text-3xl font-black text-white">{rehabLogs.length}</span>
+                            <span className="text-xs font-bold text-slate-400">건의 통증</span>
+                        </div>
                     </div>
-                    <div className="text-right">
-                        <span className="block text-3xl font-black text-white">{rehabLogs.length}</span>
-                        <span className="text-xs font-bold text-slate-400">건의 통증</span>
+                    <div className="flex bg-slate-800 p-1 rounded-xl">
+                        {['1w', '1m', '6m', '1y', 'all'].map((range) => (
+                            <button 
+                                key={range}
+                                onClick={() => setHeatmapRange(range as any)}
+                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${heatmapRange === range ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            >
+                                {range === '1w' ? '1주' : range === '1m' ? '1달' : range === '6m' ? '6달' : range === '1y' ? '1년' : '전체'}
+                            </button>
+                        ))}
                     </div>
                 </div>
-
-                <div className="flex bg-slate-800 p-1 rounded-xl">
-                    {['1w', '1m', '6m', '1y', 'all'].map((range) => (
-                        <button 
-                            key={range}
-                            onClick={() => setHeatmapRange(range as any)}
-                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${heatmapRange === range ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            {range === '1w' ? '1주' : range === '1m' ? '1달' : range === '6m' ? '6달' : range === '1y' ? '1년' : '전체'}
-                        </button>
-                    ))}
+                <div className="flex flex-wrap gap-2 relative z-10">
+                    {Object.keys(bodyPartCounts).length === 0 ? (
+                        <p className="text-xs text-slate-500 font-bold w-full text-center py-4">해당 기간에 통증 기록이 없습니다. 👍</p>
+                    ) : (
+                        bodyParts.map((part) => { 
+                            const count = bodyPartCounts[part] || 0; 
+                            if (count === 0) return null;
+                            return (
+                                <div key={part} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-300 ${getSeverityColor(count)}`}>
+                                    {part} <span className="ml-1 opacity-90 text-[10px]">({count})</span>
+                                </div>
+                            ) 
+                        })
+                    )}
                 </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 relative z-10">
-                {Object.keys(bodyPartCounts).length === 0 ? (
-                    <p className="text-xs text-slate-500 font-bold w-full text-center py-4">해당 기간에 통증 기록이 없습니다. 👍</p>
-                ) : (
-                    bodyParts.map((part) => { 
-                        const count = bodyPartCounts[part] || 0; 
-                        if (count === 0) return null;
-                        return (
-                            <div key={part} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-300 ${getSeverityColor(count)}`}>
-                                {part} <span className="ml-1 opacity-90 text-[10px]">({count})</span>
-                            </div>
-                        ) 
-                    })
-                )}
-            </div>
             </section>
 
             <section className="bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="font-extrabold text-white">컨디션 & 운동부하 분석 📉</h3>
-                <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-1 rounded">최근 7일</span>
-            </div>
-            <div className="h-56 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
-                    <XAxis dataKey="date" tick={{fontSize:10, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
-                    <YAxis yAxisId="left" orientation="left" domain={[0, 12]} hide />
-                    <YAxis yAxisId="right" orientation="right" domain={[0, 12]} hide />
-                    <Tooltip 
-                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} 
-                        labelStyle={{ color: '#cbd5e1', fontWeight: 'bold' }}
-                        formatter={(value: any, name: any) => {
-                            if (name === '컨디션') return [value === 10 ? '좋음' : value === 6 ? '보통' : '나쁨', name];
-                            return [`${value}점`, name];
-                        }}
-                    />
-                    <Legend verticalAlign="top" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                    <Bar yAxisId="left" dataKey="condition" name="컨디션" barSize={20} fill="#facc15" radius={[4, 4, 0, 0]} fillOpacity={0.3} />
-                    <Line yAxisId="right" type="monotone" dataKey="score" name="운동강도/통증" stroke="#3b82f6" strokeWidth={3} dot={{r:3, fill:'#3b82f6'}} activeDot={{r:6, fill:'#fff'}} />
-                </ComposedChart>
-                </ResponsiveContainer>
-            </div>
-            <p className="text-[10px] text-slate-500 mt-2 text-center">💡 컨디션(노란색)이 낮을 때 운동강도(파란선)가 높으면 부상 위험!</p>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-extrabold text-white">컨디션 & 운동부하 분석 📉</h3>
+                    <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-1 rounded">최근 7일</span>
+                </div>
+                <div className="h-56 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
+                        <XAxis dataKey="date" tick={{fontSize:10, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="left" orientation="left" domain={[0, 12]} hide />
+                        <YAxis yAxisId="right" orientation="right" domain={[0, 12]} hide />
+                        <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} labelStyle={{ color: '#cbd5e1', fontWeight: 'bold' }} formatter={(value: any, name: any) => { if (name === '컨디션') return [value === 10 ? '좋음' : value === 6 ? '보통' : '나쁨', name]; return [`${value}점`, name]; }} />
+                        <Legend verticalAlign="top" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                        <Bar yAxisId="left" dataKey="condition" name="컨디션" barSize={20} fill="#facc15" radius={[4, 4, 0, 0]} fillOpacity={0.3} />
+                        <Line yAxisId="right" type="monotone" dataKey="score" name="운동강도/통증" stroke="#3b82f6" strokeWidth={3} dot={{r:3, fill:'#3b82f6'}} activeDot={{r:6, fill:'#fff'}} />
+                    </ComposedChart>
+                    </ResponsiveContainer>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-2 text-center">💡 컨디션(노란색)이 낮을 때 운동강도(파란선)가 높으면 부상 위험!</p>
             </section>
 
             <section>
-            <div className="flex justify-between items-center mb-4 px-1"><h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3><div className="flex gap-2"><button onClick={handleDownloadPDF} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700">📄 리포트 저장</button>{selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}</div></div>
-            <div className="space-y-3">{filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { const isWorkout = log.log_type === 'workout' || (log.pain_score && !log.content.includes('통증')); return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group"><div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isWorkout ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>{log.image_url ? <img src={log.image_url} alt="인증" className="w-full h-full object-cover" /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />)}</div><div><div className="font-black text-white text-sm mb-0.5">{log.title}</div><div className="text-xs font-bold text-slate-500 line-clamp-1">{log.content}</div></div></div><div className="flex items-center gap-3"><button onClick={() => handleCopyLog(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/10 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-500">점</div></div></div></div>) }))}</div>
+                <div className="flex justify-between items-center mb-4 px-1"><h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3><div className="flex gap-2"><button onClick={handleDownloadPDF} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700">📄 리포트 저장</button>{selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}</div></div>
+                <div className="space-y-3">{filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { 
+                    const isWorkout = log.log_type === 'workout' || log.log_type === 'match'; 
+                    // 🆕 로그 리스트에 경기 정보 표시
+                    const isMatch = log.log_type === 'match';
+                    
+                    return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group">
+                        <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isMatch ? 'bg-yellow-500/10 text-yellow-400' : (isWorkout ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400')}`}>
+                                {log.image_url ? <img src={log.image_url} alt="인증" className="w-full h-full object-cover" /> : (isMatch ? <Icons.Trophy /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />))}
+                            </div>
+                            <div>
+                                <div className="font-black text-white text-sm mb-0.5">{log.title}</div>
+                                <div className="text-xs font-bold text-slate-500 line-clamp-1">
+                                    {isMatch ? `⚽ ${log.goals}골 ${log.assists}어시 (${log.match_result === 'win' ? '승' : (log.match_result === 'lose' ? '패' : '무')})` : log.content}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3"><button onClick={() => handleCopyLog(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/10 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-500">점</div></div></div></div>) }))}</div>
             </section>
 
             <section className="mt-8 mb-4 text-center">
-                <button 
-                    onClick={() => setIsDisclaimerOpen(true)} 
-                    className="text-[10px] text-slate-600 font-bold hover:text-slate-400 flex items-center justify-center gap-1 mx-auto transition"
-                >
-                    <Icons.Info /> 서비스 이용 약관 및 면책 조항
-                </button>
+                <button onClick={() => setIsDisclaimerOpen(true)} className="text-[10px] text-slate-600 font-bold hover:text-slate-400 flex items-center justify-center gap-1 mx-auto transition"><Icons.Info /> 서비스 이용 약관 및 면책 조항</button>
                 <span className="text-slate-700 text-[10px] mx-2">|</span>
-                <button 
-                    onClick={() => setIsSuggestionOpen(true)} 
-                    className="text-[10px] text-slate-500 font-bold hover:text-blue-400 flex items-center justify-center gap-1 transition"
-                >
-                    <Icons.MessageSquare /> 개발자에게 건의하기
-                </button>
+                <button onClick={() => setIsSuggestionOpen(true)} className="text-[10px] text-slate-500 font-bold hover:text-blue-400 flex items-center justify-center gap-1 transition"><Icons.MessageSquare /> 개발자에게 건의하기</button>
             </section>
         </main>
       )}
 
+      {/* 모달 등 하단 UI는 그대로 유지 */}
       <div className="fixed bottom-0 left-0 right-0 p-6 pointer-events-none flex justify-end max-w-md mx-auto z-40"><button onClick={() => setIsModalOpen(true)} className="pointer-events-auto w-16 h-16 bg-blue-600 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center justify-center text-white hover:bg-blue-500 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
       
-      {/* 👇 1번: 화려한 레벨업 축하 모달 */}
+      {/* 1번: 레벨업 축하 모달 */}
       <AnimatePresence>
         {isLevelUpCelebrationOpen && (
-            <motion.div 
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
-                onClick={() => setIsLevelUpCelebrationOpen(false)}
-            >
-                <motion.div 
-                    initial={{ scale: 0.5, y: 100 }} animate={{ scale: 1, y: 0, rotate: [0, 10, -10, 0] }} transition={{ type: "spring", damping: 15 }}
-                    className="relative max-w-sm w-full text-center p-8 rounded-3xl border-2 border-white/20 bg-gradient-to-br from-slate-900 to-slate-800 shadow-2xl overflow-hidden"
-                    onClick={e => e.stopPropagation()}
-                >
-                    {/* 배경 광원 효과 */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md" onClick={() => setIsLevelUpCelebrationOpen(false)}>
+                <motion.div initial={{ scale: 0.5, y: 100 }} animate={{ scale: 1, y: 0, rotate: [0, 10, -10, 0] }} transition={{ type: "spring", damping: 15 }} className="relative max-w-sm w-full text-center p-8 rounded-3xl border-2 border-white/20 bg-gradient-to-br from-slate-900 to-slate-800 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
                     <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[100px] opacity-50 animate-pulse-slow ${myLevel.color.replace('bg-gradient-to-br', 'bg')}`}></div>
-                    
                     <div className="relative z-10">
-                        <motion.div 
-                            animate={{ y: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 2 }}
-                            className="text-yellow-400 mx-auto mb-4 drop-shadow-[0_0_30px_rgba(250,204,21,0.8)]"
-                        >
-                            <Icons.Trophy />
-                        </motion.div>
+                        <motion.div animate={{ y: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 2 }} className="text-yellow-400 mx-auto mb-4 drop-shadow-[0_0_30px_rgba(250,204,21,0.8)]"><Icons.Trophy /></motion.div>
                         <h2 className="text-3xl font-black text-white mb-2 uppercase italic tracking-tight drop-shadow-lg">Level Up!</h2>
                         <p className="text-slate-300 font-bold text-lg mb-8">축하합니다! 새로운 등급 달성!</p>
-                        
-                        {/* 새로운 등급 카드 */}
                         <div className={`p-6 rounded-3xl border-2 border-white/30 shadow-2xl transform hover:scale-105 transition-all duration-500 ${myLevel.color} ${myLevel.glow}`}>
-                            <div className="flex flex-col items-center gap-2">
-                                <span className="text-6xl drop-shadow-md animate-bounce-slow">{myLevel.emoji}</span>
-                                <h3 className="text-3xl font-black text-white uppercase italic tracking-wider drop-shadow-lg">{myLevel.name}</h3>
-                                <p className="text-sm font-bold text-white/90">{myLevel.rank}</p>
-                            </div>
+                            <div className="flex flex-col items-center gap-2"><span className="text-6xl drop-shadow-md animate-bounce-slow">{myLevel.emoji}</span><h3 className="text-3xl font-black text-white uppercase italic tracking-wider drop-shadow-lg">{myLevel.name}</h3><p className="text-sm font-bold text-white/90">{myLevel.rank}</p></div>
                         </div>
                     </div>
                     <button onClick={() => setIsLevelUpCelebrationOpen(false)} className="mt-8 w-full py-4 bg-white text-black font-extrabold rounded-xl hover:bg-slate-200 transition shadow-lg relative z-10">멋져요! 😎</button>
@@ -714,7 +777,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
       
-      {/* 등급 가이드 모달 (기존 유지) */}
+      {/* 등급 가이드 모달 */}
       {isLevelModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsLevelModalOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -723,30 +786,15 @@ export default function Dashboard() {
                     <h3 className="text-2xl font-black text-white mb-1 flex items-center justify-center gap-2">🏆 등급 시스템 가이드</h3>
                     <p className="text-xs text-slate-400 font-bold">기록을 쌓아 최고의 선수가 되어보세요!</p>
                 </div>
-                
                 <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
                     {LEVEL_SYSTEM.map((level) => (
                         <div key={level.name} className={`p-4 rounded-2xl border flex items-center justify-between transition-all duration-300 ${myLevel.name === level.name ? `bg-slate-800 border-white/20 ${level.glow}` : 'bg-slate-900/50 border-white/5 opacity-70 grayscale hover:grayscale-0'}`}>
-                            <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-lg ${level.color} text-white`}>{level.emoji}</div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h4 className={`font-black text-base ${myLevel.name === level.name ? 'text-white' : 'text-slate-300'}`}>{level.rank}</h4>
-                                        {myLevel.name === level.name && <span className="text-[10px] bg-white text-black px-1.5 py-0.5 rounded-md font-extrabold animate-pulse">ME</span>}
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">{level.desc}</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] font-bold text-slate-500 mb-0.5">필요 기록</p>
-                                <p className="text-lg font-black text-white italic">{level.min}<span className="text-xs not-italic ml-0.5 text-slate-500">회+</span></p>
-                            </div>
+                            <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-lg ${level.color} text-white`}>{level.emoji}</div><div><div className="flex items-center gap-2"><h4 className={`font-black text-base ${myLevel.name === level.name ? 'text-white' : 'text-slate-300'}`}>{level.rank}</h4>{myLevel.name === level.name && <span className="text-[10px] bg-white text-black px-1.5 py-0.5 rounded-md font-extrabold animate-pulse">ME</span>}</div><p className="text-[10px] text-slate-400 font-bold mt-0.5">{level.desc}</p></div></div>
+                            <div className="text-right"><p className="text-[10px] font-bold text-slate-500 mb-0.5">필요 기록</p><p className="text-lg font-black text-white italic">{level.min}<span className="text-xs not-italic ml-0.5 text-slate-500">회+</span></p></div>
                         </div>
                     ))}
                 </div>
-                <div className="mt-6">
-                    <button onClick={() => setIsLevelModalOpen(false)} className="w-full py-4 bg-white text-black font-extrabold rounded-xl hover:bg-slate-200 transition shadow-lg">도전하겠습니다 🔥</button>
-                </div>
+                <div className="mt-6"><button onClick={() => setIsLevelModalOpen(false)} className="w-full py-4 bg-white text-black font-extrabold rounded-xl hover:bg-slate-200 transition shadow-lg">도전하겠습니다 🔥</button></div>
             </div>
         </div>
       )}
@@ -757,17 +805,77 @@ export default function Dashboard() {
                 <button onClick={() => setIsSuggestionOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
                 <h3 className="text-lg font-black text-white mb-2 flex items-center gap-2">💌 개발자에게 건의하기</h3>
                 <p className="text-xs text-slate-400 font-bold mb-4">"이 기능 추가해주세요!" 또는 "이거 불편해요 ㅠ"<br/>자유롭게 남겨주시면 빠르게 반영하겠습니다!</p>
-                <textarea 
-                    value={suggestionText}
-                    onChange={(e) => setSuggestionText(e.target.value)}
-                    className="w-full h-32 bg-slate-800 text-white p-4 rounded-xl border border-white/5 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm font-medium"
-                    placeholder="내용을 입력해주세요..."
-                />
+                <textarea value={suggestionText} onChange={(e) => setSuggestionText(e.target.value)} className="w-full h-32 bg-slate-800 text-white p-4 rounded-xl border border-white/5 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm font-medium" placeholder="내용을 입력해주세요..." />
                 <button onClick={handleSendSuggestion} className="mt-4 w-full py-3 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-500 transition shadow-lg">보내기 🚀</button>
             </div>
         </div>
       )}
 
+      {/* 기록 추가 모달 */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-white/10 w-full max-w-md h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-modal">
+            <div className="p-4 border-b border-white/5 flex justify-between items-center bg-slate-900"><h3 className="font-extrabold text-lg text-white">새로운 기록 남기기 ✍️</h3><button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full transition text-slate-400"><Icons.X /></button></div>
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-900">
+               
+               {/* 🆕 탭 3개로 변경됨 */}
+               <div className="flex bg-slate-800 p-1 rounded-xl">
+                   <button onClick={() => setLogType('workout')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'workout' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500'}`}>💪 운동</button>
+                   <button onClick={() => setLogType('match')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'match' ? 'bg-slate-700 text-yellow-400 shadow-sm' : 'text-slate-500'}`}>⚽ 경기</button>
+                   <button onClick={() => setLogType('rehab')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'rehab' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-500'}`}>🏥 재활</button>
+               </div>
+
+               <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 placeholder-slate-600" placeholder="제목 입력 (예: 조기축구, 하체운동)" /></div>
+               
+               {/* 🆕 경기(Match) 탭일 때만 보이는 입력창 */}
+               {logType === 'match' && (
+                   <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl space-y-4">
+                       <div>
+                           <label className="block text-sm font-bold text-yellow-500 mb-2">경기 결과</label>
+                           <div className="flex gap-2">
+                               <button onClick={() => setMatchResult('win')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'win' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>승리</button>
+                               <button onClick={() => setMatchResult('draw')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'draw' ? 'bg-slate-600 text-white border-slate-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>무승부</button>
+                               <button onClick={() => setMatchResult('lose')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'lose' ? 'bg-red-600 text-white border-red-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>패배</button>
+                           </div>
+                       </div>
+                       <div className="flex gap-4">
+                           <div className="flex-1">
+                               <label className="block text-sm font-bold text-yellow-500 mb-1">골 (득점)</label>
+                               <div className="flex items-center gap-3">
+                                   <button onClick={() => setGoals(Math.max(0, goals - 1))} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">-</button>
+                                   <span className="text-xl font-black text-white">{goals}</span>
+                                   <button onClick={() => setGoals(goals + 1)} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">+</button>
+                               </div>
+                           </div>
+                           <div className="flex-1">
+                               <label className="block text-sm font-bold text-yellow-500 mb-1">어시스트 (도움)</label>
+                               <div className="flex items-center gap-3">
+                                   <button onClick={() => setAssists(Math.max(0, assists - 1))} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">-</button>
+                                   <span className="text-xl font-black text-white">{assists}</span>
+                                   <button onClick={() => setAssists(assists + 1)} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">+</button>
+                               </div>
+                           </div>
+                       </div>
+                   </div>
+               )}
+
+               <div><label className="block text-sm font-bold text-slate-400 mb-2">사진/영상 추가</label><div className="flex items-center gap-3"><label className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-500/10 transition overflow-hidden text-slate-500">{mediaPreview ? <img src={mediaPreview} className="w-full h-full object-cover" /> : <Icons.Camera />}<input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} /></label><span className="text-xs text-slate-500 font-bold">{mediaFile ? "파일 선택됨 ✅" : "운동 인증샷이나 통증 부위를 찍어보세요."}</span></div></div>
+               
+               <div>
+                 <label className="block text-sm font-bold text-slate-400 mb-2">관련 부위 (선택)</label>
+                 <BodyMap selectedParts={selectedParts} togglePart={togglePart} type={logType === 'match' ? 'workout' : logType} />
+               </div>
+
+               <div><label className="block text-sm font-bold text-slate-400 mb-1">메모 / 내용</label><textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full p-4 h-32 bg-slate-800 text-white rounded-xl border-none focus:ring-2 focus:ring-blue-500 resize-none placeholder-slate-600" placeholder="경기 내용이나 특이사항을 적어주세요." /></div>
+               <div><div className="flex justify-between mb-2"><span className="font-bold text-slate-400">{logType === 'rehab' ? '통증 점수' : '운동 강도 (RPE)'}</span><span className={`font-black text-xl ${score > 7 ? 'text-red-500' : 'text-blue-500'}`}>{score}</span></div><input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
+               <div className="flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-white/5"><input type="checkbox" id="public" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-blue-600 bg-slate-700 border-slate-600"/><label htmlFor="public" className="text-sm font-bold text-slate-300 cursor-pointer">광장에 자랑하기 (공개)</label></div>
+            </div>
+            <div className="p-4 border-t border-white/5 bg-slate-900"><button onClick={handleAddLog} disabled={uploading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition disabled:opacity-50">{uploading ? '저장 중...' : '기록 저장 완료 ✨'}</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* 면책/분석 등 나머지 모달 유지 */}
       {isDisclaimerOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsDisclaimerOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm max-h-[80vh] overflow-y-auto rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
@@ -830,60 +938,6 @@ export default function Dashboard() {
                 </div>
                 <button onClick={() => setIsAnalysisOpen(false)} className="mt-4 w-full py-3 bg-slate-800 text-white border border-white/10 font-bold rounded-xl hover:bg-slate-700 transition">닫기</button>
             </div>
-        </div>
-      )}
-
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
-          <div className="bg-slate-900 border border-white/10 w-full max-w-md h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-modal">
-            <div className="p-4 border-b border-white/5 flex justify-between items-center bg-slate-900"><h3 className="font-extrabold text-lg text-white">새로운 기록 남기기 ✍️</h3><button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full transition text-slate-400"><Icons.X /></button></div>
-            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-900">
-               <div className="flex bg-slate-800 p-1 rounded-xl"><button onClick={() => setLogType('workout')} className={`flex-1 py-3 rounded-lg font-extrabold text-sm transition ${logType === 'workout' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500'}`}>💪 운동 완료</button><button onClick={() => setLogType('rehab')} className={`flex-1 py-3 rounded-lg font-extrabold text-sm transition ${logType === 'rehab' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-500'}`}>🏥 재활/통증</button></div>
-               <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 placeholder-slate-600" placeholder="제목 입력" /></div>
-               <div><label className="block text-sm font-bold text-slate-400 mb-2">사진/영상 추가</label><div className="flex items-center gap-3"><label className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-500/10 transition overflow-hidden text-slate-500">{mediaPreview ? <img src={mediaPreview} className="w-full h-full object-cover" /> : <Icons.Camera />}<input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} /></label><span className="text-xs text-slate-500 font-bold">{mediaFile ? "파일 선택됨 ✅" : "운동 인증샷이나 통증 부위를 찍어보세요."}</span></div></div>
-               
-               {/* 👇 여기에 BodyMap 추가됨! */}
-               <div>
-                 <label className="block text-sm font-bold text-slate-400 mb-2">관련 부위 (터치)</label>
-                 <BodyMap selectedParts={selectedParts} togglePart={togglePart} type={logType} />
-                 
-                 {/* 👇 버튼 리스트 추가: BodyMap 아래에 위치 */}
-                 <div className="mt-4 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                   {bodyParts.map((part) => (
-                     <button
-                       key={part}
-                       onClick={() => togglePart(part)}
-                       className={`px-3 py-2 rounded-lg text-xs font-bold border transition ${
-                         selectedParts.includes(part)
-                           ? logType === 'workout'
-                             ? 'bg-blue-600 text-white border-blue-500' 
-                             : 'bg-red-600 text-white border-red-500'
-                           : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
-                       }`}
-                     >
-                       {part}
-                     </button>
-                   ))}
-                 </div>
-               </div>
-
-               <div><label className="block text-sm font-bold text-slate-400 mb-1">내용</label><textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full p-4 h-32 bg-slate-800 text-white rounded-xl border-none focus:ring-2 focus:ring-blue-500 resize-none placeholder-slate-600" placeholder="내용 입력" /></div>
-               <div><div className="flex justify-between mb-2"><span className="font-bold text-slate-400">{logType === 'workout' ? '강도' : '통증'}</span><span className={`font-black text-xl ${score > 7 ? 'text-red-500' : 'text-blue-500'}`}>{score}</span></div><input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
-               <div className="flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-white/5"><input type="checkbox" id="public" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-blue-600 bg-slate-700 border-slate-600"/><label htmlFor="public" className="text-sm font-bold text-slate-300 cursor-pointer">광장에 자랑하기 (공개)</label></div>
-            </div>
-            <div className="p-4 border-t border-white/5 bg-slate-900"><button onClick={handleAddLog} disabled={uploading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition disabled:opacity-50">{uploading ? '저장 중...' : '기록 저장 완료 ✨'}</button></div>
-          </div>
-        </div>
-      )}
-
-      {isResultOpen && resultImage && (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4 animate-fade-in">
-          <div className="relative max-w-sm w-full space-y-4">
-            <h3 className="text-white font-bold text-center text-lg animate-pulse">👇 아래 버튼을 눌러 저장하세요!</h3>
-            <img src={resultImage} alt="결과" className="w-full rounded-2xl shadow-2xl border border-white/10" />
-            <button onClick={() => handleSaveResultImage(resultImage)} className="w-full py-4 bg-blue-600 text-white font-extrabold rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition flex items-center justify-center gap-2"><Icons.Download /> 이미지 저장 / 공유하기</button>
-            <button onClick={() => setIsResultOpen(false)} className="w-full py-4 bg-slate-800 text-white border border-white/10 font-extrabold rounded-xl shadow-lg hover:bg-slate-700 transition">닫기</button>
-          </div>
         </div>
       )}
     </div>
