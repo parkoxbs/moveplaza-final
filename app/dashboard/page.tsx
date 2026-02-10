@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
+// 👇 createBrowserClient 사용 필수
 import { createBrowserClient } from "@supabase/ssr"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -12,7 +13,7 @@ import jsPDF from 'jspdf'
 import BodyMap from "..//components/BodyMap"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
-// 👇 [추가] 하단 메뉴바 불러오기
+// 👇 [추가] 하단 메뉴바 불러오기 (경로 확인 필요)
 import BottomNav from "..//components/BottomNav"
 
 // 👇 1. Supabase 주소와 키 입력
@@ -153,7 +154,7 @@ export default function Dashboard() {
   const bodyParts = ["목", "승모근", "어깨", "가슴", "등", "복근", "허리", "삼두", "이두", "전완근", "손목", "손", "엉덩이", "고관절", "허벅지(앞)", "허벅지(뒤)(햄스트링)", "무릎", "종아리", "발목", "발"]
 
   useEffect(() => { 
-    router.refresh(); // 🔥 [추가] 페이지 로드 시 라우터 갱신 (쿠키 동기화)
+    router.refresh(); 
     fetchData(true); 
     setTodayTip(REHAB_TIPS[Math.floor(Math.random() * REHAB_TIPS.length)]);
   }, [])
@@ -210,7 +211,6 @@ export default function Dashboard() {
     setLoading(false)
   }
 
-  // ... (이하 함수들은 기존과 동일, UI에서 상단바 제거 및 하단바 추가됨) ...
   const triggerConfetti = () => {
     const duration = 3000;
     const animationEnd = Date.now() + duration;
@@ -471,16 +471,32 @@ export default function Dashboard() {
 
   const handleShareClick = async (log: any) => {
     setShareData(log)
-    const t = toast.loading("카드 만드는 중... 🎨")
+    // 1. 데이터를 먼저 세팅하고
+    // 2. 이미지가 로딩될 시간을 조금 더 줍니다 (1초 -> 1.5초)
+    const t = toast.loading("카드 디자인 중... 🎨")
+    
     setTimeout(async () => {
       if (shareCardRef.current) {
         try {
-          const dataUrl = await toPng(shareCardRef.current, { cacheBust: true, pixelRatio: 3, backgroundColor: '#0f172a' })
-          setResultImage(dataUrl); setIsResultOpen(true); toast.dismiss(t)
-        } catch (error) { console.error(error); toast.error("실패 ㅠ 다시 시도해주세요.", { id: t }); }
-        setShareData(null);
+          // 3. 캡처 시도
+          const dataUrl = await toPng(shareCardRef.current, { 
+            cacheBust: true, 
+            pixelRatio: 2, // 3은 너무 커서 메모리 초과 날 수 있음 -> 2로 조정
+            backgroundColor: '#0f172a',
+            skipAutoScale: true // 모바일 강제 축소 방지
+          })
+          setResultImage(dataUrl); 
+          setIsResultOpen(true); 
+          toast.success("카드 생성 완료!", { id: t });
+        } catch (error) { 
+          console.error(error); 
+          toast.error("이미지 생성 실패 ㅠ 다시 시도해주세요.", { id: t }); 
+        }
+        setShareData(null); // 초기화
+      } else {
+        toast.error("오류: 카드를 찾을 수 없습니다.", { id: t });
       }
-    }, 1000);
+    }, 1500); // 1.5초 대기
   }
 
   const handleSaveResultImage = async (dataUrl: string) => {
@@ -546,18 +562,90 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
-      {shareData && (<div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-1] opacity-0 pointer-events-none"><div ref={shareCardRef} className="w-[500px] h-[500px] bg-slate-900 p-8 flex flex-col justify-between text-white relative overflow-hidden font-sans">{shareData.image_url ? (<><img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" /><div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 z-0"></div></>) : (<><div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 z-0"></div><div className="absolute top-[-50px] right-[-50px] w-[200px] h-[200px] bg-blue-600 rounded-full blur-[90px] opacity-60 z-0"></div><div className="absolute bottom-[-50px] left-[-50px] w-[200px] h-[200px] bg-red-600 rounded-full blur-[90px] opacity-50 z-0"></div></>)}<div className="z-10 relative"><div className="flex justify-between items-start mb-4"><span className={`px-4 py-1.5 rounded-full text-sm font-black tracking-wide ${shareData.log_type === 'workout' ? 'bg-blue-600' : (shareData.log_type === 'match' ? 'bg-yellow-500 text-black' : 'bg-red-600')}`}>{shareData.log_type === 'workout' ? 'WORKOUT LOG' : (shareData.log_type === 'match' ? 'MATCH DAY' : 'REHAB LOG')}</span><p className="text-white/80 font-bold text-sm">{new Date(shareData.created_at).toLocaleDateString()}</p></div><h1 className="text-4xl font-black leading-tight mb-4 tracking-tight drop-shadow-lg">{shareData.title}</h1><p className="text-white/90 text-lg font-medium leading-relaxed line-clamp-4 drop-shadow-md">{shareData.content}</p>
-      
-      {/* 🆕 공유 카드에 경기 스탯 표시 */}
-      {shareData.log_type === 'match' && (
-          <div className="mt-4 p-3 bg-black/30 rounded-xl flex justify-around">
-              <div className="text-center"><p className="text-xs text-white/60 font-bold">결과</p><p className={`text-xl font-black ${shareData.match_result === 'win' ? 'text-blue-400' : (shareData.match_result === 'lose' ? 'text-red-400' : 'text-slate-300')}`}>{shareData.match_result === 'win' ? 'WIN' : (shareData.match_result === 'lose' ? 'LOSE' : 'DRAW')}</p></div>
-              <div className="text-center"><p className="text-xs text-white/60 font-bold">골</p><p className="text-xl font-black text-white">{shareData.goals}</p></div>
-              <div className="text-center"><p className="text-xs text-white/60 font-bold">도움</p><p className="text-xl font-black text-white">{shareData.assists}</p></div>
+      {/* 👇 [수정됨] 예쁜 인스타 공유 카드 (세로 비율, 닉네임 제거, 디자인 강화, 화면 밖 렌더링) */}
+      {shareData && (
+        <div className="fixed top-0 left-[-9999px] z-50"> {/* 👈 화면 밖으로 보내서 캡처 */}
+          <div ref={shareCardRef} className="w-[450px] h-[650px] bg-slate-950 p-8 flex flex-col justify-between text-white relative overflow-hidden font-sans border-4 border-slate-900 rounded-[40px] shadow-2xl">
+            
+            {/* 1. 배경 레이어 (사진 or 그래픽) */}
+            {shareData.image_url ? (
+              <>
+                <img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" />
+                <div className={`absolute inset-0 z-0 bg-gradient-to-t ${shareData.log_type === 'workout' ? 'from-blue-900/90 via-slate-900/60' : (shareData.log_type === 'match' ? 'from-yellow-900/90 via-slate-900/60' : 'from-red-900/90 via-slate-900/60')} to-slate-900/30 mix-blend-multiply`}></div>
+              </>
+            ) : (
+              <>
+                {/* 사진 없을 때 역동적인 배경 패턴 */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${shareData.log_type === 'workout' ? 'from-blue-950 to-slate-950' : (shareData.log_type === 'match' ? 'from-yellow-950 to-slate-950' : 'from-red-950 to-slate-950')} z-0`}></div>
+                <svg className="absolute inset-0 w-full h-full z-0 opacity-20 mix-blend-overlay" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><defs><pattern id="pattern" width="40" height="40" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="2" fill="currentColor" className="text-white"></circle></pattern></defs><rect width="100%" height="100%" fill="url(#pattern)"></rect></svg>
+                <div className={`absolute top-[-100px] right-[-100px] w-[300px] h-[300px] rounded-full blur-[120px] opacity-50 z-0 ${shareData.log_type === 'workout' ? 'bg-blue-600' : (shareData.log_type === 'match' ? 'bg-yellow-600' : 'bg-red-600')}`}></div>
+                <div className="absolute bottom-[-100px] left-[-100px] w-[300px] h-[300px] bg-white/10 rounded-full blur-[120px] opacity-30 z-0"></div>
+              </>
+            )}
+
+            {/* 2. 상단 정보 */}
+            <div className="z-10 relative">
+              <div className="flex justify-between items-center mb-6">
+                <span className={`px-4 py-1.5 rounded-full text-xs font-black tracking-wider uppercase shadow-lg ${shareData.log_type === 'workout' ? 'bg-blue-600' : (shareData.log_type === 'match' ? 'bg-yellow-500 text-black' : 'bg-red-600')}`}>
+                  {shareData.log_type === 'workout' ? '⚡ WORKOUT' : (shareData.log_type === 'match' ? '🏆 MATCH DAY' : '❤️‍🩹 REHAB')}
+                </span>
+                <div className="text-right">
+                  <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">DATE</p>
+                  <p className="text-white font-bold text-sm">{new Date(shareData.created_at).toLocaleDateString()}</p>
+                </div>
+              </div>
+              
+              <h1 className="text-4xl font-black leading-tight mb-3 tracking-tight drop-shadow-xl line-clamp-2">{shareData.title}</h1>
+              <p className="text-white/80 text-base font-medium leading-relaxed line-clamp-3 drop-shadow-md bg-black/20 p-3 rounded-xl backdrop-blur-sm">{shareData.content}</p>
+            </div>
+
+            {/* 3. 핵심 스탯 (가운데 배치) */}
+            <div className="z-10 relative my-4">
+              {shareData.log_type === 'match' ? (
+                // 경기(Match) 일 때 디자인
+                <div className="bg-black/40 p-5 rounded-3xl backdrop-blur-md border border-white/10 text-center shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent opacity-50"></div>
+                  <p className={`text-4xl font-black mb-4 tracking-tight drop-shadow-lg italic ${shareData.match_result === 'win' ? 'text-blue-400' : (shareData.match_result === 'lose' ? 'text-red-500' : 'text-slate-300')}`}>
+                    {shareData.match_result === 'win' ? 'VICTORY!' : (shareData.match_result === 'lose' ? 'DEFEAT' : 'DRAW')}
+                  </p>
+                  <div className="flex justify-center items-center gap-8">
+                    <div><p className="text-5xl font-black text-yellow-400 drop-shadow-lg">{shareData.goals}</p><p className="text-xs font-bold text-yellow-500/70 uppercase tracking-wider mt-1">Goals</p></div>
+                    <div className="w-[2px] h-12 bg-white/20"></div>
+                    <div><p className="text-5xl font-black text-emerald-400 drop-shadow-lg">{shareData.assists}</p><p className="text-xs font-bold text-emerald-500/70 uppercase tracking-wider mt-1">Assists</p></div>
+                  </div>
+                </div>
+              ) : (
+                // 운동/재활 일 때 디자인 (점수 강조)
+                <div className="flex flex-col items-center justify-center py-4">
+                   <p className="text-white/70 text-xs font-black tracking-[0.2em] mb-2 uppercase">{shareData.log_type === 'rehab' ? 'PAIN LEVEL' : 'INTENSITY SCORE'}</p>
+                   <div className="relative">
+                     <p className={`text-[120px] leading-none font-black tracking-tighter drop-shadow-[0_0_25px_rgba(255,255,255,0.2)] ${shareData.pain_score >= 8 ? 'text-red-500' : (shareData.log_type === 'workout' ? 'text-blue-500' : 'text-white')}`}>
+                       {shareData.pain_score}
+                     </p>
+                     <span className="absolute bottom-4 -right-8 text-3xl font-black text-white/50">/10</span>
+                   </div>
+                   {/* 점수 게이지 바 */}
+                   <div className="w-32 h-2 bg-slate-800/50 rounded-full mt-4 overflow-hidden backdrop-blur-sm">
+                     <div className={`h-full rounded-full ${shareData.pain_score >= 8 ? 'bg-red-600' : (shareData.log_type === 'workout' ? 'bg-blue-600' : 'bg-white')}`} style={{width: `${shareData.pain_score * 10}%`}}></div>
+                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* 4. 하단 브랜딩 (닉네임 제거됨) */}
+            <div className="z-10 relative border-t border-white/10 pt-6 flex justify-between items-end">
+              <div className="flex items-center gap-2">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg ${shareData.log_type === 'workout' ? 'bg-blue-600' : (shareData.log_type === 'match' ? 'bg-yellow-500 text-black' : 'bg-red-600')}`}>M</div>
+                <div>
+                  <p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg leading-none">MOVEPLAZA</p>
+                  <p className="text-[9px] text-white/60 font-bold tracking-[0.15em] uppercase mt-0.5">Athlete Performance System</p>
+                </div>
+              </div>
+            </div>
+
           </div>
+        </div>
       )}
-      
-      </div><div className="z-10 relative border-t border-white/20 pt-6 flex justify-between items-end"><div><p className="text-white/70 text-xs font-black tracking-widest mb-1">INTENSITY</p><p className="text-5xl font-black text-white drop-shadow-lg">{shareData.pain_score}<span className="text-xl text-white/60 ml-1">/ 10</span></p></div><div className="text-right"><p className="font-black text-2xl italic tracking-tighter text-white drop-shadow-lg">MOVEPLAZA</p><p className="text-[10px] text-white/70 font-bold tracking-widest uppercase">Athlete Performance System</p></div></div></div></div>)}
 
       {/* ✅ 헤더 수정: 상단 메뉴 삭제 (하단바로 이동) */}
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
@@ -618,7 +706,7 @@ export default function Dashboard() {
                 </section>
             )}
 
-            {/* 👇 기존 라인업 빌더 버튼 (이거 밑에 붙여넣으세요) */}
+            {/* 👇 기존 라인업 빌더 버튼 */}
             <section className="mb-4">
                 <Link href="/lineup" className="block w-full bg-gradient-to-r from-green-600 to-emerald-600 rounded-3xl p-5 shadow-lg border border-white/10 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-[40px] -mr-5 -mt-5 group-hover:scale-110 transition"></div>
@@ -632,7 +720,7 @@ export default function Dashboard() {
                 </Link>
             </section>
 
-            {/* 👇 [여기!] 자가 체크 버튼 추가 (새로 추가할 코드) */}
+            {/* 👇 [여기!] 자가 체크 버튼 추가 */}
             <section className="mb-4">
                 <Link href="/self-check" className="block w-full bg-gradient-to-r from-red-600 to-pink-600 rounded-3xl p-5 shadow-lg border border-white/10 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-[40px] -mr-5 -mt-5 group-hover:scale-110 transition"></div>
