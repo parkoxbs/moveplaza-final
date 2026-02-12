@@ -598,12 +598,12 @@ export default function Dashboard() {
 
                 {/* 제목 & 내용 */}
                 <div className="mb-4">
-                     <h1 className="text-4xl font-black text-white leading-none mb-2 line-clamp-2 drop-shadow-xl uppercase italic tracking-tight">
-                         {shareData.title}
-                     </h1>
-                     <p className="text-white/80 text-sm font-medium line-clamp-2 drop-shadow-md max-w-[80%]">
-                         {shareData.content}
-                     </p>
+                      <h1 className="text-4xl font-black text-white leading-none mb-2 line-clamp-2 drop-shadow-xl uppercase italic tracking-tight">
+                          {shareData.title}
+                      </h1>
+                      <p className="text-white/80 text-sm font-medium line-clamp-2 drop-shadow-md max-w-[80%]">
+                          {shareData.content}
+                      </p>
                 </div>
 
                 {/* 하단 스탯 (우측 하단에 크게 배치) */}
@@ -936,111 +936,158 @@ export default function Dashboard() {
           <div className="bg-slate-900 border border-white/10 w-full max-w-md h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-modal">
             <div className="p-4 border-b border-white/5 flex justify-between items-center bg-slate-900"><h3 className="font-extrabold text-lg text-white">새로운 기록 남기기 ✍️</h3><button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full transition text-slate-400"><Icons.X /></button></div>
             <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-900">
-               
-               {/* 🆕 탭 3개로 변경됨 */}
-               <div className="flex bg-slate-800 p-1 rounded-xl">
-                   <button onClick={() => setLogType('workout')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'workout' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500'}`}>💪 운동</button>
-                   <button onClick={() => setLogType('match')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'match' ? 'bg-slate-700 text-yellow-400 shadow-sm' : 'text-slate-500'}`}>⚽ 경기</button>
-                   <button onClick={() => setLogType('rehab')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'rehab' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-500'}`}>🏥 재활</button>
-               </div>
+                
+                {/* 🆕 탭 3개로 변경됨 */}
+                <div className="flex bg-slate-800 p-1 rounded-xl">
+                    <button onClick={() => setLogType('workout')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'workout' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500'}`}>💪 운동</button>
+                    <button onClick={() => setLogType('match')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'match' ? 'bg-slate-700 text-yellow-400 shadow-sm' : 'text-slate-500'}`}>⚽ 경기</button>
+                    <button onClick={() => setLogType('rehab')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'rehab' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-500'}`}>🏥 재활</button>
+                </div>
 
-               <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 placeholder-slate-600" placeholder="제목 입력 (예: 조기축구, 하체운동)" /></div>
-               
-               {/* 🆕 경기(Match) 탭일 때만 보이는 입력창 */}
-               {logType === 'match' && (
-                   <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl space-y-4">
-                       <div>
-                           <label className="block text-sm font-bold text-yellow-500 mb-2">경기 결과</label>
-                           <div className="flex gap-2">
-                               <button onClick={() => setMatchResult('win')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'win' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>승리</button>
-                               <button onClick={() => setMatchResult('draw')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'draw' ? 'bg-slate-600 text-white border-slate-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>무승부</button>
-                               <button onClick={() => setMatchResult('lose')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'lose' ? 'bg-red-600 text-white border-red-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>패배</button>
-                           </div>
-                       </div>
-                       <div className="flex gap-4">
-                           <div className="flex-1">
-                               <label className="block text-sm font-bold text-yellow-500 mb-1">골 (득점)</label>
-                               <div className="flex items-center gap-3">
-                                   <button onClick={() => setGoals(Math.max(0, goals - 1))} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">-</button>
-                                   <span className="text-xl font-black text-white">{goals}</span>
-                                   <button onClick={() => setGoals(goals + 1)} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">+</button>
-                               </div>
-                           </div>
-                           <div className="flex-1">
-                               <label className="block text-sm font-bold text-yellow-500 mb-1">어시스트 (도움)</label>
-                               <div className="flex items-center gap-3">
-                                   <button onClick={() => setAssists(Math.max(0, assists - 1))} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">-</button>
-                                   <span className="text-xl font-black text-white">{assists}</span>
-                                   <button onClick={() => setAssists(assists + 1)} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">+</button>
-                               </div>
-                           </div>
-                       </div>
-                   </div>
-               )}
+                <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 placeholder-slate-600" placeholder="제목 입력 (예: 조기축구, 하체운동)" /></div>
+                
+                {/* 🆕 경기(Match) 탭일 때만 보이는 입력창 */}
+                {logType === 'match' && (
+                    <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl space-y-4">
+                        <div>
+                            <label className="block text-sm font-bold text-yellow-500 mb-2">경기 결과</label>
+                            <div className="flex gap-2">
+                                <button onClick={() => setMatchResult('win')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'win' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>승리</button>
+                                <button onClick={() => setMatchResult('draw')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'draw' ? 'bg-slate-600 text-white border-slate-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>무승부</button>
+                                <button onClick={() => setMatchResult('lose')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'lose' ? 'bg-red-600 text-white border-red-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>패배</button>
+                            </div>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="flex-1">
+                                <label className="block text-sm font-bold text-yellow-500 mb-1">골 (득점)</label>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => setGoals(Math.max(0, goals - 1))} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">-</button>
+                                    <span className="text-xl font-black text-white">{goals}</span>
+                                    <button onClick={() => setGoals(goals + 1)} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">+</button>
+                                </div>
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-sm font-bold text-yellow-500 mb-1">어시스트 (도움)</label>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => setAssists(Math.max(0, assists - 1))} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">-</button>
+                                    <span className="text-xl font-black text-white">{assists}</span>
+                                    <button onClick={() => setAssists(assists + 1)} className="w-8 h-8 bg-slate-800 rounded-lg text-white font-bold">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
-               {/* 🆕 장비 선택 (모든 탭에서 보임) */}
-               <div>
-                   <label className="block text-sm font-bold text-slate-400 mb-2">장비 선택 (오늘 신은 축구화)</label>
-                   <select 
+                {/* 🆕 장비 선택 (모든 탭에서 보임) */}
+                <div>
+                    <label className="block text-sm font-bold text-slate-400 mb-2">장비 선택 (오늘 신은 축구화)</label>
+                    <select 
                         value={selectedGearId || ''} 
                         onChange={(e) => setSelectedGearId(e.target.value || null)} 
                         className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-                   >
-                       <option value="">선택 안함</option>
-                       {gears.map((gear) => (
-                           <option key={gear.id} value={gear.id}>
-                               {gear.brand} {gear.name} ({gear.stud_type})
-                           </option>
-                       ))}
-                   </select>
-               </div>
+                    >
+                        <option value="">선택 안함</option>
+                        {gears.map((gear) => (
+                            <option key={gear.id} value={gear.id}>
+                                {gear.brand} {gear.name} ({gear.stud_type})
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
-               <div><label className="block text-sm font-bold text-slate-400 mb-2">사진/영상 추가</label><div className="flex items-center gap-3"><label className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-500/10 transition overflow-hidden text-slate-500">{mediaPreview ? <img src={mediaPreview} className="w-full h-full object-cover" /> : <Icons.Camera />}<input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} /></label><span className="text-xs text-slate-500 font-bold">{mediaFile ? "파일 선택됨 ✅" : "운동 인증샷이나 통증 부위를 찍어보세요."}</span></div></div>
-               
-               <div>
-                 <label className="block text-sm font-bold text-slate-400 mb-2">관련 부위 (선택)</label>
-                 <BodyMap selectedParts={selectedParts} togglePart={togglePart} type={logType === 'match' ? 'workout' : logType} />
-               </div>
+                <div><label className="block text-sm font-bold text-slate-400 mb-2">사진/영상 추가</label><div className="flex items-center gap-3"><label className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-500/10 transition overflow-hidden text-slate-500">{mediaPreview ? <img src={mediaPreview} className="w-full h-full object-cover" /> : <Icons.Camera />}<input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} /></label><span className="text-xs text-slate-500 font-bold">{mediaFile ? "파일 선택됨 ✅" : "운동 인증샷이나 통증 부위를 찍어보세요."}</span></div></div>
+                
+                <div>
+                  <label className="block text-sm font-bold text-slate-400 mb-2">관련 부위 (선택)</label>
+                  <BodyMap selectedParts={selectedParts} togglePart={togglePart} type={logType === 'match' ? 'workout' : logType} />
+                </div>
 
-               <div><label className="block text-sm font-bold text-slate-400 mb-1">메모 / 내용</label><textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full p-4 h-32 bg-slate-800 text-white rounded-xl border-none focus:ring-2 focus:ring-blue-500 resize-none placeholder-slate-600" placeholder="경기 내용이나 특이사항을 적어주세요." /></div>
-               <div><div className="flex justify-between mb-2"><span className="font-bold text-slate-400">{logType === 'rehab' ? '통증 점수' : '운동 강도 (RPE)'}</span><span className={`font-black text-xl ${score > 7 ? 'text-red-500' : 'text-blue-500'}`}>{score}</span></div><input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
-               <div className="flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-white/5"><input type="checkbox" id="public" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-blue-600 bg-slate-700 border-slate-600"/><label htmlFor="public" className="text-sm font-bold text-slate-300 cursor-pointer">광장에 자랑하기 (공개)</label></div>
+                <div><label className="block text-sm font-bold text-slate-400 mb-1">메모 / 내용</label><textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full p-4 h-32 bg-slate-800 text-white rounded-xl border-none focus:ring-2 focus:ring-blue-500 resize-none placeholder-slate-600" placeholder="경기 내용이나 특이사항을 적어주세요." /></div>
+                <div><div className="flex justify-between mb-2"><span className="font-bold text-slate-400">{logType === 'rehab' ? '통증 점수' : '운동 강도 (RPE)'}</span><span className={`font-black text-xl ${score > 7 ? 'text-red-500' : 'text-blue-500'}`}>{score}</span></div><input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
+                <div className="flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-white/5"><input type="checkbox" id="public" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-blue-600 bg-slate-700 border-slate-600"/><label htmlFor="public" className="text-sm font-bold text-slate-300 cursor-pointer">광장에 자랑하기 (공개)</label></div>
             </div>
             <div className="p-4 border-t border-white/5 bg-slate-900"><button onClick={handleAddLog} disabled={uploading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition disabled:opacity-50">{uploading ? '저장 중...' : '기록 저장 완료 ✨'}</button></div>
           </div>
         </div>
       )}
 
-      {/* 면책/분석 등 나머지 모달 유지 */}
+      {/* 👇 [수정됨] 개인정보 처리방침 및 면책 조항 모달 */}
       {isDisclaimerOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsDisclaimerOpen(false)}>
-            <div className="bg-slate-900 border border-white/10 w-full max-w-sm max-h-[80vh] overflow-y-auto rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-                <button onClick={() => setIsDisclaimerOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
-                <h3 className="text-lg font-black text-white mb-4 flex items-center gap-2">⚖️ 서비스 이용 약관 및 면책 조항</h3>
+            <div className="bg-slate-900 border border-white/10 w-full max-w-md max-h-[85vh] overflow-y-auto rounded-3xl p-6 shadow-2xl relative custom-scrollbar" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setIsDisclaimerOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white transition"><Icons.X /></button>
                 
-                <div className="space-y-4 text-xs text-slate-300 leading-relaxed font-medium">
-                    <div className="bg-slate-950 p-4 rounded-xl border border-white/5">
-                        <h4 className="font-bold text-white mb-1">1. 의료 행위 아님 (비의료 건강관리 서비스)</h4>
-                        <p className="text-slate-400">본 서비스 'Moveplaza'에서 제공하는 모든 데이터, 분석 결과, 조언 및 정보는 사용자의 자가 건강 관리를 돕기 위한 참고용 자료일 뿐입니다. 이는 의사나 물리치료사의 전문적인 진단, 진료, 치료를 대체할 수 없으며, 의료 행위에 해당하지 않습니다.</p>
+                <h3 className="text-xl font-black text-white mb-6 flex items-center gap-2 border-b border-white/10 pb-4">
+                    📜 약관 및 정책
+                </h3>
+                
+                <div className="space-y-6 text-sm text-slate-300 leading-relaxed">
+                    
+                    {/* 🚨 8. 면책 공지 (가장 중요하므로 상단 강조 배치) */}
+                    <div className="bg-red-500/10 p-5 rounded-2xl border border-red-500/20">
+                        <h4 className="font-black text-red-400 mb-2 flex items-center gap-2"><Icons.AlertCircle /> 중요: 의학적 면책 공지</h4>
+                        <p className="text-slate-200 text-xs font-bold">
+                            본 서비스(Moveplaza)가 제공하는 분석 결과는 의학적 진단을 대신할 수 없습니다. 심각한 통증이나 부상이 의심될 경우 반드시 전문 의료기관의 진료를 받으시기 바랍니다.
+                        </p>
                     </div>
 
-                    <div className="bg-slate-950 p-4 rounded-xl border border-white/5">
-                        <h4 className="font-bold text-white mb-1">2. 사용자의 책임 및 주의사항</h4>
-                        <p className="text-slate-400">서비스 이용 중 통증이 발생하거나 악화될 경우 즉시 운동을 중단하고 전문 의료 기관을 방문해야 합니다. 본 서비스의 정보를 따라 하다가 발생한 부상이나 건강 상의 문제에 대해 개발자는 법적 책임을 지지 않습니다.</p>
-                    </div>
+                    <div className="space-y-4">
+                        <h4 className="text-base font-black text-white">🔒 개인정보 처리방침</h4>
 
-                    <div className="bg-slate-950 p-4 rounded-xl border border-white/5">
-                        <h4 className="font-bold text-white mb-1">3. AI 분석 및 데이터의 한계</h4>
-                        <p className="text-slate-400">제공되는 'AI 분석' 및 '통증 리포트'는 사용자가 입력한 데이터를 바탕으로 한 알고리즘적 통계일 뿐입니다. 개인의 신체적 특성이나 기저 질환을 완벽하게 반영하지 못할 수 있습니다.</p>
-                    </div>
+                        <section>
+                            <h5 className="font-bold text-blue-400 mb-1 text-xs">1. 개인정보의 수집 및 이용 목적</h5>
+                            <p className="text-xs text-slate-400">본 서비스는 다음의 목적을 위해 개인정보를 수집하고 이용합니다.</p>
+                            <ul className="list-disc list-inside text-xs text-slate-400 mt-1 pl-1 space-y-0.5">
+                                <li>사용자별 운동 기록 저장 및 대시보드 제공</li>
+                                <li>통증 수치(VAS) 및 운동 강도(RPE) 분석을 통한 부상 위험도 리포트 제공</li>
+                                <li>서비스 개선 및 사용자 문의 응대</li>
+                            </ul>
+                        </section>
 
-                    <div className="bg-slate-950 p-4 rounded-xl border border-white/5">
-                        <h4 className="font-bold text-white mb-1">4. 개발자 신분 고지</h4>
-                        <p className="text-slate-400">본 서비스는 물리치료학과 재학생이 개발 및 운영하는 프로젝트이며, 개발자는 현재 면허를 소지한 전문 물리치료사가 아님을 명시합니다.</p>
+                        <section>
+                            <h5 className="font-bold text-blue-400 mb-1 text-xs">2. 수집하는 개인정보 항목</h5>
+                            <ul className="text-xs text-slate-400 space-y-1">
+                                <li><span className="text-slate-300 font-bold">• 필수 항목:</span> 이메일 주소, 닉네임 (계정 생성 시)</li>
+                                <li><span className="text-slate-300 font-bold">• 서비스 데이터:</span> 운동 종목, 운동 시간, 통증 부위, 통증 수치(VAS), 운동 자각도(RPE)</li>
+                                <li><span className="text-slate-300 font-bold">• 자동 수집 항목:</span> 기기 정보, 접속 로그 (서비스 오류 확인용)</li>
+                            </ul>
+                        </section>
+
+                        <section>
+                            <h5 className="font-bold text-blue-400 mb-1 text-xs">3. 보유 및 이용 기간</h5>
+                            <p className="text-xs text-slate-400">이용자의 개인정보는 원칙적으로 회원 탈퇴 시까지 보유하며, 탈퇴 시 지체 없이 파기합니다. 단, 관계 법령에 따라 보존할 필요가 있는 경우 해당 기간까지 보관합니다.</p>
+                        </section>
+
+                        <section>
+                            <h5 className="font-bold text-blue-400 mb-1 text-xs">4. 제3자 제공</h5>
+                            <p className="text-xs text-slate-400">본 서비스는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. (법령에 의거한 경우 예외)</p>
+                        </section>
+
+                        <section>
+                            <h5 className="font-bold text-blue-400 mb-1 text-xs">5. 파기 절차 및 방법</h5>
+                            <p className="text-xs text-slate-400">전자적 파일 형태의 정보는 기록을 재생할 수 없는 기술적 방법을 사용하여 영구 삭제합니다.</p>
+                        </section>
+
+                        <section>
+                            <h5 className="font-bold text-blue-400 mb-1 text-xs">6. 이용자의 권리</h5>
+                            <p className="text-xs text-slate-400">이용자는 언제든지 자신의 개인정보를 조회/수정할 수 있으며, 회원 탈퇴를 통해 동의를 철회할 수 있습니다.</p>
+                        </section>
+
+                        <section className="bg-slate-950 p-4 rounded-xl border border-white/5">
+                            <h5 className="font-bold text-white mb-2 text-xs">7. 개인정보 보호책임자</h5>
+                            <div className="text-xs text-slate-400 space-y-1">
+                                <p><span className="font-bold text-slate-500 w-12 inline-block">성명</span> 박준혁</p>
+                                <p><span className="font-bold text-slate-500 w-12 inline-block">이메일</span> agricb83@gmail.com</p>
+                            </div>
+                        </section>
                     </div>
                 </div>
 
-                <button onClick={() => setIsDisclaimerOpen(false)} className="mt-6 w-full py-3 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-500 transition shadow-lg">확인했습니다</button>
+                <div className="mt-6 pt-4 border-t border-white/10">
+                    <button onClick={() => setIsDisclaimerOpen(false)} className="w-full py-4 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-500 transition shadow-lg">
+                        위 내용을 모두 확인했습니다
+                    </button>
+                </div>
             </div>
         </div>
       )}

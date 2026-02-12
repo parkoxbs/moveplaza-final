@@ -117,8 +117,12 @@ export default function GearPage() {
                     
                     return (
                         <div key={gear.id} className="bg-slate-900 border border-white/10 rounded-2xl p-5 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition">
-                                <button onClick={() => handleDeleteGear(gear.id)} className="text-slate-600 hover:text-red-500"><Icons.Trash /></button>
+                            
+                            {/* 🔥 [수정됨] 삭제 버튼: 모바일(기본)에선 항상 보이고, PC(md 이상)에선 호버 시 보임 */}
+                            <div className="absolute top-0 right-0 p-4 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition z-10">
+                                <button onClick={() => handleDeleteGear(gear.id)} className="text-slate-500 hover:text-red-500 transition-colors p-2">
+                                    <Icons.Trash />
+                                </button>
                             </div>
                             
                             <div className="flex justify-between items-start mb-4">
