@@ -12,13 +12,13 @@ export default function manifest(): MetadataRoute.Manifest {
     icons: [
       {
         // 👇 여기를 바꿨습니다! (app-icon -> final-icon)
-        src: '/final-icon.png',
+        src: '/real-icon.png',
         sizes: '192x192',
         type: 'image/png',
       },
       {
         // 👇 여기도요!
-        src: '/final-icon.png',
+        src: '/real-icon.png',
         sizes: '512x512',
         type: 'image/png',
       },
