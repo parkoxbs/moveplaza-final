@@ -1,7 +1,7 @@
 {
   "name": "Moveplaza",
   "short_name": "Moveplaza",
-  "description": "엘리트 선수를 위한 퍼포먼스 & 재활 데이터 플랫폼",
+  "description": "아마추어 선수를 위한 관리 플랫폼",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
