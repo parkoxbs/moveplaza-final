@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-// 👇 createBrowserClient 사용 필수
 import { createBrowserClient } from "@supabase/ssr"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -13,13 +12,10 @@ import jsPDF from 'jspdf'
 import BodyMap from "..//components/BodyMap"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
-// 👇 하단 메뉴바 불러오기
 import BottomNav from "..//components/BottomNav"
 
-// 👇 1. Supabase 주소와 키 입력
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
-
 const supabase = createBrowserClient(supabaseUrl, supabaseKey)
 
 // 아이콘
@@ -78,7 +74,6 @@ const getLevel = (count: number) => {
   return { ...LEVEL_SYSTEM[0], next: 15, nextName: '비기너' };
 };
 
-// 스켈레톤 로딩 UI
 const DashboardSkeleton = () => (
   <div className="space-y-6 animate-pulse">
     <div className="h-20 bg-slate-900/50 rounded-2xl"></div>
@@ -456,13 +451,31 @@ export default function Dashboard() {
     if (!error) { toast.success('삭제 완료!'); setLogs(logs.filter(l => l.id !== id)) }
   }
 
+  // 회원 탈퇴 함수
+  const handleDeleteAccount = async () => {
+    if (!confirm("🚨 정말 탈퇴하시겠습니까?\n\n모든 훈련 기록, 라인업 전술, 프로필 정보가 영구적으로 삭제되며 절대 복구할 수 없습니다.")) return;
+    
+    const t = toast.loading("데이터를 영구 삭제하는 중...");
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      const { error } = await supabase.rpc('delete_user');
+      
+      if (error) {
+        toast.error("탈퇴 실패. 다시 시도해주세요.", { id: t });
+      } else {
+        await supabase.auth.signOut();
+        toast.success("회원 탈퇴가 완료되었습니다. 그동안 감사했습니다!", { id: t });
+        router.replace('/login');
+      }
+    }
+  };
+
   const togglePart = (part: string) => {
     if (selectedParts.includes(part)) setSelectedParts(selectedParts.filter(p => p !== part))
     else setSelectedParts([...selectedParts, part])
   }
 
-  // 👇 [디자인 전면 교체] 매거진 커버 스타일 (중앙 비우고 하단 집중)
-  // 👇 + 1.5초 후 자동 다운로드 기능 포함
   const handleShareClick = async (log: any) => {
     setShareData(log)
     const t = toast.loading("카드 디자인 중... 🎨")
@@ -547,22 +560,17 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
-      {/* 👇 [최종 수정] 매거진 커버 스타일 (중앙 비우고 하단 집중, 화면 뒤로 숨김) */}
       {shareData && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-50] opacity-100 pointer-events-none">
           <div ref={shareCardRef} className="w-[450px] h-[650px] relative bg-slate-950 overflow-hidden font-sans">
             
-            {/* 1. 배경 이미지 (전체 화면 꽉 채움) */}
             {shareData.image_url ? (
               <>
                 <img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" />
-                {/* 하단 그라데이션 (글씨 잘 보이게) */}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30 z-0"></div>
               </>
             ) : (
-              // 이미지가 없을 때의 대체 배경
               <div className={`absolute inset-0 w-full h-full bg-gradient-to-br ${shareData.log_type === 'match' ? 'from-yellow-900 to-slate-950' : (shareData.log_type === 'rehab' ? 'from-red-900 to-slate-950' : 'from-blue-900 to-slate-950')} z-0`}>
-                  {/* 거대한 배경 텍스트 패턴 */}
                   <div className="absolute inset-0 flex flex-col justify-center items-center opacity-10 select-none">
                       {[...Array(5)].map((_, i) => (
                           <span key={i} className="text-9xl font-black italic tracking-tighter text-white leading-none">
@@ -570,12 +578,10 @@ export default function Dashboard() {
                           </span>
                       ))}
                   </div>
-                  {/* 텍스처 오버레이 */}
                   <svg className="absolute inset-0 w-full h-full opacity-20 mix-blend-overlay" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noise)"/></svg>
               </div>
             )}
 
-            {/* 2. 상단 바 (로고 & 날짜) */}
             <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-10">
                 <div className="flex items-center gap-2">
                     <div className="bg-white/20 backdrop-blur-md p-1.5 rounded-lg border border-white/10">
@@ -588,15 +594,12 @@ export default function Dashboard() {
                 </span>
             </div>
 
-            {/* 3. 하단 정보 영역 (핵심 정보 몰아넣기) */}
             <div className="absolute bottom-0 left-0 w-full p-8 z-10 flex flex-col gap-2">
                 
-                {/* 뱃지 */}
                 <div className="self-start px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-[10px] font-black text-white uppercase tracking-widest mb-2 shadow-lg">
                     {shareData.log_type === 'workout' ? '⚡ TRAINING SESSION' : (shareData.log_type === 'match' ? '⚽ MATCH DAY' : '❤️‍🩹 RECOVERY')}
                 </div>
 
-                {/* 제목 & 내용 */}
                 <div className="mb-4">
                       <h1 className="text-4xl font-black text-white leading-none mb-2 line-clamp-2 drop-shadow-xl uppercase italic tracking-tight">
                           {shareData.title}
@@ -606,11 +609,9 @@ export default function Dashboard() {
                       </p>
                 </div>
 
-                {/* 하단 스탯 (우측 하단에 크게 배치) */}
                 <div className="border-t border-white/30 pt-4 flex justify-between items-end">
                     <div className="flex flex-col gap-1 opacity-70">
                         <span className="text-[9px] font-mono tracking-widest text-white">ATHLETE DATA RECORD</span>
-                        {/* 바코드 */}
                         <div className="flex gap-[2px] h-4 items-end">
                             {[...Array(20)].map((_, i) => (
                                 <div key={i} className={`bg-white w-[2px] ${Math.random() > 0.5 ? 'h-full' : 'h-1/2'}`}></div>
@@ -618,7 +619,6 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* 메인 스코어/결과 */}
                     <div className="text-right">
                         {shareData.log_type === 'match' ? (
                             <div>
@@ -645,7 +645,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ✅ 헤더 수정: 상단 메뉴 삭제 (하단바로 이동) */}
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
         <div className="max-w-md mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.reload()}><div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">M</div><span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span></div>
@@ -673,7 +672,6 @@ export default function Dashboard() {
                 </div>
             </section>
 
-            {/* 🆕 1번: 경기 스탯 카드 (기록이 있을 때만 보임) */}
             {matchStats.total > 0 && (
                 <section className="bg-gradient-to-br from-indigo-900 to-blue-900 rounded-3xl p-6 relative overflow-hidden shadow-2xl border border-white/10">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-[50px] -mr-10 -mt-10"></div>
@@ -703,7 +701,6 @@ export default function Dashboard() {
                 </section>
             )}
 
-            {/* 👇 기존 라인업 빌더 버튼 */}
             <section className="mb-4">
                 <Link href="/lineup" className="block w-full bg-gradient-to-r from-green-600 to-emerald-600 rounded-3xl p-5 shadow-lg border border-white/10 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-[40px] -mr-5 -mt-5 group-hover:scale-110 transition"></div>
@@ -717,7 +714,6 @@ export default function Dashboard() {
                 </Link>
             </section>
 
-            {/* 👇 [여기!] 자가 체크 버튼 추가 */}
             <section className="mb-4">
                 <Link href="/self-check" className="block w-full bg-gradient-to-r from-red-600 to-pink-600 rounded-3xl p-5 shadow-lg border border-white/10 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-[40px] -mr-5 -mt-5 group-hover:scale-110 transition"></div>
@@ -762,7 +758,6 @@ export default function Dashboard() {
                 </div>
             </section>
 
-            {/* 레이더 차트 등 다른 섹션들은 그대로 유지... */}
             {logs.length > 0 && (
                 <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden">
                     <div className="flex justify-between items-center mb-4">
@@ -847,7 +842,6 @@ export default function Dashboard() {
                 <div className="flex justify-between items-center mb-4 px-1"><h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3><div className="flex gap-2"><button onClick={handleDownloadPDF} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700">📄 리포트 저장</button>{selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}</div></div>
                 <div className="space-y-3">{filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { 
                     const isWorkout = log.log_type === 'workout' || log.log_type === 'match'; 
-                    // 🆕 로그 리스트에 경기 정보 표시
                     const isMatch = log.log_type === 'match';
                     
                     return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group">
@@ -865,18 +859,22 @@ export default function Dashboard() {
                         <div className="flex items-center gap-3"><button onClick={() => handleCopyLog(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/10 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-500">점</div></div></div></div>) }))}</div>
             </section>
 
-            <section className="mt-8 mb-4 text-center">
-                <button onClick={() => setIsDisclaimerOpen(true)} className="text-[10px] text-slate-600 font-bold hover:text-slate-400 flex items-center justify-center gap-1 mx-auto transition"><Icons.Info /> 서비스 이용 약관 및 면책 조항</button>
-                <span className="text-slate-700 text-[10px] mx-2">|</span>
-                <button onClick={() => setIsSuggestionOpen(true)} className="text-[10px] text-slate-500 font-bold hover:text-blue-400 flex items-center justify-center gap-1 transition"><Icons.MessageSquare /> 개발자에게 건의하기</button>
+            {/* 하단 액션 버튼 & 회원 탈퇴 버튼 */}
+            <section className="mt-12 mb-4 text-center">
+                <div className="flex justify-center items-center gap-4 mb-4">
+                    <button onClick={() => setIsDisclaimerOpen(true)} className="text-[10px] text-slate-500 font-bold hover:text-slate-300 transition flex items-center gap-1"><Icons.Info /> 약관 및 면책 조항</button>
+                    <span className="text-slate-700 text-[10px]">|</span>
+                    <button onClick={() => setIsSuggestionOpen(true)} className="text-[10px] text-blue-500/70 font-bold hover:text-blue-400 transition flex items-center gap-1"><Icons.MessageSquare /> 구단주(개발자)에게 건의하기</button>
+                </div>
+                <button onClick={handleDeleteAccount} className="text-[10px] text-red-500/50 font-bold hover:text-red-500 transition underline underline-offset-2">
+                    회원 탈퇴 (데이터 영구 삭제)
+                </button>
             </section>
         </main>
       )}
 
-      {/* 👇 [수정됨] 기록 추가 버튼 위치를 하단바 위로 조정 (bottom-28) */}
       <div className="fixed bottom-28 right-6 z-40"><button onClick={() => setIsModalOpen(true)} className="w-16 h-16 bg-blue-600 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center justify-center text-white hover:bg-blue-500 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
       
-      {/* 모달 등 하단 UI는 그대로 유지 */}
       <AnimatePresence>
         {isLevelUpCelebrationOpen && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md" onClick={() => setIsLevelUpCelebrationOpen(false)}>
@@ -896,7 +894,6 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
       
-      {/* 등급 가이드 모달 */}
       {isLevelModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsLevelModalOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -930,23 +927,20 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 👇 [수정됨] 기록 추가 모달 - z-index를 100으로 올려서 언더바 위로 덮어씌움 */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
           <div className="bg-slate-900 border border-white/10 w-full max-w-md h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-modal">
             <div className="p-4 border-b border-white/5 flex justify-between items-center bg-slate-900"><h3 className="font-extrabold text-lg text-white">새로운 기록 남기기 ✍️</h3><button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full transition text-slate-400"><Icons.X /></button></div>
             <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-900">
                 
-                {/* 🆕 탭 3개로 변경됨 */}
                 <div className="flex bg-slate-800 p-1 rounded-xl">
-                    <button onClick={() => setLogType('workout')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'workout' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500'}`}>💪 운동</button>
+                    <button onClick={() => setLogType('workout')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'workout' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500'}`}>💪 훈련</button>
                     <button onClick={() => setLogType('match')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'match' ? 'bg-slate-700 text-yellow-400 shadow-sm' : 'text-slate-500'}`}>⚽ 경기</button>
                     <button onClick={() => setLogType('rehab')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'rehab' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-500'}`}>🏥 재활</button>
                 </div>
 
-                <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 placeholder-slate-600" placeholder="제목 입력 (예: 조기축구, 하체운동)" /></div>
+                <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 placeholder-slate-600" placeholder="제목 입력 (예: 조기축구, 하체훈련)" /></div>
                 
-                {/* 🆕 경기(Match) 탭일 때만 보이는 입력창 */}
                 {logType === 'match' && (
                     <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl space-y-4">
                         <div>
@@ -978,7 +972,6 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {/* 🆕 장비 선택 (모든 탭에서 보임) */}
                 <div>
                     <label className="block text-sm font-bold text-slate-400 mb-2">장비 선택 (오늘 신은 축구화)</label>
                     <select 
@@ -1003,7 +996,7 @@ export default function Dashboard() {
                 </div>
 
                 <div><label className="block text-sm font-bold text-slate-400 mb-1">메모 / 내용</label><textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full p-4 h-32 bg-slate-800 text-white rounded-xl border-none focus:ring-2 focus:ring-blue-500 resize-none placeholder-slate-600" placeholder="경기 내용이나 특이사항을 적어주세요." /></div>
-                <div><div className="flex justify-between mb-2"><span className="font-bold text-slate-400">{logType === 'rehab' ? '통증 점수' : '운동 강도 (RPE)'}</span><span className={`font-black text-xl ${score > 7 ? 'text-red-500' : 'text-blue-500'}`}>{score}</span></div><input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
+                <div><div className="flex justify-between mb-2"><span className="font-bold text-slate-400">{logType === 'rehab' ? '통증 점수' : '훈련 강도 (RPE)'}</span><span className={`font-black text-xl ${score > 7 ? 'text-red-500' : 'text-blue-500'}`}>{score}</span></div><input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
                 <div className="flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-white/5"><input type="checkbox" id="public" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-blue-600 bg-slate-700 border-slate-600"/><label htmlFor="public" className="text-sm font-bold text-slate-300 cursor-pointer">광장에 자랑하기 (공개)</label></div>
             </div>
             <div className="p-4 border-t border-white/5 bg-slate-900"><button onClick={handleAddLog} disabled={uploading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition disabled:opacity-50">{uploading ? '저장 중...' : '기록 저장 완료 ✨'}</button></div>
@@ -1011,7 +1004,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 👇 [수정됨] 개인정보 처리방침 및 면책 조항 모달 */}
       {isDisclaimerOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsDisclaimerOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-md max-h-[85vh] overflow-y-auto rounded-3xl p-6 shadow-2xl relative custom-scrollbar" onClick={e => e.stopPropagation()}>
@@ -1022,64 +1014,11 @@ export default function Dashboard() {
                 </h3>
                 
                 <div className="space-y-6 text-sm text-slate-300 leading-relaxed">
-                    
-                    {/* 🚨 8. 면책 공지 (가장 중요하므로 상단 강조 배치) */}
                     <div className="bg-red-500/10 p-5 rounded-2xl border border-red-500/20">
                         <h4 className="font-black text-red-400 mb-2 flex items-center gap-2"><Icons.AlertCircle /> 중요: 의학적 면책 공지</h4>
                         <p className="text-slate-200 text-xs font-bold">
                             본 서비스(Moveplaza)가 제공하는 분석 결과는 의학적 진단을 대신할 수 없습니다. 심각한 통증이나 부상이 의심될 경우 반드시 전문 의료기관의 진료를 받으시기 바랍니다.
                         </p>
-                    </div>
-
-                    <div className="space-y-4">
-                        <h4 className="text-base font-black text-white">🔒 개인정보 처리방침</h4>
-
-                        <section>
-                            <h5 className="font-bold text-blue-400 mb-1 text-xs">1. 개인정보의 수집 및 이용 목적</h5>
-                            <p className="text-xs text-slate-400">본 서비스는 다음의 목적을 위해 개인정보를 수집하고 이용합니다.</p>
-                            <ul className="list-disc list-inside text-xs text-slate-400 mt-1 pl-1 space-y-0.5">
-                                <li>사용자별 운동 기록 저장 및 대시보드 제공</li>
-                                <li>통증 수치(VAS) 및 운동 강도(RPE) 분석을 통한 부상 위험도 리포트 제공</li>
-                                <li>서비스 개선 및 사용자 문의 응대</li>
-                            </ul>
-                        </section>
-
-                        <section>
-                            <h5 className="font-bold text-blue-400 mb-1 text-xs">2. 수집하는 개인정보 항목</h5>
-                            <ul className="text-xs text-slate-400 space-y-1">
-                                <li><span className="text-slate-300 font-bold">• 필수 항목:</span> 이메일 주소, 닉네임 (계정 생성 시)</li>
-                                <li><span className="text-slate-300 font-bold">• 서비스 데이터:</span> 운동 종목, 운동 시간, 통증 부위, 통증 수치(VAS), 운동 자각도(RPE)</li>
-                                <li><span className="text-slate-300 font-bold">• 자동 수집 항목:</span> 기기 정보, 접속 로그 (서비스 오류 확인용)</li>
-                            </ul>
-                        </section>
-
-                        <section>
-                            <h5 className="font-bold text-blue-400 mb-1 text-xs">3. 보유 및 이용 기간</h5>
-                            <p className="text-xs text-slate-400">이용자의 개인정보는 원칙적으로 회원 탈퇴 시까지 보유하며, 탈퇴 시 지체 없이 파기합니다. 단, 관계 법령에 따라 보존할 필요가 있는 경우 해당 기간까지 보관합니다.</p>
-                        </section>
-
-                        <section>
-                            <h5 className="font-bold text-blue-400 mb-1 text-xs">4. 제3자 제공</h5>
-                            <p className="text-xs text-slate-400">본 서비스는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. (법령에 의거한 경우 예외)</p>
-                        </section>
-
-                        <section>
-                            <h5 className="font-bold text-blue-400 mb-1 text-xs">5. 파기 절차 및 방법</h5>
-                            <p className="text-xs text-slate-400">전자적 파일 형태의 정보는 기록을 재생할 수 없는 기술적 방법을 사용하여 영구 삭제합니다.</p>
-                        </section>
-
-                        <section>
-                            <h5 className="font-bold text-blue-400 mb-1 text-xs">6. 이용자의 권리</h5>
-                            <p className="text-xs text-slate-400">이용자는 언제든지 자신의 개인정보를 조회/수정할 수 있으며, 회원 탈퇴를 통해 동의를 철회할 수 있습니다.</p>
-                        </section>
-
-                        <section className="bg-slate-950 p-4 rounded-xl border border-white/5">
-                            <h5 className="font-bold text-white mb-2 text-xs">7. 개인정보 보호책임자</h5>
-                            <div className="text-xs text-slate-400 space-y-1">
-                                <p><span className="font-bold text-slate-500 w-12 inline-block">성명</span> 박준혁</p>
-                                <p><span className="font-bold text-slate-500 w-12 inline-block">이메일</span> agricb83@gmail.com</p>
-                            </div>
-                        </section>
                     </div>
                 </div>
 
@@ -1092,6 +1031,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* 👇 여기! AI 분석창 안의 병원 찾기 버튼도 "정형외과"로 수정됨 */}
       {isAnalysisOpen && analysisData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsAnalysisOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
@@ -1124,7 +1064,6 @@ export default function Dashboard() {
         </div>
       )}
       
-      {/* 👇 [추가] 하단 탭바 (Fixed Bottom Nav) */}
       <BottomNav />
     </div>
   )

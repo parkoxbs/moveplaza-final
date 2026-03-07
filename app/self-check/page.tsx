@@ -38,7 +38,7 @@ const CHECKLIST_DATA: any = {
     { text: "팔이 빠진 것 같은 느낌이 들거나 외형이 변했나요?", desc: "어깨 탈구(Dislocation) 가능성이 높습니다.", isRedFlag: true },
     { text: "팔을 스스로 들어 올릴 수 없나요? (남이 들어주면 올라감)", desc: "회전근개 파열이나 신경 손상을 의심해야 합니다.", isRedFlag: true },
     { text: "손이나 팔 쪽으로 저림 증상이나 감각 이상이 있나요?", desc: "목 디스크나 신경총 손상일 수 있습니다.", isRedFlag: true },
-    { text: "밤에 통증이 심해서 아픈 쪽으로 누워 자기가 힘든가요?", desc: "회전근개 질환이나 석회성 건염의 특징입니다.", isRedFlag: false }, // 주의지만 Red Flag까지는 아님
+    { text: "밤에 통증이 심해서 아픈 쪽으로 누워 자기가 힘든가요?", desc: "회전근개 질환이나 석회성 건염의 특징입니다.", isRedFlag: false }, 
     { text: "팔을 돌릴 때 '두둑' 소리가 나지만 통증은 없나요?", desc: "단순한 관절음일 수 있습니다.", isRedFlag: false },
   ],
   "손목": [
@@ -61,17 +61,14 @@ const Icons = {
 export default function SelfCheckPage() {
   const router = useRouter();
   
-  // 상태 관리
-  const [agreed, setAgreed] = useState(false); // 면책 조항 동의
-  const [selectedPart, setSelectedPart] = useState<string | null>(null); // 선택된 부위
-  const [step, setStep] = useState(0); // 현재 질문 번호
-  const [redFlagCount, setRedFlagCount] = useState(0); // 위험 신호 개수
-  const [isFinished, setIsFinished] = useState(false); // 검사 완료
+  const [agreed, setAgreed] = useState(false); 
+  const [selectedPart, setSelectedPart] = useState<string | null>(null); 
+  const [step, setStep] = useState(0); 
+  const [redFlagCount, setRedFlagCount] = useState(0); 
+  const [isFinished, setIsFinished] = useState(false); 
 
-  // 현재 부위의 질문들 가져오기
   const currentQuestions = selectedPart ? CHECKLIST_DATA[selectedPart] : [];
 
-  // 답변 처리
   const handleAnswer = (answer: boolean) => {
     if (answer && currentQuestions[step].isRedFlag) {
       setRedFlagCount(prev => prev + 1);
@@ -91,7 +88,6 @@ export default function SelfCheckPage() {
     setSelectedPart(null);
   };
 
-  // 1. 면책 조항 (가장 먼저 뜸)
   if (!agreed) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-6 backdrop-blur-md animate-fade-in">
@@ -115,7 +111,6 @@ export default function SelfCheckPage() {
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white p-4 md:p-8 flex flex-col items-center justify-center pb-24">
       
-      {/* 상단 헤더 */}
       <div className="absolute top-0 left-0 p-4 w-full flex justify-between items-center z-10">
         <button onClick={() => router.back()} className="text-slate-400 hover:text-white"><Icons.Back /></button>
         <span className="font-black text-lg">자가 체크 ✅</span>
@@ -124,7 +119,6 @@ export default function SelfCheckPage() {
 
       <div className="max-w-md w-full">
         
-        {/* 2. 부위 선택 화면 */}
         {!selectedPart ? (
             <div className="animate-slide-up">
                 <div className="text-center mb-8">
@@ -150,7 +144,6 @@ export default function SelfCheckPage() {
                 </div>
             </div>
         ) : !isFinished ? (
-            /* 3. 질문 진행 화면 */
             <div className="animate-fade-in">
                 <div className="mb-8">
                     <div className="flex justify-between text-xs font-bold text-blue-400 mb-2">
@@ -181,7 +174,6 @@ export default function SelfCheckPage() {
                 </div>
             </div>
         ) : (
-            /* 4. 결과 화면 */
             <div className="animate-slide-up bg-slate-900 p-8 rounded-3xl border border-white/10 shadow-2xl text-center">
                 <div className="flex justify-center mb-6">
                     {redFlagCount > 0 ? <Icons.Alert /> : <Icons.Check />}
@@ -210,8 +202,9 @@ export default function SelfCheckPage() {
                     )}
                 </div>
                 
+                {/* 👇 여기! "정형외과"로 깔끔하게 고정 변경됨 */}
                 {redFlagCount > 0 && (
-                    <a href={`https://map.naver.com/p/search/${selectedPart} 정형외과`} target="_blank" rel="noreferrer" className="block w-full py-4 bg-white text-red-600 font-black rounded-xl mb-3 hover:bg-slate-100 transition shadow-lg flex items-center justify-center gap-2">
+                    <a href="https://map.naver.com/p/search/정형외과" target="_blank" rel="noreferrer" className="block w-full py-4 bg-white text-red-600 font-black rounded-xl mb-3 hover:bg-slate-100 transition shadow-lg flex items-center justify-center gap-2">
                         🏥 근처 정형외과 찾기
                     </a>
                 )}
