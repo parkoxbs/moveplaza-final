@@ -48,15 +48,28 @@ const LEVEL_SYSTEM = [
   { name: 'Legend', rank: '레전드', emoji: '👑', min: 400, color: 'bg-gradient-to-br from-yellow-500 via-amber-400 to-yellow-600', glow: 'shadow-[0_0_30px_rgba(245,158,11,0.7)] ring-2 ring-yellow-300', desc: '명예의 전당에 오를 살아있는 전설' }
 ];
 
+// 전문적인 재활 팁 20개 (랜덤 노출)
 const REHAB_TIPS = [
   "🤕 발목 삐끗(염좌) 직후엔 RICE! 휴식(Rest), 냉찜질(Ice), 압박(Compression), 거상(Elevation)을 기억하세요.",
   "🦵 햄스트링은 다치기 쉽습니다. 운동 전 폼롤러보다 동적 스트레칭(다리 흔들기 등)이 훨씬 효과적입니다.",
-  "💊 통증 점수 5점 이상이면 '근성'이 아니라 '미련'입니다. 즉시 운동을 멈추세요.",
-  "💧 근육 경련이 자주 난다면 마그네슘 부족일 수 있습니다. 물과 이온음료를 충분히 드세요.",
-  "🏋️‍♂️ 스쿼트 할 때 무릎 소리가 나면서 아프다면? 자세보다 고관절 유연성부터 체크해보세요.",
-  "🛌 잠이 보약입니다. 근육은 헬스장이 아니라 침대에서 자랍니다. 7시간 이상 주무세요!",
-  "🧊 운동 직후 붓기가 있다면 온찜질 절대 금지! 혈관이 확장되어 붓기가 더 심해집니다.",
-  "🧘 허리가 아플 땐 윗몸일으키기 금지! 플랭크나 버드독 같은 코어 운동을 하세요."
+  "💊 통증 점수 5점 이상이면 '근성'이 아니라 '미련'입니다. 즉시 운동을 멈추고 휴식을 취하세요.",
+  "💧 근육 경련(쥐)이 자주 난다면 마그네슘과 수분 부족일 수 있습니다. 운동 중 이온음료를 틈틈이 섭취하세요.",
+  "🏋️‍♂️ 스쿼트 시 무릎 통증이 있다면? 발목 가동성과 고관절 유연성 부족이 원인일 확률이 높습니다.",
+  "🛌 수면은 최고의 아나볼릭 스테로이드입니다. 손상된 조직은 수면 중 분비되는 호르몬으로 회복됩니다. 최소 7시간 숙면을 권장합니다.",
+  "🧊 급성 손상(붓고 열감)에는 48시간 이내 냉찜질, 만성 통증(뻐근함)에는 온찜질이 기본 원칙입니다.",
+  "🧘 허리가 아플 땐 윗몸일으키기 절대 금지! 맥길(McGill)의 빅3 코어 운동(컬업, 사이드 플랭크, 버드독)을 추천합니다.",
+  "🏃‍♂️ 아킬레스건염 예방을 위해서는 계단 끝에 서서 뒤꿈치를 천천히 내리는 편심성 수축(Eccentric) 운동이 필수적입니다.",
+  "🦶 족저근막염(발바닥 통증)이 있다면, 기상 직후 첫발을 딛기 전 침대에서 발바닥 스트레칭을 꼭 해주세요.",
+  "🙆‍♂️ 어깨 충돌증후군이 의심될 때는 팔을 머리 위로 올리는 동작을 피하고, 하부 승모근과 전거근 강화에 집중해야 합니다.",
+  "🦴 관절에서 나는 단순한 '뚝' 소리는 괜찮지만, '통증'을 동반한 소리라면 연골 손상 신호일 수 있으니 검진이 필요합니다.",
+  "🩹 테이핑(키네시오)은 관절을 고정하는 것이 아니라 근막 공간을 늘려 혈류를 개선하고 통증을 완화하는 보조 수단입니다.",
+  "⚡ 운동 후 발생하는 근육통(DOMS)은 24~72시간에 최고조에 달합니다. 폼롤링과 가벼운 유산소(액티브 리커버리)가 회복을 돕습니다.",
+  "🏋️‍♀️ 웨이트 트레이닝 시 호흡을 꾹 참는 발살바 호흡은 코어를 강하게 잡지만, 뇌압과 헐압을 급상승시키므로 횟수를 조절하세요.",
+  "🔄 재활의 완성은 '통증이 없는 것'이 아니라 '부상 이전의 퍼포먼스를 내는 것'입니다. 조급해하지 말고 점진적 과부하 원칙을 지키세요.",
+  "🏃‍♀️ 전방십자인대 재활 중이라면 대퇴사두근(앞벅지)뿐만 아니라 햄스트링(뒷벅지)의 근력 비율을 꼭 맞추어야 재파열을 막습니다.",
+  "🦵 장경인대 증후군(무릎 바깥쪽 통증)은 폼롤러로 인대를 직접 문지르기보다 엉덩이(중둔근) 근력을 강화하는 것이 근본적인 해결책입니다.",
+  "⚡ 요추 전방전위증 환자는 허리를 젖히는 신전(Extension) 동작을 최소화하고, 코어를 단단하게 잡은 상태로 흉추의 가동성을 살려야 합니다.",
+  "🍎 부상 회복기에는 콜라겐 합성을 위해 충분한 단백질과 비타민 C 섭취가 인대 및 건 회복에 큰 도움을 줍니다."
 ];
 
 const getLevel = (count: number) => {
@@ -505,10 +518,10 @@ export default function Dashboard() {
     }, 1500); 
   }
 
-  // ✅ 리포트를 사진(PNG)으로 바로 다운로드 하는 함수로 변경됨!
+  // ✅ 완벽 적용된 모바일/PC 통합 사진 저장 함수 (공유창 팝업 기능)
   const handleDownloadImage = async () => {
     if (!reportRef.current) return;
-    const t = toast.loading("리포트 사진 저장 중... 📸");
+    const t = toast.loading("리포트 사진 생성 중... 📸");
     
     setTimeout(async () => {
       try {
@@ -517,6 +530,7 @@ export default function Dashboard() {
         const width = element.scrollWidth;
         const height = element.scrollHeight;
         
+        // 1. 고화질 이미지(Data URL) 생성
         const dataUrl = await toPng(element, { 
           cacheBust: true, 
           pixelRatio: 2, 
@@ -526,13 +540,28 @@ export default function Dashboard() {
           style: { padding: '20px', background: '#0f172a' }, 
           fetchRequestInit: { cache: 'no-cache' } 
         });
-        
-        const link = document.createElement('a');
-        link.download = `${userName}_Moveplaza_Report.png`;
-        link.href = dataUrl;
-        link.click();
-        
-        toast.success("사진이 갤러리에 저장되었습니다! 📸", { id: t });
+
+        // 2. 모바일 공유를 위해 Data URL을 진짜 '파일(File)' 형태로 변환
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], `Moveplaza_Report_${Date.now()}.png`, { type: 'image/png' });
+
+        // 3. 스마트폰 기본 공유창 띄우기 (여기서 갤러리 저장 가능!)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'Moveplaza 리포트',
+            text: '나의 Moveplaza 운동 리포트입니다! 🏋️‍♂️⚽',
+          });
+          toast.success("공유창에서 '이미지 저장'을 눌러주세요!", { id: t });
+        } else {
+          // PC 환경이거나 공유창 미지원 기기일 경우 기본 다운로드
+          const link = document.createElement('a');
+          link.download = `${userName}_Moveplaza_Report.png`;
+          link.href = dataUrl;
+          link.click();
+          toast.success("사진이 갤러리에 저장되었습니다! 📸", { id: t });
+        }
       } catch (e) { 
         console.error(e); 
         toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t, duration: 5000 }); 
@@ -853,7 +882,7 @@ export default function Dashboard() {
                 <div className="flex justify-between items-center mb-4 px-1">
                     <h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3>
                     <div className="flex gap-2">
-                        <button onClick={handleDownloadImage} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700">📸 사진으로 저장</button>
+                        <button onClick={handleDownloadImage} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700 shadow-lg">📸 갤러리 저장</button>
                         {selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}
                     </div>
                 </div>
