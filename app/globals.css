@@ -1,10 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  /* 👇 스마트폰의 강제 다크모드/라이트모드 필터 완벽 차단! */
-  color-scheme: dark; 
-
-  /* 👇 배경은 무조건 영롱한 남색(slate-950)으로 영구 고정 */
+  /* only 키워드를 넣어서 다크모드 엔진에게 "건드리지마" 라고 경고 */
+  color-scheme: dark only; 
   --background: #020617;
   --foreground: #ffffff;
 }
@@ -16,14 +14,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+html, body {
+  /* 🚨 마법의 방어막: 배경을 남색 '이미지(Gradient)'로 칠해서 폰이 색을 못 바꾸게 속임 */
+  background-image: linear-gradient(to bottom, #020617, #020617) !important;
+  background-color: #020617 !important;
+  color: #ffffff !important;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 /* 기존 코드 (애니메이션 및 스크롤바 숨기기 유지) */
-
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -33,7 +32,6 @@ body {
   animation: slideUp 0.6s ease-out forwards;
 }
 
-/* 스크롤바 숨기기 (깔끔하게) */
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
 }
