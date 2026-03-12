@@ -8,7 +8,6 @@ import toast, { Toaster } from 'react-hot-toast'
 import 'react-calendar/dist/Calendar.css'
 import { LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend } from 'recharts'
 import { toPng } from 'html-to-image'
-import jsPDF from 'jspdf'
 import BodyMap from "..//components/BodyMap"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
@@ -451,7 +450,6 @@ export default function Dashboard() {
     if (!error) { toast.success('삭제 완료!'); setLogs(logs.filter(l => l.id !== id)) }
   }
 
-  // 회원 탈퇴 함수
   const handleDeleteAccount = async () => {
     if (!confirm("🚨 정말 탈퇴하시겠습니까?\n\n모든 훈련 기록, 라인업 전술, 프로필 정보가 영구적으로 삭제되며 절대 복구할 수 없습니다.")) return;
     
@@ -507,26 +505,38 @@ export default function Dashboard() {
     }, 1500); 
   }
 
-  const handleDownloadPDF = async () => {
-    if (!reportRef.current) return
-    const t = toast.loading("리포트 생성 중...")
+  // ✅ 리포트를 사진(PNG)으로 바로 다운로드 하는 함수로 변경됨!
+  const handleDownloadImage = async () => {
+    if (!reportRef.current) return;
+    const t = toast.loading("리포트 사진 저장 중... 📸");
+    
     setTimeout(async () => {
       try {
         if(!reportRef.current) return;
-        const element = reportRef.current
-        const width = element.scrollWidth
-        const height = element.scrollHeight
-        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#0f172a', width: width, height: height, style: { padding: '20px', background: '#0f172a' } })
-        const pdf = new jsPDF('p', 'mm', 'a4')
-        const imgProps = pdf.getImageProperties(dataUrl)
-        const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
-        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight)
-        const pdfBlob = pdf.output('blob');
-        const file = new File([pdfBlob], `Moveplaza_Report.pdf`, { type: 'application/pdf' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Moveplaza 리포트' }); toast.dismiss(t); } 
-        else { pdf.save(`${userName}_Moveplaza_Report.pdf`); toast.success("다운로드 완료!", { id: t }) }
-      } catch (e) { console.error(e); toast.error("저장이 차단되었습니다. 캡처를 이용해주세요.", { id: t, duration: 5000 }) }
+        const element = reportRef.current;
+        const width = element.scrollWidth;
+        const height = element.scrollHeight;
+        
+        const dataUrl = await toPng(element, { 
+          cacheBust: true, 
+          pixelRatio: 2, 
+          backgroundColor: '#0f172a', 
+          width: width, 
+          height: height, 
+          style: { padding: '20px', background: '#0f172a' }, 
+          fetchRequestInit: { cache: 'no-cache' } 
+        });
+        
+        const link = document.createElement('a');
+        link.download = `${userName}_Moveplaza_Report.png`;
+        link.href = dataUrl;
+        link.click();
+        
+        toast.success("사진이 갤러리에 저장되었습니다! 📸", { id: t });
+      } catch (e) { 
+        console.error(e); 
+        toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t, duration: 5000 }); 
+      }
     }, 1000);
   }
 
@@ -566,7 +576,7 @@ export default function Dashboard() {
             
             {shareData.image_url ? (
               <>
-                <img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" alt="배경" />
+                <img src={shareData.image_url} crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover z-0" alt="배경" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30 z-0"></div>
               </>
             ) : (
@@ -839,7 +849,15 @@ export default function Dashboard() {
             </section>
 
             <section>
-                <div className="flex justify-between items-center mb-4 px-1"><h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3><div className="flex gap-2"><button onClick={handleDownloadPDF} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700">📄 리포트 저장</button>{selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}</div></div>
+                {/* ✅ 바뀐 사진 다운로드 버튼 부분! */}
+                <div className="flex justify-between items-center mb-4 px-1">
+                    <h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3>
+                    <div className="flex gap-2">
+                        <button onClick={handleDownloadImage} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700">📸 사진으로 저장</button>
+                        {selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}
+                    </div>
+                </div>
+                
                 <div className="space-y-3">{filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { 
                     const isWorkout = log.log_type === 'workout' || log.log_type === 'match'; 
                     const isMatch = log.log_type === 'match';
@@ -847,7 +865,7 @@ export default function Dashboard() {
                     return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group">
                         <div className="flex items-center gap-4">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isMatch ? 'bg-yellow-500/10 text-yellow-400' : (isWorkout ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400')}`}>
-                                {log.image_url ? <img src={log.image_url} alt="인증" className="w-full h-full object-cover" /> : (isMatch ? <Icons.Trophy /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />))}
+                                {log.image_url ? <img src={log.image_url} crossOrigin="anonymous" alt="인증" className="w-full h-full object-cover" /> : (isMatch ? <Icons.Trophy /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />))}
                             </div>
                             <div>
                                 <div className="font-black text-white text-sm mb-0.5">{log.title}</div>
@@ -859,7 +877,6 @@ export default function Dashboard() {
                         <div className="flex items-center gap-3"><button onClick={() => handleCopyLog(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/10 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-500">점</div></div></div></div>) }))}</div>
             </section>
 
-            {/* 하단 액션 버튼 & 회원 탈퇴 버튼 */}
             <section className="mt-12 mb-4 text-center">
                 <div className="flex justify-center items-center gap-4 mb-4">
                     <button onClick={() => setIsDisclaimerOpen(true)} className="text-[10px] text-slate-500 font-bold hover:text-slate-300 transition flex items-center gap-1"><Icons.Info /> 약관 및 면책 조항</button>
@@ -1031,7 +1048,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 👇 여기! AI 분석창 안의 병원 찾기 버튼도 "정형외과"로 수정됨 */}
       {isAnalysisOpen && analysisData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsAnalysisOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>

@@ -1,15 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-// 👇 [수정] ssr 패키지 사용 (쿠키 인식용)
 import { createBrowserClient } from "@supabase/ssr"; 
 import { useRouter } from 'next/navigation';
 
-// 👇 1. Supabase 주소와 키를 입력하세요!
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
-
-// 👇 [수정] 브라우저 클라이언트로 변경
 const supabase = createBrowserClient(supabaseUrl, supabaseKey)
 
 // ✅ [설정] 관리자 이메일
@@ -61,11 +57,11 @@ type Log = {
   user_id: string; 
   is_public: boolean; 
   image_url?: string; 
-  log_type?: 'workout' | 'rehab' | 'match'; // match 추가
+  log_type?: 'workout' | 'rehab' | 'match';
   media_type?: 'image' | 'video'; 
-  match_result?: 'win' | 'lose' | 'draw' | 'none'; // 경기 결과 추가
-  goals?: number;   // 골 추가
-  assists?: number; // 어시스트 추가
+  match_result?: 'win' | 'lose' | 'draw' | 'none';
+  goals?: number;  
+  assists?: number;
   profile?: Profile; 
   like_count: number; 
   is_liked: boolean; 
@@ -212,7 +208,17 @@ export default function CommunityPage() {
     setNoticeTitle(''); setNoticeContent(''); setShowNoticeForm(false);
     fetchData();
   };
-  const handleDeleteNotice = async (id: number) => { if (!confirm("삭제?")) return; await supabase.from('notices').delete().eq('id', id); fetchData(); };
+  
+  // ✅ [수정됨] 삭제 실패 시 원인(RLS 에러 등)을 알려주도록 변경
+  const handleDeleteNotice = async (id: number) => { 
+      if (!confirm("공지사항을 삭제하시겠습니까?")) return; 
+      const { error } = await supabase.from('notices').delete().eq('id', id); 
+      if (error) {
+          alert("삭제 실패: Supabase 권한(RLS)을 확인해주세요!\n" + error.message);
+      } else {
+          fetchData(); 
+      }
+  };
 
   // 🔍 검색 필터링
   const filteredLogs = logs.filter(log => {
@@ -345,7 +351,6 @@ export default function CommunityPage() {
 
                         {/* 본문 */}
                         <div className="mb-5">
-                            {/* ✅ 수정된 배지 로직 */}
                             <div className="mb-2"> 
                                 <span className={`text-[10px] px-2 py-1 rounded-md font-black tracking-wide uppercase ${
                                     log.log_type === 'match' ? 'bg-yellow-500/20 text-yellow-400' : 
@@ -358,7 +363,7 @@ export default function CommunityPage() {
                             {log.title && <h2 className="text-xl font-bold text-white mb-2 break-all">{log.title}</h2>}
                             <p className="text-slate-300 font-medium text-lg whitespace-pre-wrap break-all mb-4">{log.content}</p>
                             
-                            {/* ✅ 경기 스탯 표시 (경기 일지일 때만 보임) */}
+                            {/* 경기 스탯 표시 */}
                             {log.log_type === 'match' && (
                                 <div className="flex gap-4 mb-4 bg-black/20 p-4 rounded-xl items-center justify-around border border-white/5">
                                     <div className="text-center">
