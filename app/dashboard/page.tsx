@@ -64,7 +64,7 @@ const REHAB_TIPS = [
   "🦴 관절에서 나는 단순한 '뚝' 소리는 괜찮지만, '통증'을 동반한 소리라면 연골 손상 신호일 수 있으니 검진이 필요합니다.",
   "🩹 테이핑(키네시오)은 관절을 고정하는 것이 아니라 근막 공간을 늘려 혈류를 개선하고 통증을 완화하는 보조 수단입니다.",
   "⚡ 운동 후 발생하는 근육통(DOMS)은 24~72시간에 최고조에 달합니다. 폼롤링과 가벼운 유산소(액티브 리커버리)가 회복을 돕습니다.",
-  "🏋️‍♀️ 웨이트 트레이닝 시 호흡을 꾹 참는 발살바 호흡은 코어를 강하게 잡지만, 뇌압과 헐압을 급상승시키므로 횟수를 조절하세요.",
+  "🏋️‍♀️ 웨이트 트레이닝 시 호흡을 꾹 참는 발살바 호흡은 코어를 강하게 잡지만, 뇌압과 혈압을 급상승시키므로 횟수를 조절하세요.",
   "🔄 재활의 완성은 '통증이 없는 것'이 아니라 '부상 이전의 퍼포먼스를 내는 것'입니다. 조급해하지 말고 점진적 과부하 원칙을 지키세요.",
   "🏃‍♀️ 전방십자인대 재활 중이라면 대퇴사두근(앞벅지)뿐만 아니라 햄스트링(뒷벅지)의 근력 비율을 꼭 맞추어야 재파열을 막습니다.",
   "🦵 장경인대 증후군(무릎 바깥쪽 통증)은 폼롤러로 인대를 직접 문지르기보다 엉덩이(중둔근) 근력을 강화하는 것이 근본적인 해결책입니다.",
@@ -110,7 +110,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState("")
   
-  const reportRef = useRef<HTMLDivElement>(null)
+  // ✅ 병원 제출용 리포트를 위한 Ref 추가!
+  const medicalReportRef = useRef<HTMLDivElement>(null)
+  
   const shareCardRef = useRef<HTMLDivElement>(null)
   const [shareData, setShareData] = useState<any>(null)
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
@@ -518,50 +520,38 @@ export default function Dashboard() {
     }, 1500); 
   }
 
-  // ✅ 완벽 적용된 모바일/PC 통합 사진 저장 함수 (공유창 팝업 기능)
+  // ✅ [진짜 기획 대박] 의사/트레이너 제출용 전문 리포트 캡처 함수!
   const handleDownloadImage = async () => {
-    if (!reportRef.current) return;
-    const t = toast.loading("리포트 사진 생성 중... 📸");
+    if (!medicalReportRef.current) return; // 숨겨둔 리포트 영역을 캡처합니다!
+    const t = toast.loading("의료/제출용 데이터 리포트 생성 중... 📸");
     
     setTimeout(async () => {
       try {
-        if(!reportRef.current) return;
-        const element = reportRef.current;
+        if(!medicalReportRef.current) return;
+        const element = medicalReportRef.current;
         const width = element.scrollWidth;
         const height = element.scrollHeight;
         
-        // 1. 고화질 이미지(Data URL) 생성
+        // 하얀색 배경의 깔끔한 데이터 문서로 캡처!
         const dataUrl = await toPng(element, { 
           cacheBust: true, 
           pixelRatio: 2, 
-          backgroundColor: '#0f172a', 
+          backgroundColor: '#ffffff', // 하얀색 종이 느낌
           width: width, 
           height: height, 
-          style: { padding: '20px', background: '#0f172a' }, 
+          style: { padding: '20px', background: '#ffffff' }, 
           fetchRequestInit: { cache: 'no-cache' } 
         });
 
-        // 2. 모바일 공유를 위해 Data URL을 진짜 '파일(File)' 형태로 변환
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-        const file = new File([blob], `Moveplaza_Report_${Date.now()}.png`, { type: 'image/png' });
-
-        // 3. 스마트폰 기본 공유창 띄우기 (여기서 갤러리 저장 가능!)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: 'Moveplaza 리포트',
-            text: '나의 Moveplaza 운동 리포트입니다! 🏋️‍♂️⚽',
-          });
-          toast.success("공유창에서 '이미지 저장'을 눌러주세요!", { id: t });
-        } else {
-          // PC 환경이거나 공유창 미지원 기기일 경우 기본 다운로드
-          const link = document.createElement('a');
-          link.download = `${userName}_Moveplaza_Report.png`;
-          link.href = dataUrl;
-          link.click();
-          toast.success("사진이 갤러리에 저장되었습니다! 📸", { id: t });
-        }
+        // 갤러리에 직통 저장
+        const link = document.createElement('a');
+        link.download = `${userName}_Medical_Report_${Date.now()}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success("제출용 데이터 표가 갤러리에 저장되었습니다! 🏥", { id: t });
       } catch (e) { 
         console.error(e); 
         toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t, duration: 5000 }); 
@@ -598,6 +588,107 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
+      
+      {/* 👇 🏥 화면에는 안 보이지만 캡처될 때 사용되는 [병원 제출용 데이터 리포트] 영역입니다! */}
+      <div className="absolute top-0 left-[-9999px] z-[-9999] opacity-0 pointer-events-none">
+        <div ref={medicalReportRef} className="w-[800px] bg-white text-slate-900 p-10 font-sans tracking-tight" style={{ minHeight: '1122px' }}>
+          
+          {/* 리포트 헤더 */}
+          <div className="border-b-4 border-slate-900 pb-4 mb-8 flex justify-between items-end">
+            <div>
+              <h1 className="text-4xl font-black mb-2 tracking-tighter">ATHLETE DATA REPORT</h1>
+              <p className="text-sm text-slate-500 font-bold uppercase tracking-widest">Medical & Training Summary</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-black text-blue-600">MOVEPLAZA</p>
+            </div>
+          </div>
+          
+          {/* 환자/선수 기본 정보 */}
+          <div className="flex justify-between items-center bg-slate-100 p-6 rounded-xl mb-8">
+            <div>
+                <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-widest">Athlete Name</p>
+                <p className="text-3xl font-black">{userName}</p>
+            </div>
+            <div className="text-right">
+                <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-widest">Report Date</p>
+                <p className="text-xl font-bold">{new Date().toLocaleDateString()}</p>
+            </div>
+          </div>
+
+          {/* 주요 통계 요약 (그리드) */}
+          <div className="grid grid-cols-2 gap-6 mb-10">
+              <div className="border-2 border-slate-200 p-6 rounded-2xl bg-white shadow-sm">
+                  <h3 className="font-black text-xl mb-4 border-b-2 border-slate-100 pb-2 flex items-center gap-2">📊 시즌 종합 요약</h3>
+                  <div className="space-y-3 text-base font-bold text-slate-700">
+                      <div className="flex justify-between"><span>총 훈련/운동 기록</span> <span className="text-slate-900">{logs.filter(l=>l.log_type==='workout').length}회</span></div>
+                      <div className="flex justify-between"><span>총 실전 경기 수</span> <span className="text-slate-900">{matchStats.total}경기</span></div>
+                      <div className="flex justify-between"><span>시즌 성적</span> <span className="text-blue-600">{matchStats.win}승 {matchStats.draw}무 {matchStats.lose}패</span></div>
+                      <div className="flex justify-between"><span>시즌 공격포인트</span> <span className="text-yellow-600">{matchStats.goals}골 {matchStats.assists}도움</span></div>
+                  </div>
+              </div>
+              <div className="border-2 border-red-100 p-6 rounded-2xl bg-red-50 shadow-sm">
+                  <h3 className="font-black text-xl mb-4 border-b-2 border-red-200 pb-2 text-red-600 flex items-center gap-2">🏥 부상/재활 요약</h3>
+                  <div className="space-y-3 text-base font-bold text-slate-700">
+                      <div className="flex justify-between"><span>총 부상/재활 발생</span> <span className="text-slate-900">{rehabLogs.length}건</span></div>
+                      <div className="flex justify-between items-start"><span className="shrink-0">주요 통증 부위</span> <span className="text-red-600 text-right">{analysisData?.worstPart || '없음'}</span></div>
+                      <div className="flex justify-between"><span>최근 평균 통증 강도</span> <span className="text-slate-900">{analysisData?.avgPain || 0} / 10점</span></div>
+                  </div>
+              </div>
+          </div>
+
+          {/* 최근 활동 로그 표 (병원 제출용) */}
+          <h3 className="font-black text-2xl mb-4">📋 최근 상세 기록 내역 <span className="text-base text-slate-400 font-bold ml-2">(최대 15건)</span></h3>
+          <div className="border-2 border-slate-900 rounded-xl overflow-hidden">
+            <table className="w-full text-left border-collapse">
+                <thead>
+                    <tr className="bg-slate-900 text-white text-sm">
+                        <th className="p-4 font-bold w-28">일자</th>
+                        <th className="p-4 font-bold w-20 text-center">분류</th>
+                        <th className="p-4 font-bold">훈련/경기/통증 상세 내용</th>
+                        <th className="p-4 font-bold text-center w-24">통증/강도</th>
+                    </tr>
+                </thead>
+                <tbody className="bg-white">
+                    {logs.slice(0, 15).map((log, index) => (
+                        <tr key={log.id} className={index !== 14 ? "border-b border-slate-200" : ""}>
+                            <td className="p-4 font-medium text-slate-600 text-sm whitespace-nowrap">{new Date(log.created_at).toLocaleDateString()}</td>
+                            <td className="p-4 text-center font-black text-sm">
+                                {log.log_type === 'workout' ? <span className="text-blue-600">훈련</span> : (log.log_type === 'match' ? <span className="text-yellow-600">경기</span> : <span className="text-red-600">재활</span>)}
+                            </td>
+                            <td className="p-4">
+                                <p className="font-black text-slate-900 mb-1">{log.title}</p>
+                                <p className="text-slate-600 text-sm break-all">
+                                    {log.log_type === 'match' ? <span className="font-bold text-slate-800">[결과: {log.match_result === 'win' ? '승' : (log.match_result === 'lose' ? '패' : '무')}] {log.goals}득점 {log.assists}도움 - </span> : ''}
+                                    {log.content}
+                                </p>
+                            </td>
+                            <td className="p-4 text-center">
+                                <span className={`inline-block px-3 py-1 rounded-lg font-black text-sm ${log.pain_score >= 6 ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600'}`}>
+                                    {log.pain_score} / 10
+                                </span>
+                            </td>
+                        </tr>
+                    ))}
+                    {logs.length === 0 && (
+                        <tr><td colSpan={4} className="p-8 text-center text-slate-400 font-bold">기록이 없습니다.</td></tr>
+                    )}
+                </tbody>
+            </table>
+          </div>
+          
+          <div className="mt-12 pt-6 border-t-2 border-slate-100 text-center">
+            <p className="text-sm font-bold text-slate-400 mb-1">
+              본 리포트는 선수의 자가 기록을 바탕으로 Moveplaza 플랫폼에서 자동 생성된 데이터입니다.
+            </p>
+            <p className="text-xs font-bold text-slate-300">
+              의료진 진료 시 참고 자료로 활용하실 수 있습니다.
+            </p>
+          </div>
+        </div>
+      </div>
+      {/* 👆 여기까지가 숨겨진 데이터 리포트 영역입니다. */}
+
       
       {shareData && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-50] opacity-100 pointer-events-none">
@@ -695,7 +786,7 @@ export default function Dashboard() {
             <DashboardSkeleton />
         </main>
       ) : (
-        <main className="max-w-md mx-auto px-5 pt-8 space-y-8 animate-slide-up bg-slate-950" ref={reportRef}>
+        <main className="max-w-md mx-auto px-5 pt-8 space-y-8 animate-slide-up bg-slate-950">
             <section className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 flex items-start gap-3">
                 <div className="text-yellow-500 mt-0.5"><Icons.Bulb /></div>
                 <div>
@@ -878,11 +969,13 @@ export default function Dashboard() {
             </section>
 
             <section>
-                {/* ✅ 바뀐 사진 다운로드 버튼 부분! */}
+                {/* ✅ 제출용 데이터 리포트 다운로드 버튼 */}
                 <div className="flex justify-between items-center mb-4 px-1">
                     <h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3>
                     <div className="flex gap-2">
-                        <button onClick={handleDownloadImage} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700 shadow-lg">📸 갤러리 저장</button>
+                        <button onClick={handleDownloadImage} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700 shadow-lg flex items-center gap-1">
+                            🏥 진료 데이터 저장
+                        </button>
                         {selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}
                     </div>
                 </div>
