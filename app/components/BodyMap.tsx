@@ -1,127 +1,140 @@
 "use client"
-
 import React, { useState } from 'react'
 
 interface BodyMapProps {
-  selectedParts: string[]
-  togglePart: (part: string) => void
-  type: 'workout' | 'rehab'
+  selectedParts: string[];
+  togglePart: (part: string) => void;
+  type?: 'workout' | 'rehab' | 'match';
 }
 
-export default function BodyMap({ selectedParts, togglePart, type }: BodyMapProps) {
-  // 앞면(front) / 뒷면(back) 상태 관리
-  const [view, setView] = useState<'front' | 'back'>('front')
+// 부위별 데이터 (실제 인체 실루엣 좌표에 완벽하게 맞춤)
+const nodes = [
+  // 중앙 부위
+  { id: "목", label: "목", y: 90, view: 'both' },
+  { id: "승모근", label: "승모근", y: 110, view: 'both' },
+  { id: "가슴", label: "가슴", y: 145, view: 'front' },
+  { id: "등", label: "등", y: 145, view: 'back' },
+  { id: "복근", label: "복근", y: 215, view: 'front' },
+  { id: "허리", label: "허리", y: 215, view: 'back' },
+  { id: "고관절", label: "고관절", y: 290, view: 'front' },
+  { id: "엉덩이", label: "엉덩이", y: 290, view: 'back' },
+  
+  // 양쪽 부위 (bilateral: true)
+  { id: "어깨", label: "어깨", y: 118, view: 'both', bilateral: true, rx: 60 },
+  { id: "이두", label: "이두", y: 178, view: 'front', bilateral: true, rx: 80 },
+  { id: "삼두", label: "삼두", y: 178, view: 'back', bilateral: true, rx: 80 },
+  { id: "전완근", label: "전완근", y: 214, view: 'both', bilateral: true, rx: 90 },
+  { id: "손목", label: "손목", y: 240, view: 'both', bilateral: true, rx: 95 },
+  { id: "손", label: "손", y: 262, view: 'both', bilateral: true, rx: 95 },
+  { id: "허벅지(앞)", label: "앞벅지", y: 350, view: 'front', bilateral: true, rx: 45 },
+  { id: "허벅지(뒤)(햄스트링)", label: "햄스트링", y: 350, view: 'back', bilateral: true, rx: 45 },
+  { id: "무릎", label: "무릎", y: 410, view: 'front', bilateral: true, rx: 50 },
+  { id: "종아리", label: "종아리", y: 445, view: 'both', bilateral: true, rx: 55 },
+  { id: "발목", label: "발목", y: 475, view: 'both', bilateral: true, rx: 50 },
+  { id: "발", label: "발", y: 490, view: 'both', bilateral: true, rx: 45 },
+]
 
-  const activeColor = type === 'workout' ? '#3b82f6' : '#ef4444' 
-  const activeFill = type === 'workout' ? 'rgba(59, 130, 246, 0.5)' : 'rgba(239, 68, 68, 0.5)'
-  const defaultFill = '#1e293b'
-  const strokeColor = '#475569'
+export default function BodyMap({ selectedParts, togglePart, type = 'workout' }: BodyMapProps) {
+    const [view, setView] = useState<'front'|'back'>('front');
 
-  // 공통 경로 (머리, 목 등)
-  const commonPaths = {
-    head: "M150 20 Q130 20 130 45 Q130 65 150 65 Q170 65 170 45 Q170 20 150 20 Z",
-    neck: "M145 65 Q145 80 140 85 L135 90 L165 90 L160 85 Q155 80 155 65 Z",
-    traps: "M135 90 L110 100 L120 110 L140 105 Z M165 90 L190 100 L180 110 L160 105 Z",
-    shoulders: "M110 100 Q100 105 95 120 L115 125 L125 110 Z M190 100 Q200 105 205 120 L185 125 L175 110 Z",
-    armUpper: "M95 120 L90 160 L110 165 L115 125 Z M205 120 L210 160 L190 165 L185 125 Z",
-    armLower: "M90 160 L85 200 L105 205 L110 165 Z M210 160 L215 200 L195 205 L190 165 Z",
-    hand: "M85 200 L82 210 L75 230 L95 235 L102 215 L105 205 Z M215 200 L218 210 L225 230 L205 235 L198 215 L195 205 Z",
-    torsoUpper: "M125 110 L115 125 L120 150 L180 150 L185 125 L175 110 Z", // 가슴 or 등 상부
-    torsoLower: "M120 150 L125 190 L135 200 L165 200 L175 190 L180 150 Z", // 복근 or 허리
-    hips: "M120 190 L110 240 L190 240 L180 190 Z", // 골반 or 엉덩이
-    thigh: "M110 240 L105 320 L140 320 L145 240 Z M190 240 L195 320 L160 320 L155 240 Z",
-    legLower: "M105 320 L108 410 L132 410 L140 320 Z M195 320 L192 410 L168 410 L160 320 Z",
-    foot: "M108 410 L105 430 L135 430 L132 410 Z M192 410 L195 430 L165 430 L168 410 Z"
-  }
+    // 훈련/재활 등 상황에 맞는 메인 색상 세팅
+    const activeBgClass = type === 'rehab' ? 'bg-red-500' : type === 'match' ? 'bg-yellow-500' : 'bg-blue-600';
+    const activeBorderClass = type === 'rehab' ? 'border-red-400' : type === 'match' ? 'border-yellow-400' : 'border-blue-400';
+    const activeRingClass = type === 'rehab' ? 'ring-red-400' : type === 'match' ? 'ring-yellow-400' : 'ring-blue-400';
 
-  // 뷰에 따라 매핑할 부위 정의
-  const getParts = () => {
-    const common = [
-      { id: '머리', path: commonPaths.head, isDeco: true },
-      { id: '목', path: commonPaths.neck },
-      { id: '승모근', path: commonPaths.traps },
-      { id: '어깨', path: commonPaths.shoulders },
-      { id: '전완근', path: commonPaths.armLower },
-      { id: '손목', path: commonPaths.hand }, // 손/손목 통합 영역 클릭
-      { id: '손', path: commonPaths.hand }, 
-      { id: '발목', path: commonPaths.foot },
-      { id: '발', path: commonPaths.foot }
-    ]
+    const visibleNodes = nodes.filter(n => n.view === 'both' || n.view === view);
 
-    if (view === 'front') {
-      return [
-        ...common,
-        { id: '이두', path: commonPaths.armUpper }, // 앞면 팔 = 이두
-        { id: '가슴', path: commonPaths.torsoUpper },
-        { id: '복근', path: commonPaths.torsoLower },
-        { id: '고관절', path: commonPaths.hips },
-        { id: '허벅지(앞)', path: commonPaths.thigh },
-        { id: '무릎', path: commonPaths.legLower } // 무릎~정강이 영역
-      ]
-    } else {
-      return [
-        ...common,
-        { id: '삼두', path: commonPaths.armUpper }, // 뒷면 팔 = 삼두
-        { id: '등', path: commonPaths.torsoUpper },
-        { id: '허리', path: commonPaths.torsoLower },
-        { id: '엉덩이', path: commonPaths.hips },
-        { id: '허벅지(뒤)', path: commonPaths.thigh },
-        { id: '종아리', path: commonPaths.legLower }
-      ]
+    // 상호작용 가능한 점 & 라벨 컴포넌트 (SVG 밖에서 HTML로 렌더링되어 글씨가 절대 잘리지 않음!)
+    const MuscleNode = ({ node, x }: any) => {
+        const isSelected = selectedParts.includes(node.id);
+        const leftPercent = (x / 240) * 100;
+        const topPercent = (node.y / 500) * 100;
+
+        // 글씨가 화면 밖으로 나가지 않게 몸통 안쪽으로 스마트하게 정렬
+        const alignClass = x < 120 ? "left-full ml-2" : x > 120 ? "right-full mr-2" : "left-full ml-3";
+
+        return (
+            <div className="absolute z-20" style={{ left: `${leftPercent}%`, top: `${topPercent}%`, transform: 'translate(-50%, -50%)' }}>
+                
+                {/* 🚨 왕건이 터치 영역 (이게 핵심입니다. 뚱땅 눌러도 무조건 인식됨) */}
+                <button 
+                  type="button"
+                  onClick={() => togglePart(node.id)}
+                  className="absolute w-12 h-12 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 cursor-pointer rounded-full bg-transparent"
+                />
+                
+                {/* 깜빡이는 점 */}
+                <div className={`relative w-4 h-4 rounded-full ring-2 transition-all duration-300 flex items-center justify-center ${isSelected ? `${activeBgClass} ${activeRingClass} scale-110 shadow-lg` : 'bg-slate-800 ring-slate-600'}`}>
+                    {isSelected && <div className="absolute inset-0 rounded-full animate-ping opacity-60 bg-inherit"></div>}
+                </div>
+
+                {/* 절대 안 잘리는 이름표 */}
+                <div className={`absolute top-1/2 -translate-y-1/2 pointer-events-none transition-all ${alignClass}`}>
+                    <div className={`px-2 py-1 rounded-lg text-[11px] font-black whitespace-nowrap transition-all border ${isSelected ? `${activeBgClass} ${activeBorderClass} text-white shadow-lg` : 'bg-slate-900/90 border-slate-700 text-slate-400'}`}>
+                        {node.label}
+                    </div>
+                </div>
+            </div>
+        )
     }
-  }
 
-  return (
-    <div className="relative w-full h-[450px] flex items-center justify-center bg-slate-900/50 rounded-3xl border border-white/5 shadow-inner overflow-hidden group">
-      
-      {/* 🔄 회전 버튼 */}
-      <button 
-        onClick={() => setView(view === 'front' ? 'back' : 'front')}
-        className="absolute top-4 right-4 z-10 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-full border border-white/10 shadow-lg flex items-center gap-2 transition-all active:scale-95"
-      >
-        <span className="text-lg">🔄</span> {view === 'front' ? '뒷면 보기' : '앞면 보기'}
-      </button>
+    return (
+        <div className="w-full bg-slate-900/50 rounded-3xl p-6 border border-white/5 shadow-inner">
+           
+           {/* 앞면 / 뒷면 스위치 */}
+           <div className="flex bg-slate-950 p-1 rounded-xl w-full mb-8 shadow-sm border border-white/5 relative z-10">
+              <button type="button" onClick={() => setView('front')} className={`flex-1 py-3 rounded-lg text-xs font-black transition-all ${view === 'front' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>앞면 (FRONT)</button>
+              <button type="button" onClick={() => setView('back')} className={`flex-1 py-3 rounded-lg text-xs font-black transition-all ${view === 'back' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>뒷면 (BACK)</button>
+           </div>
 
-      {/* 안내 문구 */}
-      <div className="absolute top-4 left-4 text-xs font-bold text-slate-500">
-        {view === 'front' ? 'FRONT VIEW' : 'BACK VIEW'}
-      </div>
+           {/* 바디맵 이미지 영역 */}
+           <div className="relative w-full max-w-[280px] mx-auto overflow-hidden rounded-xl">
+               
+               {/* 👇 완벽한 사람 실루엣과 스캐너 격자무늬를 그려주는 마법의 SVG 배경 */}
+               <svg viewBox="0 0 240 500" className="w-full h-auto drop-shadow-2xl opacity-60">
+                   <defs>
+                       <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                           <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#334155" strokeWidth="0.5" opacity="0.3"/>
+                       </pattern>
+                   </defs>
+                   <rect width="100%" height="100%" fill="url(#grid)" />
+                   
+                   {/* 사실적인 해부학 인체 실루엣 Path */}
+                   <g transform="translate(0, 10) scale(2.4)">
+                      <path d="M50 10 C55 10 60 15 60 22 C60 30 55 35 50 35 C45 35 40 30 40 22 C40 15 45 10 50 10 Z M50 35 C60 35 70 40 80 45 C85 47 88 50 90 60 L95 100 C96 105 92 110 88 110 C84 110 80 105 78 100 L75 70 L70 70 L70 120 L80 190 C81 195 78 200 74 200 C70 200 65 195 65 190 L55 130 L45 130 L35 190 C35 195 30 200 26 200 C22 200 19 195 20 190 L30 120 L30 70 L25 70 L22 100 C20 105 16 110 12 110 C8 110 4 105 5 100 L10 60 C12 50 15 47 20 45 C30 40 40 35 50 35 Z" fill="#1e293b" stroke="#475569" strokeWidth="1" />
+                   </g>
+               </svg>
 
-      <svg viewBox="0 0 300 500" className="h-full w-auto drop-shadow-2xl transition-all duration-500">
-        <defs>
-          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
-        
-        {getParts().map((part: any, index) => {
-          const isSelected = selectedParts.includes(part.id)
-          // 손/발/손목/발목 등 중복 경로 클릭 처리를 위해 ID가 달라도 경로가 같으면 같이 하이라이트
-          
-          return (
-            <path
-              key={`${part.id}-${view}-${index}`} // 뷰 바뀔 때 리렌더링
-              d={part.path}
-              fill={isSelected ? activeFill : defaultFill}
-              stroke={isSelected ? activeColor : strokeColor}
-              strokeWidth={isSelected ? 2 : 1}
-              filter={isSelected ? "url(#glow)" : ""}
-              onClick={() => !part.isDeco && togglePart(part.id)}
-              className={!part.isDeco ? "cursor-pointer transition-all duration-300 hover:opacity-80" : ""}
-              style={{ 
-                fill: isSelected ? activeFill : defaultFill,
-                transition: 'all 0.3s ease'
-              }}
-            />
-          )
-        })}
-      </svg>
+               {/* HTML 노드들을 그림 위에 절대 위치로 뿌려줌 */}
+               {visibleNodes.map(node => {
+                   if (!node.bilateral) {
+                       return <MuscleNode key={node.id} node={node} x={120} />
+                   }
+                   return (
+                       <React.Fragment key={node.id}>
+                          <MuscleNode node={node} x={120 - (node.rx || 0)} />
+                          <MuscleNode node={node} x={120 + (node.rx || 0)} />
+                       </React.Fragment>
+                   )
+               })}
+           </div>
 
-      {/* 하단 팁 */}
-      <div className="absolute bottom-4 text-center w-full text-[10px] text-slate-600 font-bold animate-pulse">
-        부위를 터치하여 선택하세요
-      </div>
-    </div>
-  )
+           {/* 하단 선택된 부위 표시 (칩) */}
+           <div className="mt-8 pt-6 border-t border-white/5 min-h-16 flex flex-wrap gap-2 justify-center">
+               {selectedParts.length > 0 ? (
+                   selectedParts.map(part => (
+                       <span key={part} onClick={() => togglePart(part)} className={`px-3 py-1.5 cursor-pointer text-xs font-black rounded-xl flex items-center gap-1.5 border transition-all hover:scale-105 active:scale-95 ${activeBgClass} text-white ${activeBorderClass} shadow-md`}>
+                           <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+                           {part} 
+                           <span className="opacity-70 ml-1 text-[10px]">✕</span>
+                       </span>
+                   ))
+               ) : (
+                   <p className="text-center text-xs font-bold text-slate-500 mt-2 animate-pulse">
+                       👆 사람 실루엣의 점을 터치해서 부위를 선택하세요
+                   </p>
+               )}
+           </div>
+        </div>
+    )
 }
