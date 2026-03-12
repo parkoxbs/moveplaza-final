@@ -48,7 +48,6 @@ const LEVEL_SYSTEM = [
   { name: 'Legend', rank: '레전드', emoji: '👑', min: 400, color: 'bg-gradient-to-br from-yellow-500 via-amber-400 to-yellow-600', glow: 'shadow-[0_0_30px_rgba(245,158,11,0.7)] ring-2 ring-yellow-300', desc: '명예의 전당에 오를 살아있는 전설' }
 ];
 
-// 전문적인 재활 팁 20개 (랜덤 노출)
 const REHAB_TIPS = [
   "🤕 발목 삐끗(염좌) 직후엔 RICE! 휴식(Rest), 냉찜질(Ice), 압박(Compression), 거상(Elevation)을 기억하세요.",
   "🦵 햄스트링은 다치기 쉽습니다. 운동 전 폼롤러보다 동적 스트레칭(다리 흔들기 등)이 훨씬 효과적입니다.",
@@ -438,19 +437,16 @@ export default function Dashboard() {
     setUploading(false)
   }
 
-  // ✅ 건의사항 전송 에러 수정 완료! (user_id 추가됨)
   const handleSendSuggestion = async () => {
     if(!suggestionText.trim()) return toast.error("내용을 입력해주세요!");
     const t = toast.loading("전송 중...");
     
-    // 현재 로그인한 사용자 정보 가져오기
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         toast.error("로그인이 필요합니다.", { id: t });
         return;
     }
 
-    // DB에 내용과 함께 user_id도 넣어서 RLS 통과하기
     const { error } = await supabase.from('suggestions').insert({ 
         content: suggestionText,
         user_id: user.id 
@@ -595,23 +591,21 @@ export default function Dashboard() {
   const filteredLogs = selectedDate ? logs.filter(l => new Date(l.created_at).toDateString() === selectedDate.toDateString()) : logs
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-emerald-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
-      {/* 👇 📊 화면에는 안 보이지만 캡처될 때 사용되는 [데이터 리포트] 영역입니다! */}
+      {/* 데이터 리포트 영역 (숨김) */}
       <div className="absolute top-0 left-[-9999px] z-[-9999] opacity-0 pointer-events-none">
         <div ref={dataReportRef} className="w-[800px] bg-white text-slate-900 p-10 font-sans tracking-tight" style={{ minHeight: '1122px' }}>
-          
           <div className="border-b-4 border-slate-900 pb-4 mb-8 flex justify-between items-end">
             <div>
               <h1 className="text-4xl font-black mb-2 tracking-tighter">PERSONAL ACTIVITY LOG</h1>
               <p className="text-sm text-slate-500 font-bold uppercase tracking-widest">Training & Condition Summary</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-black text-blue-600">MOVEPLAZA</p>
+              <p className="text-2xl font-black text-emerald-600">MOVEPLAZA</p>
             </div>
           </div>
-          
           <div className="flex justify-between items-center bg-slate-100 p-6 rounded-xl mb-8">
             <div>
                 <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-widest">Athlete Name</p>
@@ -622,14 +616,13 @@ export default function Dashboard() {
                 <p className="text-xl font-bold">{new Date().toLocaleDateString()}</p>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-6 mb-10">
               <div className="border-2 border-slate-200 p-6 rounded-2xl bg-white shadow-sm">
                   <h3 className="font-black text-xl mb-4 border-b-2 border-slate-100 pb-2 flex items-center gap-2">📊 시즌 활동 요약</h3>
                   <div className="space-y-3 text-base font-bold text-slate-700">
                       <div className="flex justify-between"><span>총 훈련/운동 기록</span> <span className="text-slate-900">{logs.filter(l=>l.log_type==='workout').length}회</span></div>
                       <div className="flex justify-between"><span>총 실전 경기 수</span> <span className="text-slate-900">{matchStats.total}경기</span></div>
-                      <div className="flex justify-between"><span>시즌 성적</span> <span className="text-blue-600">{matchStats.win}승 {matchStats.draw}무 {matchStats.lose}패</span></div>
+                      <div className="flex justify-between"><span>시즌 성적</span> <span className="text-emerald-600">{matchStats.win}승 {matchStats.draw}무 {matchStats.lose}패</span></div>
                       <div className="flex justify-between"><span>시즌 공격포인트</span> <span className="text-yellow-600">{matchStats.goals}골 {matchStats.assists}도움</span></div>
                   </div>
               </div>
@@ -642,7 +635,6 @@ export default function Dashboard() {
                   </div>
               </div>
           </div>
-
           <h3 className="font-black text-2xl mb-4">📋 최근 상세 기록 내역 <span className="text-base text-slate-400 font-bold ml-2">(최대 15건)</span></h3>
           <div className="border-2 border-slate-900 rounded-xl overflow-hidden">
             <table className="w-full text-left border-collapse">
@@ -659,7 +651,7 @@ export default function Dashboard() {
                         <tr key={log.id} className={index !== 14 ? "border-b border-slate-200" : ""}>
                             <td className="p-4 font-medium text-slate-600 text-sm whitespace-nowrap">{new Date(log.created_at).toLocaleDateString()}</td>
                             <td className="p-4 text-center font-black text-sm">
-                                {log.log_type === 'workout' ? <span className="text-blue-600">훈련</span> : (log.log_type === 'match' ? <span className="text-yellow-600">경기</span> : <span className="text-red-600">재활</span>)}
+                                {log.log_type === 'workout' ? <span className="text-emerald-600">훈련</span> : (log.log_type === 'match' ? <span className="text-yellow-600">경기</span> : <span className="text-red-600">재활</span>)}
                             </td>
                             <td className="p-4">
                                 <p className="font-black text-slate-900 mb-1">{log.title}</p>
@@ -681,7 +673,6 @@ export default function Dashboard() {
                 </tbody>
             </table>
           </div>
-          
           <div className="mt-12 pt-6 border-t-2 border-slate-100 text-center">
             <p className="text-sm font-bold text-red-500 mb-1">
               ⚠️ 본 리포트는 사용자가 직접 기록한 주관적인 운동 및 통증 수치를 요약한 것입니다.
@@ -696,14 +687,13 @@ export default function Dashboard() {
       {shareData && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-50] opacity-100 pointer-events-none">
           <div ref={shareCardRef} className="w-[450px] h-[650px] relative bg-slate-950 overflow-hidden font-sans">
-            
             {shareData.image_url ? (
               <>
                 <img src={shareData.image_url} crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover z-0" alt="배경" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30 z-0"></div>
               </>
             ) : (
-              <div className={`absolute inset-0 w-full h-full bg-gradient-to-br ${shareData.log_type === 'match' ? 'from-yellow-900 to-slate-950' : (shareData.log_type === 'rehab' ? 'from-red-900 to-slate-950' : 'from-blue-900 to-slate-950')} z-0`}>
+              <div className={`absolute inset-0 w-full h-full bg-gradient-to-br ${shareData.log_type === 'match' ? 'from-yellow-900 to-slate-950' : (shareData.log_type === 'rehab' ? 'from-red-900 to-slate-950' : 'from-emerald-900 to-slate-950')} z-0`}>
                   <div className="absolute inset-0 flex flex-col justify-center items-center opacity-10 select-none">
                       {[...Array(5)].map((_, i) => (
                           <span key={i} className="text-9xl font-black italic tracking-tighter text-white leading-none">
@@ -714,7 +704,6 @@ export default function Dashboard() {
                   <svg className="absolute inset-0 w-full h-full opacity-20 mix-blend-overlay" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noise)"/></svg>
               </div>
             )}
-
             <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-10">
                 <div className="flex items-center gap-2">
                     <div className="bg-white/20 backdrop-blur-md p-1.5 rounded-lg border border-white/10">
@@ -726,13 +715,10 @@ export default function Dashboard() {
                     {new Date(shareData.created_at).toLocaleDateString()}
                 </span>
             </div>
-
             <div className="absolute bottom-0 left-0 w-full p-8 z-10 flex flex-col gap-2">
-                
                 <div className="self-start px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-[10px] font-black text-white uppercase tracking-widest mb-2 shadow-lg">
                     {shareData.log_type === 'workout' ? '⚡ TRAINING SESSION' : (shareData.log_type === 'match' ? '⚽ MATCH DAY' : '❤️‍🩹 RECOVERY')}
                 </div>
-
                 <div className="mb-4">
                       <h1 className="text-4xl font-black text-white leading-none mb-2 line-clamp-2 drop-shadow-xl uppercase italic tracking-tight">
                           {shareData.title}
@@ -741,7 +727,6 @@ export default function Dashboard() {
                           {shareData.content}
                       </p>
                 </div>
-
                 <div className="border-t border-white/30 pt-4 flex justify-between items-end">
                     <div className="flex flex-col gap-1 opacity-70">
                         <span className="text-[9px] font-mono tracking-widest text-white">ATHLETE DATA RECORD</span>
@@ -751,11 +736,10 @@ export default function Dashboard() {
                             ))}
                         </div>
                     </div>
-
                     <div className="text-right">
                         {shareData.log_type === 'match' ? (
                             <div>
-                                <span className={`text-5xl font-black italic tracking-tighter drop-shadow-2xl ${shareData.match_result === 'win' ? 'text-blue-400' : (shareData.match_result === 'lose' ? 'text-red-400' : 'text-slate-200')}`}>
+                                <span className={`text-5xl font-black italic tracking-tighter drop-shadow-2xl ${shareData.match_result === 'win' ? 'text-emerald-400' : (shareData.match_result === 'lose' ? 'text-red-400' : 'text-slate-200')}`}>
                                     {shareData.match_result === 'win' ? 'WIN' : (shareData.match_result === 'lose' ? 'LOSE' : 'DRAW')}
                                 </span>
                                 <div className="text-white font-bold text-lg mt-[-5px] drop-shadow-md">
@@ -773,14 +757,14 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
-
           </div>
         </div>
       )}
 
+      {/* 헤더 로고 색상 에메랄드로 변경 */}
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
         <div className="max-w-md mx-auto px-5 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.reload()}><div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">M</div><span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span></div>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.reload()}><div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(16,185,129,0.5)]">M</div><span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span></div>
         </div>
       </header>
 
@@ -800,31 +784,32 @@ export default function Dashboard() {
 
             <section>
                 <div className="flex justify-between items-end">
-                    <div><h2 className="text-3xl font-extrabold text-white leading-tight">안녕하세요,<br/><span className="text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">{userName}</span>님!</h2><p className="text-slate-400 font-bold mt-2 text-sm">오늘도 부상 없이 득근해볼까요? 💪</p></div>
-                    <button onClick={() => setIsAnalysisOpen(true)} className="bg-slate-800 border border-white/10 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-700 transition flex items-center gap-1"><Icons.Chart /> AI 분석</button>
+                    {/* 인사말 포인트 색상을 네온 에메랄드로 변경 */}
+                    <div><h2 className="text-3xl font-extrabold text-white leading-tight">안녕하세요,<br/><span className="text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]">{userName}</span>님!</h2><p className="text-slate-400 font-bold mt-2 text-sm">오늘도 부상 없이 득근해볼까요? 💪</p></div>
+                    <button onClick={() => setIsAnalysisOpen(true)} className="bg-slate-800 border border-white/10 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-700 transition flex items-center gap-1 shadow-md"><Icons.Chart /> AI 분석</button>
                 </div>
             </section>
 
             {matchStats.total > 0 && (
-                <section className="bg-gradient-to-br from-indigo-900 to-blue-900 rounded-3xl p-6 relative overflow-hidden shadow-2xl border border-white/10">
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-[50px] -mr-10 -mt-10"></div>
+                <section className="bg-gradient-to-br from-emerald-900/50 to-slate-900 rounded-3xl p-6 relative overflow-hidden shadow-2xl border border-white/10">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/10 rounded-full blur-[50px] -mr-10 -mt-10"></div>
                     <h3 className="text-lg font-black text-white mb-4 flex items-center gap-2"><Icons.Ball /> SEASON STATS</h3>
                     <div className="grid grid-cols-3 gap-2 text-center mb-6">
-                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                            <p className="text-xs text-blue-200 font-bold mb-1">경기 수</p>
+                        <div className="bg-white/5 rounded-xl p-3 backdrop-blur-sm border border-white/5">
+                            <p className="text-xs text-emerald-200 font-bold mb-1">경기 수</p>
                             <p className="text-2xl font-black text-white">{matchStats.total}</p>
                         </div>
-                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                            <p className="text-xs text-blue-200 font-bold mb-1">공격포인트</p>
+                        <div className="bg-white/5 rounded-xl p-3 backdrop-blur-sm border border-white/5">
+                            <p className="text-xs text-emerald-200 font-bold mb-1">공격포인트</p>
                             <p className="text-2xl font-black text-white">{matchStats.goals + matchStats.assists}</p>
                         </div>
-                        <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                            <p className="text-xs text-blue-200 font-bold mb-1">승률</p>
+                        <div className="bg-white/5 rounded-xl p-3 backdrop-blur-sm border border-white/5">
+                            <p className="text-xs text-emerald-200 font-bold mb-1">승률</p>
                             <p className="text-2xl font-black text-white">{matchStats.total > 0 ? Math.round((matchStats.win / matchStats.total) * 100) : 0}%</p>
                         </div>
                     </div>
-                    <div className="flex justify-between items-center text-sm font-bold bg-black/20 p-3 rounded-xl">
-                        <span className="text-blue-400">{matchStats.win}승</span>
+                    <div className="flex justify-between items-center text-sm font-bold bg-black/30 p-3 rounded-xl border border-white/5">
+                        <span className="text-emerald-400">{matchStats.win}승</span>
                         <span className="text-slate-400">{matchStats.draw}무</span>
                         <span className="text-red-400">{matchStats.lose}패</span>
                         <span className="w-[1px] h-4 bg-white/20 mx-2"></span>
@@ -835,12 +820,12 @@ export default function Dashboard() {
             )}
 
             <section className="mb-4">
-                <Link href="/lineup" className="block w-full bg-gradient-to-r from-green-600 to-emerald-600 rounded-3xl p-5 shadow-lg border border-white/10 relative overflow-hidden group">
+                <Link href="/lineup" className="block w-full bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl p-5 shadow-lg border border-white/10 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-[40px] -mr-5 -mt-5 group-hover:scale-110 transition"></div>
                     <div className="relative z-10 flex justify-between items-center">
                         <div>
                             <h3 className="text-lg font-black text-white italic tracking-wider">LINEUP BUILDER</h3>
-                            <p className="text-xs text-green-100 font-bold mt-1">나만의 베스트 11 전술판 만들기 ⚽</p>
+                            <p className="text-xs text-emerald-100 font-bold mt-1">나만의 베스트 11 전술판 만들기 ⚽</p>
                         </div>
                         <div className="text-3xl group-hover:rotate-12 transition">📋</div>
                     </div>
@@ -861,9 +846,9 @@ export default function Dashboard() {
             </section>
 
             <section className="grid grid-cols-1 gap-4">
-                <div className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-5 border border-white/5 flex items-center justify-between">
+                <div className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-5 border border-white/5 flex items-center justify-between shadow-sm">
                     <div><h2 className="font-extrabold text-white text-sm mb-1">오늘 컨디션 👋</h2><p className="text-slate-400 font-bold text-xs">부상 방지 체크!</p></div>
-                    <div className="flex gap-2">{['good', 'normal', 'bad'].map((status) => (<button key={status} onClick={() => handleConditionCheck(status as any)} className={`flex items-center justify-center w-10 h-10 rounded-xl border-2 transition-all ${todayCondition === status ? (status === 'good' ? 'bg-green-500/20 border-green-500 scale-110' : status === 'normal' ? 'bg-yellow-500/20 border-yellow-500 scale-110' : 'bg-red-500/20 border-red-500 scale-110') : 'bg-slate-800 border-slate-700 hover:border-slate-500'}`}><span className="text-lg">{status === 'good' ? '😆' : status === 'normal' ? '🙂' : '😷'}</span></button>))}</div>
+                    <div className="flex gap-2">{['good', 'normal', 'bad'].map((status) => (<button key={status} onClick={() => handleConditionCheck(status as any)} className={`flex items-center justify-center w-10 h-10 rounded-xl border-2 transition-all ${todayCondition === status ? (status === 'good' ? 'bg-emerald-500/20 border-emerald-500 scale-110' : status === 'normal' ? 'bg-yellow-500/20 border-yellow-500 scale-110' : 'bg-red-500/20 border-red-500 scale-110') : 'bg-slate-800 border-slate-700 hover:border-slate-500'}`}><span className="text-lg">{status === 'good' ? '😆' : status === 'normal' ? '🙂' : '😷'}</span></button>))}</div>
                 </div>
                 
                 <div className={`rounded-3xl p-6 shadow-lg border-2 border-white/10 relative overflow-hidden text-white ${myLevel.color} ${myLevel.glow}`}>
@@ -892,26 +877,27 @@ export default function Dashboard() {
             </section>
 
             {logs.length > 0 && (
-                <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden">
+                <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden shadow-sm">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-black text-white">나의 선수 스탯 ⚽</h3>
-                        <span className="text-xs font-bold text-slate-500 bg-slate-800 px-2 py-1 rounded-lg">LIVE</span>
+                        <span className="text-xs font-bold text-slate-500 bg-slate-800 px-2 py-1 rounded-lg border border-white/5">LIVE</span>
                     </div>
                     <div className="h-64 w-full flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
+                            {/* 레이더 차트 색상 에메랄드로 변경 */}
                             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={stats}>
                                 <PolarGrid stroke="#334155" />
                                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }} />
                                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                <Radar name="My Stats" dataKey="A" stroke="#3b82f6" strokeWidth={3} fill="#3b82f6" fillOpacity={0.5} />
-                                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} itemStyle={{ color: '#60a5fa' }} formatter={(val, name, props) => [val, props.payload.full]} labelStyle={{display: 'none'}} />
+                                <Radar name="My Stats" dataKey="A" stroke="#10b981" strokeWidth={3} fill="#10b981" fillOpacity={0.4} />
+                                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} itemStyle={{ color: '#34d399' }} formatter={(val, name, props) => [val, props.payload.full]} labelStyle={{display: 'none'}} />
                             </RadarChart>
                         </ResponsiveContainer>
                     </div>
                 </section>
             )}
 
-            <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden transition-all">
+            <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 relative overflow-hidden transition-all shadow-sm">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 rounded-full blur-[80px] opacity-20 -mr-10 -mt-10 pointer-events-none"></div>
                 <div className="flex flex-col gap-4 mb-6 relative z-10">
                     <div className="flex justify-between items-end">
@@ -949,7 +935,7 @@ export default function Dashboard() {
                 </div>
             </section>
 
-            <section className="bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5">
+            <section className="bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="font-extrabold text-white">컨디션 & 운동부하 분석 📉</h3>
                     <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-1 rounded">최근 7일</span>
@@ -964,31 +950,32 @@ export default function Dashboard() {
                         <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} labelStyle={{ color: '#cbd5e1', fontWeight: 'bold' }} formatter={(value: any, name: any) => { if (name === '컨디션') return [value === 10 ? '좋음' : value === 6 ? '보통' : '나쁨', name]; return [`${value}점`, name]; }} />
                         <Legend verticalAlign="top" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
                         <Bar yAxisId="left" dataKey="condition" name="컨디션" barSize={20} fill="#facc15" radius={[4, 4, 0, 0]} fillOpacity={0.3} />
-                        <Line yAxisId="right" type="monotone" dataKey="score" name="운동강도/통증" stroke="#3b82f6" strokeWidth={3} dot={{r:3, fill:'#3b82f6'}} activeDot={{r:6, fill:'#fff'}} />
+                        {/* 라인 차트 색상 에메랄드로 변경 */}
+                        <Line yAxisId="right" type="monotone" dataKey="score" name="운동강도/통증" stroke="#10b981" strokeWidth={3} dot={{r:3, fill:'#10b981'}} activeDot={{r:6, fill:'#fff'}} />
                     </ComposedChart>
                     </ResponsiveContainer>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-2 text-center">💡 컨디션(노란색)이 낮을 때 운동강도(파란선)가 높으면 부상 위험!</p>
+                <p className="text-[10px] text-slate-500 mt-2 text-center">💡 컨디션(노란색)이 낮을 때 운동강도(초록선)가 높으면 부상 위험!</p>
             </section>
 
             <section>
                 <div className="flex justify-between items-center mb-4 px-1">
                     <h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3>
                     <div className="flex gap-2">
-                        <button onClick={handleDownloadImage} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700 shadow-lg flex items-center gap-1">
-                            📋 데이터 리포트 저장
+                        <button onClick={handleDownloadImage} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700 shadow-md flex items-center gap-1 transition">
+                            📋 리포트 저장
                         </button>
                         {selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}
                     </div>
                 </div>
                 
-                <div className="space-y-3">{filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { 
+                <div className="space-y-3">{filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-emerald-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { 
                     const isWorkout = log.log_type === 'workout' || log.log_type === 'match'; 
                     const isMatch = log.log_type === 'match';
                     
-                    return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group">
+                    return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group shadow-sm">
                         <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isMatch ? 'bg-yellow-500/10 text-yellow-400' : (isWorkout ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400')}`}>
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isMatch ? 'bg-yellow-500/10 text-yellow-400' : (isWorkout ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')}`}>
                                 {log.image_url ? <img src={log.image_url} crossOrigin="anonymous" alt="인증" className="w-full h-full object-cover" /> : (isMatch ? <Icons.Trophy /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />))}
                             </div>
                             <div>
@@ -1005,7 +992,7 @@ export default function Dashboard() {
                 <div className="flex justify-center items-center gap-4 mb-4">
                     <button onClick={() => setIsDisclaimerOpen(true)} className="text-[10px] text-slate-500 font-bold hover:text-slate-300 transition flex items-center gap-1"><Icons.Info /> 약관 및 면책 조항</button>
                     <span className="text-slate-700 text-[10px]">|</span>
-                    <button onClick={() => setIsSuggestionOpen(true)} className="text-[10px] text-blue-500/70 font-bold hover:text-blue-400 transition flex items-center gap-1"><Icons.MessageSquare /> 구단주(개발자)에게 건의하기</button>
+                    <button onClick={() => setIsSuggestionOpen(true)} className="text-[10px] text-emerald-500/70 font-bold hover:text-emerald-400 transition flex items-center gap-1"><Icons.MessageSquare /> 구단주(개발자)에게 건의하기</button>
                 </div>
                 <button onClick={handleDeleteAccount} className="text-[10px] text-red-500/50 font-bold hover:text-red-500 transition underline underline-offset-2">
                     회원 탈퇴 (데이터 영구 삭제)
@@ -1014,7 +1001,8 @@ export default function Dashboard() {
         </main>
       )}
 
-      <div className="fixed bottom-28 right-6 z-40"><button onClick={() => setIsModalOpen(true)} className="w-16 h-16 bg-blue-600 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center justify-center text-white hover:bg-blue-500 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
+      {/* 플로팅 글쓰기 버튼 네온 에메랄드로 변경 */}
+      <div className="fixed bottom-28 right-6 z-40"><button onClick={() => setIsModalOpen(true)} className="w-16 h-16 bg-emerald-500 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.6)] flex items-center justify-center text-white hover:bg-emerald-400 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
       
       <AnimatePresence>
         {isLevelUpCelebrationOpen && (
@@ -1062,8 +1050,8 @@ export default function Dashboard() {
                 <button onClick={() => setIsSuggestionOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
                 <h3 className="text-lg font-black text-white mb-2 flex items-center gap-2">💌 개발자에게 건의하기</h3>
                 <p className="text-xs text-slate-400 font-bold mb-4">"이 기능 추가해주세요!" 또는 "이거 불편해요 ㅠ"<br/>자유롭게 남겨주시면 빠르게 반영하겠습니다!</p>
-                <textarea value={suggestionText} onChange={(e) => setSuggestionText(e.target.value)} className="w-full h-32 bg-slate-800 text-white p-4 rounded-xl border border-white/5 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm font-medium" placeholder="내용을 입력해주세요..." />
-                <button onClick={handleSendSuggestion} className="mt-4 w-full py-3 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-500 transition shadow-lg">보내기 🚀</button>
+                <textarea value={suggestionText} onChange={(e) => setSuggestionText(e.target.value)} className="w-full h-32 bg-slate-800 text-white p-4 rounded-xl border border-white/5 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none text-sm font-medium" placeholder="내용을 입력해주세요..." />
+                <button onClick={handleSendSuggestion} className="mt-4 w-full py-3 bg-emerald-500 text-white font-extrabold rounded-xl hover:bg-emerald-400 transition shadow-lg">보내기 🚀</button>
             </div>
         </div>
       )}
@@ -1075,19 +1063,19 @@ export default function Dashboard() {
             <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-900">
                 
                 <div className="flex bg-slate-800 p-1 rounded-xl">
-                    <button onClick={() => setLogType('workout')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'workout' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500'}`}>💪 훈련</button>
+                    <button onClick={() => setLogType('workout')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'workout' ? 'bg-slate-700 text-emerald-400 shadow-sm' : 'text-slate-500'}`}>💪 훈련</button>
                     <button onClick={() => setLogType('match')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'match' ? 'bg-slate-700 text-yellow-400 shadow-sm' : 'text-slate-500'}`}>⚽ 경기</button>
                     <button onClick={() => setLogType('rehab')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'rehab' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-500'}`}>🏥 재활</button>
                 </div>
 
-                <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 placeholder-slate-600" placeholder="제목 입력 (예: 조기축구, 하체훈련)" /></div>
+                <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-600" placeholder="제목 입력 (예: 조기축구, 하체훈련)" /></div>
                 
                 {logType === 'match' && (
                     <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl space-y-4">
                         <div>
                             <label className="block text-sm font-bold text-yellow-500 mb-2">경기 결과</label>
                             <div className="flex gap-2">
-                                <button onClick={() => setMatchResult('win')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'win' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>승리</button>
+                                <button onClick={() => setMatchResult('win')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'win' ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>승리</button>
                                 <button onClick={() => setMatchResult('draw')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'draw' ? 'bg-slate-600 text-white border-slate-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>무승부</button>
                                 <button onClick={() => setMatchResult('lose')} className={`flex-1 py-2 rounded-lg font-bold border ${matchResult === 'lose' ? 'bg-red-600 text-white border-red-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>패배</button>
                             </div>
@@ -1118,7 +1106,7 @@ export default function Dashboard() {
                     <select 
                         value={selectedGearId || ''} 
                         onChange={(e) => setSelectedGearId(e.target.value || null)} 
-                        className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                        className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-emerald-500 outline-none appearance-none"
                     >
                         <option value="">선택 안함</option>
                         {gears.map((gear) => (
@@ -1129,18 +1117,19 @@ export default function Dashboard() {
                     </select>
                 </div>
 
-                <div><label className="block text-sm font-bold text-slate-400 mb-2">사진/영상 추가</label><div className="flex items-center gap-3"><label className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-500/10 transition overflow-hidden text-slate-500">{mediaPreview ? <img src={mediaPreview} className="w-full h-full object-cover" /> : <Icons.Camera />}<input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} /></label><span className="text-xs text-slate-500 font-bold">{mediaFile ? "파일 선택됨 ✅" : "운동 인증샷이나 통증 부위를 찍어보세요."}</span></div></div>
+                <div><label className="block text-sm font-bold text-slate-400 mb-2">사진/영상 추가</label><div className="flex items-center gap-3"><label className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-emerald-500 hover:bg-emerald-500/10 transition overflow-hidden text-slate-500">{mediaPreview ? <img src={mediaPreview} className="w-full h-full object-cover" /> : <Icons.Camera />}<input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} /></label><span className="text-xs text-slate-500 font-bold">{mediaFile ? "파일 선택됨 ✅" : "운동 인증샷이나 통증 부위를 찍어보세요."}</span></div></div>
                 
                 <div>
                   <label className="block text-sm font-bold text-slate-400 mb-2">관련 부위 (선택)</label>
                   <BodyMap selectedParts={selectedParts} togglePart={togglePart} type={logType === 'match' ? 'workout' : logType} />
                 </div>
 
-                <div><label className="block text-sm font-bold text-slate-400 mb-1">메모 / 내용</label><textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full p-4 h-32 bg-slate-800 text-white rounded-xl border-none focus:ring-2 focus:ring-blue-500 resize-none placeholder-slate-600" placeholder="경기 내용이나 특이사항을 적어주세요." /></div>
-                <div><div className="flex justify-between mb-2"><span className="font-bold text-slate-400">{logType === 'rehab' ? '통증 점수' : '훈련 강도 (RPE)'}</span><span className={`font-black text-xl ${score > 7 ? 'text-red-500' : 'text-blue-500'}`}>{score}</span></div><input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
-                <div className="flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-white/5"><input type="checkbox" id="public" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-blue-600 bg-slate-700 border-slate-600"/><label htmlFor="public" className="text-sm font-bold text-slate-300 cursor-pointer">광장에 자랑하기 (공개)</label></div>
+                <div><label className="block text-sm font-bold text-slate-400 mb-1">메모 / 내용</label><textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full p-4 h-32 bg-slate-800 text-white rounded-xl border-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-slate-600" placeholder="경기 내용이나 특이사항을 적어주세요." /></div>
+                <div><div className="flex justify-between mb-2"><span className="font-bold text-slate-400">{logType === 'rehab' ? '통증 점수' : '훈련 강도 (RPE)'}</span><span className={`font-black text-xl ${score > 7 ? 'text-red-500' : 'text-emerald-400'}`}>{score}</span></div><input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500" /></div>
+                <div className="flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-white/5"><input type="checkbox" id="public" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-emerald-500 bg-slate-700 border-slate-600 focus:ring-emerald-500"/><label htmlFor="public" className="text-sm font-bold text-slate-300 cursor-pointer">광장에 자랑하기 (공개)</label></div>
             </div>
-            <div className="p-4 border-t border-white/5 bg-slate-900"><button onClick={handleAddLog} disabled={uploading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition disabled:opacity-50">{uploading ? '저장 중...' : '기록 저장 완료 ✨'}</button></div>
+            {/* 글쓰기 완료 버튼 네온 에메랄드로 변경 */}
+            <div className="p-4 border-t border-white/5 bg-slate-900"><button onClick={handleAddLog} disabled={uploading} className="w-full bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:bg-emerald-400 transition disabled:opacity-50">{uploading ? '저장 중...' : '기록 저장 완료 ✨'}</button></div>
           </div>
         </div>
       )}
@@ -1164,7 +1153,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-white/10">
-                    <button onClick={() => setIsDisclaimerOpen(false)} className="w-full py-4 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-500 transition shadow-lg">
+                    <button onClick={() => setIsDisclaimerOpen(false)} className="w-full py-4 bg-emerald-500 text-white font-extrabold rounded-xl hover:bg-emerald-400 transition shadow-lg">
                         위 내용을 모두 확인했습니다
                     </button>
                 </div>
@@ -1180,8 +1169,8 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-500 font-bold mb-6">{analysisData.totalLogs}개의 기록을 분석했습니다.</p>
                 
                 <div className="space-y-4">
-                    <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl flex items-center justify-between">
-                        <div><p className="text-xs font-bold text-blue-400">가장 많이 아픈 곳</p><p className="text-2xl font-black text-white">{analysisData.worstPart}</p></div>
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl flex items-center justify-between">
+                        <div><p className="text-xs font-bold text-emerald-400">가장 많이 아픈 곳</p><p className="text-2xl font-black text-white">{analysisData.worstPart}</p></div>
                         <div className="text-4xl">🤕</div>
                     </div>
                     <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-center justify-between">
