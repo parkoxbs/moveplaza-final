@@ -110,9 +110,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState("")
   
-  // ✅ 제출용 리포트 Ref
   const dataReportRef = useRef<HTMLDivElement>(null)
-  
   const shareCardRef = useRef<HTMLDivElement>(null)
   const [shareData, setShareData] = useState<any>(null)
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
@@ -440,12 +438,26 @@ export default function Dashboard() {
     setUploading(false)
   }
 
+  // ✅ 건의사항 전송 에러 수정 완료! (user_id 추가됨)
   const handleSendSuggestion = async () => {
     if(!suggestionText.trim()) return toast.error("내용을 입력해주세요!");
     const t = toast.loading("전송 중...");
-    const { error } = await supabase.from('suggestions').insert({ content: suggestionText });
+    
+    // 현재 로그인한 사용자 정보 가져오기
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        toast.error("로그인이 필요합니다.", { id: t });
+        return;
+    }
+
+    // DB에 내용과 함께 user_id도 넣어서 RLS 통과하기
+    const { error } = await supabase.from('suggestions').insert({ 
+        content: suggestionText,
+        user_id: user.id 
+    });
+    
     if(error) {
-        toast.error("전송 실패 ㅠ", { id: t });
+        toast.error("전송 실패 ㅠ " + error.message, { id: t });
     } else {
         toast.success("소중한 의견 감사합니다! 💌", { id: t });
         setSuggestionText("");
@@ -520,7 +532,6 @@ export default function Dashboard() {
     }, 1500); 
   }
 
-  // ✅ [수정됨] 법적으로 문제 없는 자가 기록용 데이터 리포트 캡처 함수!
   const handleDownloadImage = async () => {
     if (!dataReportRef.current) return; 
     const t = toast.loading("활동 데이터 리포트 생성 중... 📸");
@@ -532,7 +543,6 @@ export default function Dashboard() {
         const width = element.scrollWidth;
         const height = element.scrollHeight;
         
-        // 하얀색 배경의 깔끔한 데이터 문서로 캡처!
         const dataUrl = await toPng(element, { 
           cacheBust: true, 
           pixelRatio: 2, 
@@ -543,7 +553,6 @@ export default function Dashboard() {
           fetchRequestInit: { cache: 'no-cache' } 
         });
 
-        // 갤러리에 직통 저장
         const link = document.createElement('a');
         link.download = `${userName}_Activity_Report_${Date.now()}.png`;
         link.href = dataUrl;
@@ -589,11 +598,10 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
-      {/* 👇 📊 화면에는 안 보이지만 캡처될 때 사용되는 [데이터 리포트] 영역입니다! (의료법 우회) */}
+      {/* 👇 📊 화면에는 안 보이지만 캡처될 때 사용되는 [데이터 리포트] 영역입니다! */}
       <div className="absolute top-0 left-[-9999px] z-[-9999] opacity-0 pointer-events-none">
         <div ref={dataReportRef} className="w-[800px] bg-white text-slate-900 p-10 font-sans tracking-tight" style={{ minHeight: '1122px' }}>
           
-          {/* 리포트 헤더 */}
           <div className="border-b-4 border-slate-900 pb-4 mb-8 flex justify-between items-end">
             <div>
               <h1 className="text-4xl font-black mb-2 tracking-tighter">PERSONAL ACTIVITY LOG</h1>
@@ -604,7 +612,6 @@ export default function Dashboard() {
             </div>
           </div>
           
-          {/* 유저 기본 정보 */}
           <div className="flex justify-between items-center bg-slate-100 p-6 rounded-xl mb-8">
             <div>
                 <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-widest">Athlete Name</p>
@@ -616,7 +623,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* 주요 통계 요약 (그리드) */}
           <div className="grid grid-cols-2 gap-6 mb-10">
               <div className="border-2 border-slate-200 p-6 rounded-2xl bg-white shadow-sm">
                   <h3 className="font-black text-xl mb-4 border-b-2 border-slate-100 pb-2 flex items-center gap-2">📊 시즌 활동 요약</h3>
@@ -628,7 +634,6 @@ export default function Dashboard() {
                   </div>
               </div>
               <div className="border-2 border-red-100 p-6 rounded-2xl bg-red-50 shadow-sm">
-                  {/* 의료적 표현을 피해 '통증 및 관리'로 순화 */}
                   <h3 className="font-black text-xl mb-4 border-b-2 border-red-200 pb-2 text-red-600 flex items-center gap-2">🩹 통증 및 관리 요약</h3>
                   <div className="space-y-3 text-base font-bold text-slate-700">
                       <div className="flex justify-between"><span>통증/관리 기록 수</span> <span className="text-slate-900">{rehabLogs.length}건</span></div>
@@ -638,7 +643,6 @@ export default function Dashboard() {
               </div>
           </div>
 
-          {/* 최근 활동 로그 표 */}
           <h3 className="font-black text-2xl mb-4">📋 최근 상세 기록 내역 <span className="text-base text-slate-400 font-bold ml-2">(최대 15건)</span></h3>
           <div className="border-2 border-slate-900 rounded-xl overflow-hidden">
             <table className="w-full text-left border-collapse">
@@ -678,7 +682,6 @@ export default function Dashboard() {
             </table>
           </div>
           
-          {/* 강력한 면책 조항 (가장 중요한 부분!) */}
           <div className="mt-12 pt-6 border-t-2 border-slate-100 text-center">
             <p className="text-sm font-bold text-red-500 mb-1">
               ⚠️ 본 리포트는 사용자가 직접 기록한 주관적인 운동 및 통증 수치를 요약한 것입니다.
@@ -689,8 +692,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      {/* 👆 여기까지가 숨겨진 데이터 리포트 영역입니다. */}
-
       
       {shareData && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-50] opacity-100 pointer-events-none">
@@ -971,7 +972,6 @@ export default function Dashboard() {
             </section>
 
             <section>
-                {/* ✅ 버튼 텍스트도 안전하게 변경 */}
                 <div className="flex justify-between items-center mb-4 px-1">
                     <h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3>
                     <div className="flex gap-2">
