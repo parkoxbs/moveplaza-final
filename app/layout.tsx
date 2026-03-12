@@ -23,14 +23,14 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  // 👇 PWA 매니페스트 파일 연결 (기존 설정 유지)
+  // 👇 PWA 매니페스트 파일 연결
   manifest: '/manifest.webmanifest',
   
   // 👇 카톡/슬랙/디스코드 공유 미리보기 설정
   openGraph: {
     title: 'Moveplaza | 선수 퍼포먼스 관리 시스템',
     description: '부상 없이 득근하자! 📉 컨디션 분석부터 AI 부상 리포트까지.',
-    url: 'moveplaza-final.vercel.app', // ⚠️ 실제 배포 주소로 꼭 수정하세요!
+    url: 'https://moveplaza-final.vercel.app', 
     siteName: 'Moveplaza',
     locale: 'ko_KR',
     type: 'website',
@@ -55,8 +55,10 @@ export const metadata: Metadata = {
 
 // 👇 뷰포트 설정 (모바일 앱처럼 보이게 하기 + 상단바 색상)
 export const viewport: Viewport = {
-  // 앱 배경색과 맞춤 (더 자연스러움)
-  themeColor: '#0f172a', 
+  // 앱 배경색(slate-950)과 완벽하게 일치시킴
+  themeColor: '#020617', 
+  // 시스템 강제 다크모드 무시 마법!
+  colorScheme: 'dark', 
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

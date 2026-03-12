@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 👇 스마트폰의 강제 다크모드/라이트모드 필터 완벽 차단! */
+  color-scheme: dark; 
+
+  /* 👇 배경은 무조건 영롱한 남색(slate-950)으로 영구 고정 */
+  --background: #020617;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -12,19 +16,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-/* 기존 코드 아래에 추가하세요 */
+
+/* 기존 코드 (애니메이션 및 스크롤바 숨기기 유지) */
 
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }
