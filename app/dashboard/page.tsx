@@ -110,8 +110,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState("")
   
-  // ✅ 병원 제출용 리포트를 위한 Ref 추가!
-  const medicalReportRef = useRef<HTMLDivElement>(null)
+  // ✅ 제출용 리포트 Ref
+  const dataReportRef = useRef<HTMLDivElement>(null)
   
   const shareCardRef = useRef<HTMLDivElement>(null)
   const [shareData, setShareData] = useState<any>(null)
@@ -325,9 +325,9 @@ export default function Dashboard() {
     
     if (rehabLogs.length > 0) {
         if (Number(avgPain) >= 8) {
-            advice = "🚨 평균 통증 점수가 매우 높습니다! 무리한 운동은 멈추고, 전문 의료기관 방문을 강력히 권장합니다.";
+            advice = "🚨 평균 통증 점수가 매우 높습니다! 무리한 운동은 멈추고, 충분한 휴식이나 점검을 권장합니다.";
         } else if (Number(avgPain) >= 5) {
-            advice = "⚠️ 통증이 지속되고 있습니다. 운동 강도를 낮추고 충분한 휴식과 스트레칭이 필요합니다.";
+            advice = "⚠️ 통증이 지속되고 있습니다. 운동 강도를 낮추고 충분한 스트레칭이 필요합니다.";
         } else if (worstPart.includes("무릎")) {
             advice = "🦵 무릎에 부하가 많이 가고 있네요. 대퇴사두근 강화 운동과 햄스트링 스트레칭을 루틴에 추가해보세요.";
         } else if (worstPart.includes("허리")) {
@@ -520,15 +520,15 @@ export default function Dashboard() {
     }, 1500); 
   }
 
-  // ✅ [진짜 기획 대박] 의사/트레이너 제출용 전문 리포트 캡처 함수!
+  // ✅ [수정됨] 법적으로 문제 없는 자가 기록용 데이터 리포트 캡처 함수!
   const handleDownloadImage = async () => {
-    if (!medicalReportRef.current) return; // 숨겨둔 리포트 영역을 캡처합니다!
-    const t = toast.loading("의료/제출용 데이터 리포트 생성 중... 📸");
+    if (!dataReportRef.current) return; 
+    const t = toast.loading("활동 데이터 리포트 생성 중... 📸");
     
     setTimeout(async () => {
       try {
-        if(!medicalReportRef.current) return;
-        const element = medicalReportRef.current;
+        if(!dataReportRef.current) return;
+        const element = dataReportRef.current;
         const width = element.scrollWidth;
         const height = element.scrollHeight;
         
@@ -536,7 +536,7 @@ export default function Dashboard() {
         const dataUrl = await toPng(element, { 
           cacheBust: true, 
           pixelRatio: 2, 
-          backgroundColor: '#ffffff', // 하얀색 종이 느낌
+          backgroundColor: '#ffffff', 
           width: width, 
           height: height, 
           style: { padding: '20px', background: '#ffffff' }, 
@@ -545,13 +545,13 @@ export default function Dashboard() {
 
         // 갤러리에 직통 저장
         const link = document.createElement('a');
-        link.download = `${userName}_Medical_Report_${Date.now()}.png`;
+        link.download = `${userName}_Activity_Report_${Date.now()}.png`;
         link.href = dataUrl;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        toast.success("제출용 데이터 표가 갤러리에 저장되었습니다! 🏥", { id: t });
+        toast.success("데이터 리포트가 갤러리에 저장되었습니다! 📊", { id: t });
       } catch (e) { 
         console.error(e); 
         toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t, duration: 5000 }); 
@@ -589,22 +589,22 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
-      {/* 👇 🏥 화면에는 안 보이지만 캡처될 때 사용되는 [병원 제출용 데이터 리포트] 영역입니다! */}
+      {/* 👇 📊 화면에는 안 보이지만 캡처될 때 사용되는 [데이터 리포트] 영역입니다! (의료법 우회) */}
       <div className="absolute top-0 left-[-9999px] z-[-9999] opacity-0 pointer-events-none">
-        <div ref={medicalReportRef} className="w-[800px] bg-white text-slate-900 p-10 font-sans tracking-tight" style={{ minHeight: '1122px' }}>
+        <div ref={dataReportRef} className="w-[800px] bg-white text-slate-900 p-10 font-sans tracking-tight" style={{ minHeight: '1122px' }}>
           
           {/* 리포트 헤더 */}
           <div className="border-b-4 border-slate-900 pb-4 mb-8 flex justify-between items-end">
             <div>
-              <h1 className="text-4xl font-black mb-2 tracking-tighter">ATHLETE DATA REPORT</h1>
-              <p className="text-sm text-slate-500 font-bold uppercase tracking-widest">Medical & Training Summary</p>
+              <h1 className="text-4xl font-black mb-2 tracking-tighter">PERSONAL ACTIVITY LOG</h1>
+              <p className="text-sm text-slate-500 font-bold uppercase tracking-widest">Training & Condition Summary</p>
             </div>
             <div className="text-right">
               <p className="text-2xl font-black text-blue-600">MOVEPLAZA</p>
             </div>
           </div>
           
-          {/* 환자/선수 기본 정보 */}
+          {/* 유저 기본 정보 */}
           <div className="flex justify-between items-center bg-slate-100 p-6 rounded-xl mb-8">
             <div>
                 <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-widest">Athlete Name</p>
@@ -619,7 +619,7 @@ export default function Dashboard() {
           {/* 주요 통계 요약 (그리드) */}
           <div className="grid grid-cols-2 gap-6 mb-10">
               <div className="border-2 border-slate-200 p-6 rounded-2xl bg-white shadow-sm">
-                  <h3 className="font-black text-xl mb-4 border-b-2 border-slate-100 pb-2 flex items-center gap-2">📊 시즌 종합 요약</h3>
+                  <h3 className="font-black text-xl mb-4 border-b-2 border-slate-100 pb-2 flex items-center gap-2">📊 시즌 활동 요약</h3>
                   <div className="space-y-3 text-base font-bold text-slate-700">
                       <div className="flex justify-between"><span>총 훈련/운동 기록</span> <span className="text-slate-900">{logs.filter(l=>l.log_type==='workout').length}회</span></div>
                       <div className="flex justify-between"><span>총 실전 경기 수</span> <span className="text-slate-900">{matchStats.total}경기</span></div>
@@ -628,16 +628,17 @@ export default function Dashboard() {
                   </div>
               </div>
               <div className="border-2 border-red-100 p-6 rounded-2xl bg-red-50 shadow-sm">
-                  <h3 className="font-black text-xl mb-4 border-b-2 border-red-200 pb-2 text-red-600 flex items-center gap-2">🏥 부상/재활 요약</h3>
+                  {/* 의료적 표현을 피해 '통증 및 관리'로 순화 */}
+                  <h3 className="font-black text-xl mb-4 border-b-2 border-red-200 pb-2 text-red-600 flex items-center gap-2">🩹 통증 및 관리 요약</h3>
                   <div className="space-y-3 text-base font-bold text-slate-700">
-                      <div className="flex justify-between"><span>총 부상/재활 발생</span> <span className="text-slate-900">{rehabLogs.length}건</span></div>
-                      <div className="flex justify-between items-start"><span className="shrink-0">주요 통증 부위</span> <span className="text-red-600 text-right">{analysisData?.worstPart || '없음'}</span></div>
-                      <div className="flex justify-between"><span>최근 평균 통증 강도</span> <span className="text-slate-900">{analysisData?.avgPain || 0} / 10점</span></div>
+                      <div className="flex justify-between"><span>통증/관리 기록 수</span> <span className="text-slate-900">{rehabLogs.length}건</span></div>
+                      <div className="flex justify-between items-start"><span className="shrink-0">주요 불편 부위</span> <span className="text-red-600 text-right">{analysisData?.worstPart || '없음'}</span></div>
+                      <div className="flex justify-between"><span>본인 체감 평균 통증</span> <span className="text-slate-900">{analysisData?.avgPain || 0} / 10점</span></div>
                   </div>
               </div>
           </div>
 
-          {/* 최근 활동 로그 표 (병원 제출용) */}
+          {/* 최근 활동 로그 표 */}
           <h3 className="font-black text-2xl mb-4">📋 최근 상세 기록 내역 <span className="text-base text-slate-400 font-bold ml-2">(최대 15건)</span></h3>
           <div className="border-2 border-slate-900 rounded-xl overflow-hidden">
             <table className="w-full text-left border-collapse">
@@ -677,12 +678,13 @@ export default function Dashboard() {
             </table>
           </div>
           
+          {/* 강력한 면책 조항 (가장 중요한 부분!) */}
           <div className="mt-12 pt-6 border-t-2 border-slate-100 text-center">
-            <p className="text-sm font-bold text-slate-400 mb-1">
-              본 리포트는 선수의 자가 기록을 바탕으로 Moveplaza 플랫폼에서 자동 생성된 데이터입니다.
+            <p className="text-sm font-bold text-red-500 mb-1">
+              ⚠️ 본 리포트는 사용자가 직접 기록한 주관적인 운동 및 통증 수치를 요약한 것입니다.
             </p>
-            <p className="text-xs font-bold text-slate-300">
-              의료진 진료 시 참고 자료로 활용하실 수 있습니다.
+            <p className="text-xs font-bold text-slate-500">
+              의학적 진단서나 소견서가 아니며, 병원 진료 시 참고용 데이터로만 활용해 주시기 바랍니다.
             </p>
           </div>
         </div>
@@ -969,12 +971,12 @@ export default function Dashboard() {
             </section>
 
             <section>
-                {/* ✅ 제출용 데이터 리포트 다운로드 버튼 */}
+                {/* ✅ 버튼 텍스트도 안전하게 변경 */}
                 <div className="flex justify-between items-center mb-4 px-1">
                     <h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3>
                     <div className="flex gap-2">
                         <button onClick={handleDownloadImage} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700 shadow-lg flex items-center gap-1">
-                            🏥 진료 데이터 저장
+                            📋 데이터 리포트 저장
                         </button>
                         {selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}
                     </div>
