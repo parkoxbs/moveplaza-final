@@ -8,10 +8,11 @@ import toast, { Toaster } from 'react-hot-toast'
 import 'react-calendar/dist/Calendar.css'
 import { LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend } from 'recharts'
 import { toPng } from 'html-to-image'
-import BodyMap from "..//components/BodyMap"
+import BodyMap from "../components/BodyMap"
+import ActivityCalendar from "..//components/ActivityCalendar" // 🚨 방금 만든 달력 컴포넌트 불러오기
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
-import BottomNav from "..//components/BottomNav"
+import BottomNav from "../components/BottomNav"
 
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
@@ -135,7 +136,7 @@ export default function Dashboard() {
 
   // 장비 스탯 추가
   const [gears, setGears] = useState<any[]>([]);
-  const [gearStats, setGearStats] = useState<any[]>([]); // 🚨 새로 추가된 장비 마일리지 상태
+  const [gearStats, setGearStats] = useState<any[]>([]); 
   const [selectedGearId, setSelectedGearId] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -202,13 +203,12 @@ export default function Dashboard() {
         const totalAssists = matches.reduce((acc, l) => acc + (l.assists || 0), 0);
         setMatchStats({ win, draw, lose, goals: totalGoals, assists: totalAssists, total: matches.length });
 
-        // 🚨 새로 추가된 로직: 장비별 사용 횟수(마일리지) 계산
         if (gearData) {
             setGears(gearData);
             const calculatedStats = gearData.map(g => {
-                const usage = logData.filter(l => l.gear_id === g.id).length; // 해당 장비를 쓴 로그 개수 세기
+                const usage = logData.filter(l => l.gear_id === g.id).length; 
                 return { ...g, usage };
-            }).sort((a, b) => b.usage - a.usage); // 많이 쓴 순서대로 정렬
+            }).sort((a, b) => b.usage - a.usage); 
             setGearStats(calculatedStats);
         }
     }
@@ -598,6 +598,7 @@ export default function Dashboard() {
   }, {} as any)
 
   const getSeverityColor = (count: number) => { if (count >= 5) return "bg-red-500/80 text-white border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]"; if (count >= 3) return "bg-orange-500/80 text-white border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]"; if (count >= 1) return "bg-yellow-500/80 text-white border-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]"; return "bg-slate-800 text-slate-400 border-slate-700"; }
+  
   const filteredLogs = selectedDate ? logs.filter(l => new Date(l.created_at).toDateString() === selectedDate.toDateString()) : logs
 
   return (
@@ -826,7 +827,6 @@ export default function Dashboard() {
                 </section>
             )}
 
-            {/* 🚨 장비 마일리지 (수명 관리) 섹션 추가! */}
             {gearStats.length > 0 && (
                 <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 shadow-sm overflow-hidden">
                     <div className="flex justify-between items-end mb-4">
@@ -835,11 +835,9 @@ export default function Dashboard() {
                             <p className="text-xs font-bold text-slate-400 mt-1">마모된 스터드와 쿠셔닝은 부상의 지름길!</p>
                         </div>
                     </div>
-                    
-                    {/* 가로로 스크롤되는 카드 리스트 */}
                     <div className="flex overflow-x-auto gap-4 pb-2 custom-scrollbar snap-x">
                         {gearStats.map(gear => {
-                            const maxUsage = 50; // 권장 교체(점검) 주기
+                            const maxUsage = 50;
                             const isWarning = gear.usage >= maxUsage;
                             const isCaution = gear.usage >= 30 && gear.usage < maxUsage;
                             const percentage = Math.min(100, (gear.usage / maxUsage) * 100);
@@ -857,17 +855,14 @@ export default function Dashboard() {
                                         </div>
                                         <span className="px-2 py-1 bg-slate-950 rounded-md text-[10px] font-bold text-slate-300 border border-white/10">{gear.stud_type}</span>
                                     </div>
-                                    
                                     <div className="space-y-1.5">
                                         <div className="flex justify-between text-xs font-bold">
                                             <span className="text-slate-400">착용 횟수</span>
                                             <span className={`${statusText}`}>{gear.usage} <span className="text-slate-500 text-[10px]">/ 권장 {maxUsage}회</span></span>
                                         </div>
-                                        {/* 게이지 바 */}
                                         <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-white/5 relative">
                                             <div className={`absolute top-0 left-0 h-full ${statusColor} transition-all duration-1000`} style={{ width: `${percentage}%` }}></div>
                                         </div>
-                                        {/* 경고 알림 */}
                                         {isWarning && (
                                             <p className="text-[10px] font-bold text-red-400 mt-2 flex items-center gap-1 animate-pulse">
                                                 <Icons.AlertCircle /> 스터드 마모 점검 요망! (미끄러짐 주의)
@@ -1018,14 +1013,27 @@ export default function Dashboard() {
                 <p className="text-[10px] text-slate-500 mt-2 text-center">💡 컨디션(노란색)이 낮을 때 운동강도(파란선)가 높으면 부상 위험!</p>
             </section>
 
+            {/* 🚨 방금 만든 잔디 달력 컴포넌트 장착! */}
             <section>
                 <div className="flex justify-between items-center mb-4 px-1">
+                    <h3 className="text-xl font-black text-white">활동 캘린더 📅</h3>
+                </div>
+                <ActivityCalendar 
+                  logs={logs} 
+                  selectedDate={selectedDate} 
+                  onSelectDate={setSelectedDate} 
+                />
+            </section>
+
+            {/* 👇 달력에서 누른 날짜에 맞춰 필터링되는 리스트 */}
+            <section>
+                <div className="flex justify-between items-center mb-4 px-1 mt-6">
                     <h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3>
                     <div className="flex gap-2">
                         <button onClick={handleDownloadImage} className="text-xs bg-slate-800 border border-white/10 text-slate-300 px-2 py-1 rounded-lg font-bold hover:bg-slate-700 shadow-md flex items-center gap-1 transition">
                             📋 데이터 리포트 저장
                         </button>
-                        {selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-slate-700 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}
+                        {selectedDate && <button onClick={() => setSelectedDate(null)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded-lg font-bold">전체보기</button>}
                     </div>
                 </div>
                 
