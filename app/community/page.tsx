@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createBrowserClient } from "@supabase/ssr"; 
 import { useRouter } from 'next/navigation';
 
@@ -21,61 +21,43 @@ const containsBadWord = (text: string) => {
   return BAD_WORDS.some(word => text.includes(word));
 };
 
-// 아이콘
+// 🎨 고급스러운 UI 아이콘 세트 (알림 아이콘 추가!)
 const Icons = {
   Search: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>,
-  X: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  X: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  HeartOutline: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform active:scale-75 hover:stroke-red-500"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
+  HeartFilled: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform active:scale-75 animate-bounce-slow"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
+  Comment: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-blue-400 transition-colors"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  More: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>,
+  // 🔔 럭셔리한 알림 아이콘 (Apple 스타일 Stroke)
+  Bell: () => <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-blue-400 transition-colors"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
 }
 
-type Profile = { 
-  id: string; 
-  username: string; 
-  sport: string; 
-  position: string; 
-  avatar_url?: string;
-  level?: string;
-  emoji?: string;
-  color?: string;
-};
-
-type Comment = { 
-  id: number; 
-  content: string; 
-  user_id: string; 
-  created_at: string; 
-  profile?: Profile;
-  like_count: number; 
-  is_liked: boolean;  
-};
-
-type Log = { 
-  id: string; 
-  title?: string; 
-  content: string; 
-  created_at: string; 
-  pain_score: number; 
-  user_id: string; 
-  is_public: boolean; 
-  image_url?: string; 
-  log_type?: 'workout' | 'rehab' | 'match';
-  media_type?: 'image' | 'video'; 
-  match_result?: 'win' | 'lose' | 'draw' | 'none';
-  goals?: number;  
-  assists?: number;
-  profile?: Profile; 
-  like_count: number; 
-  is_liked: boolean; 
-  comments: Comment[]; 
-};
-
+// 타입 정의들
+type Profile = { id: string; username: string; sport: string; position: string; avatar_url?: string; level?: string; emoji?: string; color?: string; };
+type Comment = { id: number; content: string; user_id: string; created_at: string; profile?: Profile; like_count: number; is_liked: boolean; };
+type Log = { id: string; title?: string; content: string; created_at: string; pain_score: number; user_id: string; is_public: boolean; image_url?: string; log_type?: 'workout' | 'rehab' | 'match'; media_type?: 'image' | 'video'; match_result?: 'win' | 'lose' | 'draw' | 'none'; goals?: number; assists?: number; profile?: Profile; like_count: number; is_liked: boolean; comments: Comment[]; };
 type Notice = { id: number; title: string; content: string; created_at: string; };
 type RankedUser = Profile & { logCount: number; rank: number; };
+
+// 🚨 알림(Notification) 타입 추가
+type Notification = { id: number; actor_name: string; log_id: string; type: string; message: string; is_read: boolean; created_at: string; };
 
 const getLevel = (count: number) => {
   if (count >= 50) return { name: 'World Class', emoji: '👑', color: 'bg-purple-600 text-white' };
   if (count >= 30) return { name: 'Pro', emoji: '🔥', color: 'bg-red-500 text-white' };
   if (count >= 10) return { name: 'Semi-Pro', emoji: '🏃', color: 'bg-blue-500 text-white' };
   return { name: 'Rookie', emoji: '🐣', color: 'bg-green-500 text-white' };
+};
+
+const formatContent = (rawContent: string) => {
+  const match = rawContent.match(/^\[(.*?)\]\s*([\s\S]*)/);
+  if (match) {
+    const tags = match[1].split(',').map(t => t.trim()).filter(Boolean);
+    const text = match[2];
+    return { tags, text };
+  }
+  return { tags: [], text: rawContent };
 };
 
 export default function CommunityPage() {
@@ -93,14 +75,24 @@ export default function CommunityPage() {
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeContent, setNoticeContent] = useState('');
 
-  // 🔍 검색어 상태
   const [searchTerm, setSearchTerm] = useState('');
+
+  // 🚨 알림 상태 관리
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   useEffect(() => { fetchData(); }, []);
 
   async function fetchData() {
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
+
+    // 🚨 내 알림(Notification) 데이터 가져오기
+    if (user) {
+        const { data: notiData } = await supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20);
+        if (notiData) setNotifications(notiData);
+    }
 
     const { data: noticesData } = await supabase.from('notices').select('*').order('created_at', { ascending: false });
     if (noticesData) setNotices(noticesData);
@@ -174,11 +166,35 @@ export default function CommunityPage() {
     setLoading(false);
   }
 
-  const toggleLike = async (logId: string, currentLiked: boolean) => { 
+  // 🚨 좋아요 누를 때 알림 쏘는 로직 추가
+  const toggleLike = async (log: Log) => { 
     if (!currentUser) { alert('로그인 필요'); return; } 
-    if (currentLiked) await supabase.from('likes').delete().match({ user_id: currentUser.id, log_id: logId }); 
-    else await supabase.from('likes').insert({ user_id: currentUser.id, log_id: logId }); 
-    fetchData(); 
+    
+    if (log.is_liked) {
+        await supabase.from('likes').delete().match({ user_id: currentUser.id, log_id: log.id }); 
+    } else {
+        await supabase.from('likes').insert({ user_id: currentUser.id, log_id: log.id }); 
+        
+        // 내 글이 아닌 남의 글에 좋아요를 누르면 알림 쏘기
+        if (log.user_id !== currentUser.id) {
+            const { data: myProfile } = await supabase.from('profiles').select('username').eq('id', currentUser.id).single();
+            const myName = myProfile?.username || '익명 선수';
+            await supabase.from('notifications').insert({
+                user_id: log.user_id,
+                actor_name: myName,
+                log_id: log.id,
+                type: 'like',
+                message: `${myName}님이 회원님의 기록을 응원합니다! 🔥`
+            });
+        }
+    }
+    
+    setLogs(prev => prev.map(l => {
+        if (l.id === log.id) {
+            return { ...l, is_liked: !log.is_liked, like_count: log.is_liked ? l.like_count - 1 : l.like_count + 1 };
+        }
+        return l;
+    }));
   };
 
   const toggleCommentLike = async (commentId: number, currentLiked: boolean) => {
@@ -188,18 +204,42 @@ export default function CommunityPage() {
     fetchData(); 
   };
 
-  const addComment = async (logId: string) => { 
+  // 🚨 댓글 달 때 알림 쏘는 로직 추가
+  const addComment = async (log: Log) => { 
     if (!currentUser) { alert('로그인 필요'); return; } 
-    const content = commentInputs[logId]; 
+    const content = commentInputs[log.id]; 
     if (!content?.trim()) return; 
     if (containsBadWord(content)) return alert("🚫 바른 말을 사용해주세요!");
-    await supabase.from('comments').insert({ content, log_id: logId, user_id: currentUser.id }); 
-    setCommentInputs({ ...commentInputs, [logId]: '' }); 
+    
+    await supabase.from('comments').insert({ content, log_id: log.id, user_id: currentUser.id }); 
+    
+    // 내 글이 아닌 남의 글에 댓글을 달면 알림 쏘기
+    if (log.user_id !== currentUser.id) {
+        const { data: myProfile } = await supabase.from('profiles').select('username').eq('id', currentUser.id).single();
+        const myName = myProfile?.username || '익명 선수';
+        await supabase.from('notifications').insert({
+            user_id: log.user_id,
+            actor_name: myName,
+            log_id: log.id,
+            type: 'comment',
+            message: `${myName}님이 댓글을 남겼습니다: "${content.substring(0, 15)}${content.length > 15 ? '...' : ''}"`
+        });
+    }
+
+    setCommentInputs({ ...commentInputs, [log.id]: '' }); 
     fetchData(); 
   };
 
   const deleteComment = async (commentId: number) => { if (!confirm('삭제하시겠습니까?')) return; await supabase.from('comments').delete().eq('id', commentId); fetchData(); };
   const toggleCommentView = (logId: string) => { setExpandedComments(prev => ({ ...prev, [logId]: !prev[logId] })); };
+
+  // 🚨 알림 읽음 처리 및 닫기
+  const handleNotificationClick = async (notiId: number) => {
+      await supabase.from('notifications').update({ is_read: true }).eq('id', notiId);
+      setShowNotifications(false);
+      fetchData(); // 알림 빨간 점 없애기 위해 리프레시
+      // 여기서 원래는 해당 게시물로 스크롤 이동하면 좋지만, 광장 페이지이므로 창만 닫아줍니다.
+  };
 
   const handleAddNotice = async () => {
     if (!noticeTitle.trim() || !noticeContent.trim()) return alert("내용을 입력하세요!");
@@ -209,18 +249,13 @@ export default function CommunityPage() {
     fetchData();
   };
   
-  // ✅ [수정됨] 삭제 실패 시 원인(RLS 에러 등)을 알려주도록 변경
   const handleDeleteNotice = async (id: number) => { 
       if (!confirm("공지사항을 삭제하시겠습니까?")) return; 
       const { error } = await supabase.from('notices').delete().eq('id', id); 
-      if (error) {
-          alert("삭제 실패: Supabase 권한(RLS)을 확인해주세요!\n" + error.message);
-      } else {
-          fetchData(); 
-      }
+      if (error) alert("삭제 실패: Supabase 권한(RLS)을 확인해주세요!\n" + error.message);
+      else fetchData(); 
   };
 
-  // 🔍 검색 필터링
   const filteredLogs = logs.filter(log => {
     const term = searchTerm.toLowerCase();
     const titleMatch = log.title?.toLowerCase().includes(term);
@@ -233,29 +268,71 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-24 selection:bg-blue-500 selection:text-white">
-        <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/5 shadow-sm transition-all duration-300">
+        
+        {/* 🌟 프리미엄 헤더 (알림 벨 추가) */}
+        <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
             <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/dashboard')}>
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">M</div>
-                <span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span>
-            </div>
-            <button onClick={() => router.push('/dashboard')} className="text-sm font-bold text-slate-400 hover:text-blue-400 px-3 py-2 rounded-lg hover:bg-slate-900 transition">🏠 내 일지</button>
+                <div className="flex items-center gap-2 cursor-pointer group" onClick={() => router.push('/dashboard')}>
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)] group-hover:scale-105 transition">M</div>
+                    <span className="text-xl font-black tracking-tight text-white hidden sm:block">MOVEPLAZA</span>
+                </div>
+                
+                <div className="flex items-center gap-2 relative">
+                    {/* 🔔 알림 종 아이콘 */}
+                    <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2.5 text-slate-400 hover:text-white transition rounded-full hover:bg-white/5">
+                        <Icons.Bell />
+                        {unreadCount > 0 && (
+                            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-950 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse"></span>
+                        )}
+                    </button>
+
+                    <button onClick={() => router.push('/dashboard')} className="text-sm font-bold text-slate-300 hover:text-blue-400 bg-slate-900/50 border border-white/5 px-4 py-2 rounded-full hover:bg-slate-800 transition shadow-sm">
+                        🏠 내 일지
+                    </button>
+
+                    {/* 📩 알림 드롭다운 패널 (Glassmorphism) */}
+                    {showNotifications && (
+                        <div className="absolute top-14 right-0 w-80 max-h-96 overflow-y-auto bg-slate-900/95 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-2xl p-4 z-50 animate-slide-up custom-scrollbar">
+                            <div className="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
+                                <h3 className="font-black text-white text-sm">알림 센터</h3>
+                                {unreadCount > 0 && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold">{unreadCount} 새 알림</span>}
+                            </div>
+                            
+                            {notifications.length === 0 ? (
+                                <p className="text-xs text-slate-500 font-bold text-center py-8">새로운 알림이 없습니다.</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {notifications.map(noti => (
+                                        <div key={noti.id} onClick={() => handleNotificationClick(noti.id)} className={`p-3 rounded-xl cursor-pointer transition flex items-start gap-3 border border-transparent ${noti.is_read ? 'opacity-50 hover:bg-white/5' : 'bg-blue-900/20 hover:bg-blue-900/30 border-blue-500/20 shadow-sm'}`}>
+                                            <span className="text-xl shrink-0 mt-0.5">{noti.type === 'like' ? '❤️' : '💬'}</span>
+                                            <div>
+                                                <p className="text-sm text-slate-200 font-medium leading-snug tracking-tight">{noti.message}</p>
+                                                <p className="text-[10px] text-slate-500 font-bold mt-1.5">{new Date(noti.created_at).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
         </header>
 
-        <div className="pt-24 pb-20 px-4 md:px-8 max-w-2xl mx-auto space-y-8 animate-slide-up">
+        <div className="pt-24 pb-20 px-4 md:px-8 max-w-2xl mx-auto space-y-8 animate-slide-up" onClick={() => showNotifications && setShowNotifications(false)}>
             
-            <div className="flex justify-between items-center bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5">
+            {/* 🌟 메인 타이틀 영역 */}
+            <div className="flex justify-between items-center mb-2 px-2">
                 <div>
-                    <h1 className="text-3xl font-black text-white">광장 📢</h1>
-                    <p className="text-slate-400 font-bold mt-1">서로 응원하고 꿀팁을 나눠보세요!</p>
+                    <h1 className="text-3xl font-black text-white tracking-tight">광장</h1>
+                    <p className="text-slate-400 font-medium mt-1 text-sm">전국 무브플라자 선수들의 활동 피드</p>
                 </div>
                 {currentUser?.email === ADMIN_EMAIL && (
-                    <button onClick={() => setShowNoticeForm(!showNoticeForm)} className="bg-white text-slate-950 text-xs px-3 py-2 rounded-lg font-bold">📢 공지 쓰기</button>
+                    <button onClick={() => setShowNoticeForm(!showNoticeForm)} className="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-2 rounded-full font-bold transition backdrop-blur-md">📢 공지 쓰기</button>
                 )}
             </div>
 
-            {/* 🔍 검색창 */}
+            {/* 🔍 프리미엄 검색창 (Apple 스타일) */}
             <div className="sticky top-20 z-40">
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
@@ -265,8 +342,8 @@ export default function CommunityPage() {
                         type="text" 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="관심 부위나 내용 검색 (예: 십자인대)" 
-                        className="w-full pl-12 pr-10 py-4 bg-slate-900 border border-white/10 rounded-2xl text-sm md:text-base text-white font-bold placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent shadow-lg transition-all"
+                        placeholder="관심 부위나 선수를 검색해보세요" 
+                        className="w-full pl-12 pr-10 py-3.5 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl text-sm text-white font-bold placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 shadow-lg transition-all"
                     />
                     {searchTerm && (
                         <button onClick={() => setSearchTerm('')} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-white transition-colors">
@@ -278,47 +355,79 @@ export default function CommunityPage() {
 
             {/* 공지 입력창 */}
             {currentUser?.email === ADMIN_EMAIL && showNoticeForm && (
-                <div className="bg-slate-900 p-6 rounded-3xl border border-blue-500/30">
+                <div className="bg-slate-900 p-6 rounded-3xl border border-blue-500/30 shadow-lg">
                     <h3 className="font-black text-lg mb-4 text-white">새 공지사항 작성</h3>
-                    <input type="text" value={noticeTitle} onChange={(e) => setNoticeTitle(e.target.value)} placeholder="공지 제목" className="w-full p-3 mb-2 bg-slate-800 rounded-xl font-bold border border-slate-700 text-white" />
-                    <textarea value={noticeContent} onChange={(e) => setNoticeContent(e.target.value)} placeholder="공지 내용" className="w-full p-3 mb-4 bg-slate-800 rounded-xl h-24 font-medium border border-slate-700 text-white" />
-                    <button onClick={handleAddNotice} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">등록하기</button>
+                    <input type="text" value={noticeTitle} onChange={(e) => setNoticeTitle(e.target.value)} placeholder="공지 제목" className="w-full p-3 mb-3 bg-slate-800 rounded-xl font-bold border border-slate-700 text-white outline-none focus:border-blue-500" />
+                    <textarea value={noticeContent} onChange={(e) => setNoticeContent(e.target.value)} placeholder="공지 내용" className="w-full p-3 mb-4 bg-slate-800 rounded-xl h-24 font-medium border border-slate-700 text-white outline-none focus:border-blue-500 resize-none" />
+                    <button onClick={handleAddNotice} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-500 transition">등록하기</button>
                 </div>
             )}
 
             {/* 공지 리스트 */}
             {!searchTerm && notices.length > 0 && (
-                <div className="bg-slate-900/30 p-5 rounded-3xl border border-white/5 space-y-3">
-                    <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Notice</h3>
+                <div className="space-y-3">
                     {notices.map((notice) => (
-                        <div key={notice.id} className="bg-slate-900 p-4 rounded-xl flex flex-col gap-1 relative border border-white/5">
-                            <div className="flex items-center gap-2">
-                                <span className="text-red-500 text-lg">📢</span>
-                                <h4 className="font-bold text-white">{notice.title}</h4>
+                        <div key={notice.id} className="bg-blue-900/20 p-5 rounded-2xl flex flex-col gap-1 relative border border-blue-500/20 shadow-sm">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md">필독</span>
+                                <h4 className="font-black text-blue-100">{notice.title}</h4>
                             </div>
-                            <p className="text-slate-300 text-sm pl-7 whitespace-pre-wrap">{notice.content}</p>
-                            <span className="text-[10px] text-slate-500 pl-7 font-bold">{new Date(notice.created_at).toLocaleDateString()}</span>
-                            {currentUser?.email === ADMIN_EMAIL && <button onClick={() => handleDeleteNotice(notice.id)} className="absolute top-4 right-4 text-xs text-slate-600 hover:text-red-500 font-bold">삭제</button>}
+                            <p className="text-blue-200/80 text-sm whitespace-pre-wrap font-medium">{notice.content}</p>
+                            <span className="text-[10px] text-blue-500/50 font-bold mt-1">{new Date(notice.created_at).toLocaleDateString()}</span>
+                            {currentUser?.email === ADMIN_EMAIL && <button onClick={() => handleDeleteNotice(notice.id)} className="absolute top-4 right-4 text-xs text-slate-500 hover:text-red-500 font-bold p-1"><Icons.X /></button>}
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* 랭킹 */}
+            {/* 🏆 명예의 전당 (디자인 폴리싱) */}
             {!searchTerm && ranking.length > 0 && (
-                <div className="bg-gradient-to-br from-slate-900 to-black rounded-3xl p-6 md:p-8 text-white shadow-2xl relative overflow-hidden border border-white/10">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
-                    <h2 className="text-xl font-black mb-6 flex items-center gap-2">🏆 명예의 전당 (TOP 3)</h2>
-                    <div className="flex justify-around items-end gap-2">
-                        {ranking[1] && (<div className="flex flex-col items-center gap-2 mb-4"><div className="w-16 h-16 rounded-full border-4 border-slate-600 overflow-hidden bg-slate-800">{ranking[1].avatar_url ? <img src={ranking[1].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-2xl">👤</div>}</div><div className="text-center"><span className="bg-slate-600 text-slate-200 text-[10px] font-black px-2 py-0.5 rounded-full">2ND</span><p className="font-bold text-sm mt-1">{ranking[1].username}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${ranking[1].color} inline-block mt-1`}>{ranking[1].emoji} {ranking[1].level}</span></div></div>)}
-                        {ranking[0] && (<div className="flex flex-col items-center gap-2 z-10"><div className="text-4xl absolute -mt-10">👑</div><div className="w-24 h-24 rounded-full border-4 border-yellow-400 overflow-hidden bg-yellow-900/20 shadow-[0_0_20px_rgba(250,204,21,0.3)]">{ranking[0].avatar_url ? <img src={ranking[0].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-4xl">👤</div>}</div><div className="text-center"><span className="bg-yellow-400 text-yellow-900 text-xs font-black px-3 py-1 rounded-full">1ST</span><p className="font-black text-lg mt-1">{ranking[0].username}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${ranking[0].color} inline-block mt-1`}>{ranking[0].emoji} {ranking[0].level}</span><p className="text-xs text-yellow-500/80 font-bold mt-1">{ranking[0].logCount}회 기록</p></div></div>)}
-                        {ranking[2] && (<div className="flex flex-col items-center gap-2 mb-2"><div className="w-16 h-16 rounded-full border-4 border-orange-800 overflow-hidden bg-slate-800">{ranking[2].avatar_url ? <img src={ranking[2].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-2xl">👤</div>}</div><div className="text-center"><span className="bg-orange-800 text-orange-200 text-[10px] font-black px-2 py-0.5 rounded-full">3RD</span><p className="font-bold text-sm mt-1">{ranking[2].username}</p><span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${ranking[2].color} inline-block mt-1`}>{ranking[2].emoji} {ranking[2].level}</span></div></div>)}
+                <div className="bg-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-xl relative border border-white/5 overflow-hidden">
+                    <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
+                    <h2 className="text-xl font-black mb-6 flex items-center gap-2 tracking-tight">🏆 명예의 전당 <span className="text-xs text-slate-400 font-medium">TOP 3</span></h2>
+                    
+                    <div className="flex justify-center items-end gap-6 md:gap-10">
+                        {ranking[1] && (
+                            <div className="flex flex-col items-center gap-2 mb-4 group cursor-default">
+                                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-slate-500 overflow-hidden bg-slate-800 shadow-lg group-hover:scale-105 transition duration-300">
+                                    {ranking[1].avatar_url ? <img src={ranking[1].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-xl">👤</div>}
+                                </div>
+                                <div className="text-center">
+                                    <span className="bg-slate-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full drop-shadow-md">2ND</span>
+                                    <p className="font-bold text-xs md:text-sm mt-1.5">{ranking[1].username}</p>
+                                </div>
+                            </div>
+                        )}
+                        {ranking[0] && (
+                            <div className="flex flex-col items-center gap-2 z-10 group cursor-default">
+                                <div className="text-3xl absolute -mt-8 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]">👑</div>
+                                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-yellow-400 overflow-hidden bg-slate-800 shadow-[0_0_20px_rgba(250,204,21,0.4)] group-hover:scale-105 transition duration-300">
+                                    {ranking[0].avatar_url ? <img src={ranking[0].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-3xl">👤</div>}
+                                </div>
+                                <div className="text-center">
+                                    <span className="bg-yellow-400 text-yellow-950 text-[10px] font-black px-2.5 py-0.5 rounded-full drop-shadow-md">1ST</span>
+                                    <p className="font-black text-sm md:text-base mt-1.5 text-yellow-100">{ranking[0].username}</p>
+                                    <p className="text-[10px] text-yellow-500/80 font-bold mt-0.5">{ranking[0].logCount}회 기록</p>
+                                </div>
+                            </div>
+                        )}
+                        {ranking[2] && (
+                            <div className="flex flex-col items-center gap-2 mb-2 group cursor-default">
+                                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-orange-700 overflow-hidden bg-slate-800 shadow-lg group-hover:scale-105 transition duration-300">
+                                    {ranking[2].avatar_url ? <img src={ranking[2].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-xl">👤</div>}
+                                </div>
+                                <div className="text-center">
+                                    <span className="bg-orange-800 text-white text-[9px] font-black px-2 py-0.5 rounded-full drop-shadow-md">3RD</span>
+                                    <p className="font-bold text-xs md:text-sm mt-1.5">{ranking[2].username}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
 
-            {/* 피드 목록 */}
-            <div className="space-y-6">
+            {/* 🌟 프리미엄 피드 목록 */}
+            <div className="space-y-6 pt-4">
             {filteredLogs.length === 0 ? (
                 <div className="text-center py-20 bg-slate-900/30 rounded-3xl border border-dashed border-white/10">
                     <p className="text-4xl mb-4">🌫️</p>
@@ -327,107 +436,152 @@ export default function CommunityPage() {
             ) : (
                 filteredLogs.map((log) => {
                     const isExpanded = expandedComments[log.id];
-                    const visibleComments = isExpanded ? log.comments : log.comments.slice(0, 3);
-                    const hiddenCount = log.comments.length - 3;
+                    const visibleComments = isExpanded ? log.comments : log.comments.slice(0, 2);
+                    const hiddenCount = log.comments.length - 2;
+                    
+                    const { tags, text } = formatContent(log.content);
 
                     return (
-                    <div key={log.id} className="bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-white/5">
-                        {/* 작성자 헤더 */}
-                        <div className="flex items-center gap-3 mb-5 border-b border-white/5 pb-4">
-                            <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800 border border-white/10">
-                            {log.profile?.avatar_url ? <img src={log.profile.avatar_url} alt="프사" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-2xl">👤</div>}
+                    <div key={log.id} className="bg-slate-900 border border-white/5 rounded-3xl overflow-hidden shadow-xl mb-8">
+                        
+                        <div className="p-5 pb-3 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0 cursor-pointer">
+                                    {log.profile?.avatar_url ? <img src={log.profile.avatar_url} alt="프사" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-1.5">
+                                        <p className="font-black text-white text-sm cursor-pointer">{log.profile?.username || '이름 없음'}</p>
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded-sm font-bold flex items-center gap-0.5 ${log.profile?.color || 'bg-slate-800 text-slate-400'}`}>
+                                            {log.profile?.emoji} {log.profile?.level}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[11px] text-slate-400 font-bold mt-0.5">
+                                        <span>{log.profile?.position || '미설정'}</span>
+                                        <span>·</span>
+                                        <span>{new Date(log.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                            <div className="flex items-center gap-1.5">
-                                <p className="font-black text-white text-lg">{log.profile?.username || '이름 없음'}</p>
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${log.profile?.color || 'bg-slate-800 text-slate-400'}`}>
-                                    {log.profile?.emoji} {log.profile?.level}
-                                </span>
-                            </div>
-                            <p className="text-sm text-slate-400 font-bold">{log.profile?.sport || '운동'} · {log.profile?.position || '미설정'}</p>
-                            </div>
-                            <div className="ml-auto text-sm text-slate-500 font-medium">{new Date(log.created_at).toLocaleDateString()}</div>
+                            <button className="text-slate-600 hover:text-slate-300 p-1"><Icons.More /></button>
                         </div>
 
-                        {/* 본문 */}
-                        <div className="mb-5">
-                            <div className="mb-2"> 
-                                <span className={`text-[10px] px-2 py-1 rounded-md font-black tracking-wide uppercase ${
-                                    log.log_type === 'match' ? 'bg-yellow-500/20 text-yellow-400' : 
-                                    (log.log_type === 'workout' ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400')
+                        <div className="px-5 pb-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className={`text-[9px] px-2 py-0.5 rounded font-black tracking-wider uppercase border ${
+                                    log.log_type === 'match' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 
+                                    (log.log_type === 'workout' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20')
                                 }`}> 
                                     {log.log_type === 'match' ? 'MATCH' : (log.log_type === 'workout' ? 'WORKOUT' : 'REHAB')} 
-                                </span> 
+                                </span>
+                                {log.pain_score > 0 && (
+                                    <span className="text-[10px] font-bold text-slate-400 border border-slate-700 px-2 py-0.5 rounded-full">
+                                        강도 <span className={log.pain_score >= 7 ? 'text-red-400' : 'text-white'}>{log.pain_score}</span>
+                                    </span>
+                                )}
                             </div>
                             
-                            {log.title && <h2 className="text-xl font-bold text-white mb-2 break-all">{log.title}</h2>}
-                            <p className="text-slate-300 font-medium text-lg whitespace-pre-wrap break-all mb-4">{log.content}</p>
+                            {log.title && <h2 className="text-lg font-black text-white mb-2 tracking-tight">{log.title}</h2>}
                             
-                            {/* 경기 스탯 표시 */}
-                            {log.log_type === 'match' && (
-                                <div className="flex gap-4 mb-4 bg-black/20 p-4 rounded-xl items-center justify-around border border-white/5">
-                                    <div className="text-center">
-                                        <p className="text-[10px] text-slate-500 font-bold mb-1">RESULT</p>
-                                        <p className={`text-lg font-black uppercase ${
-                                            log.match_result === 'win' ? 'text-blue-400' : 
-                                            (log.match_result === 'lose' ? 'text-red-400' : 'text-slate-300')
-                                        }`}>
-                                            {log.match_result === 'win' ? 'WIN' : (log.match_result === 'lose' ? 'LOSE' : 'DRAW')}
-                                        </p>
-                                    </div>
-                                    <div className="w-[1px] h-8 bg-white/10"></div>
-                                    <div className="text-center">
-                                        <p className="text-[10px] text-slate-500 font-bold mb-1">GOALS</p>
-                                        <p className="text-lg font-black text-yellow-400">{log.goals || 0}</p>
-                                    </div>
-                                    <div className="w-[1px] h-8 bg-white/10"></div>
-                                    <div className="text-center">
-                                        <p className="text-[10px] text-slate-500 font-bold mb-1">ASSISTS</p>
-                                        <p className="text-lg font-black text-emerald-400">{log.assists || 0}</p>
-                                    </div>
+                            <p className="text-slate-200 text-sm font-medium whitespace-pre-wrap break-all leading-relaxed">
+                                {text}
+                            </p>
+                            
+                            {tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-3">
+                                    {tags.map((tag, idx) => (
+                                        <span key={idx} className="text-xs font-bold text-blue-400 cursor-pointer hover:text-blue-300 transition">
+                                            #{tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {log.image_url && ( 
+                            <div className="w-full bg-slate-950 border-y border-white/5 flex items-center justify-center"> 
+                                {log.media_type === 'video' ? ( 
+                                    <video src={log.image_url} controls className="w-full h-auto object-contain" style={{ maxHeight: '80vh' }} /> 
+                                ) : ( 
+                                    <img src={log.image_url} alt="게시물 미디어" className="w-full h-auto object-contain" style={{ maxHeight: '80vh' }} /> 
+                                )} 
+                            </div> 
+                        )}
+
+                        {log.log_type === 'match' && (
+                            <div className="mx-5 my-4 bg-slate-800/50 p-4 rounded-2xl flex items-center justify-between border border-white/5 shadow-inner">
+                                <div className="text-center flex-1">
+                                    <p className="text-[9px] text-slate-500 font-bold mb-1 tracking-widest">RESULT</p>
+                                    <p className={`text-base font-black uppercase tracking-tight ${log.match_result === 'win' ? 'text-blue-400' : (log.match_result === 'lose' ? 'text-red-400' : 'text-slate-300')}`}>
+                                        {log.match_result === 'win' ? 'WIN' : (log.match_result === 'lose' ? 'LOSE' : 'DRAW')}
+                                    </p>
+                                </div>
+                                <div className="w-[1px] h-6 bg-white/10"></div>
+                                <div className="text-center flex-1">
+                                    <p className="text-[9px] text-slate-500 font-bold mb-1 tracking-widest">GOALS</p>
+                                    <p className="text-lg font-black text-yellow-400 leading-none">{log.goals || 0}</p>
+                                </div>
+                                <div className="w-[1px] h-6 bg-white/10"></div>
+                                <div className="text-center flex-1">
+                                    <p className="text-[9px] text-slate-500 font-bold mb-1 tracking-widest">ASSISTS</p>
+                                    <p className="text-lg font-black text-emerald-400 leading-none">{log.assists || 0}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 🚨 알림 로직이 연결된 좋아요 & 댓글 */}
+                        <div className="px-5 py-3 flex items-center gap-4">
+                            <button onClick={() => toggleLike(log)} className="flex items-center gap-1.5 group">
+                                {log.is_liked ? <Icons.HeartFilled /> : <Icons.HeartOutline />}
+                                <span className={`text-sm font-bold ${log.is_liked ? 'text-red-500' : 'text-slate-400 group-hover:text-slate-300'}`}>{log.like_count || 0}</span>
+                            </button>
+                            <button className="flex items-center gap-1.5 group cursor-default">
+                                <Icons.Comment />
+                                <span className="text-sm font-bold text-slate-400">{log.comments.length}</span>
+                            </button>
+                        </div>
+
+                        <div className="px-5 pb-5">
+                            {log.comments.length > 0 && (
+                                <div className="space-y-2 mb-3">
+                                    {visibleComments.map(comment => (
+                                        <div key={comment.id} className="flex gap-2 items-start text-sm group/comment">
+                                            <span className="font-bold text-slate-200 shrink-0 cursor-pointer">{comment.profile?.username || '익명'}</span>
+                                            <span className="text-slate-300 font-normal break-all flex-1">{comment.content}</span>
+                                            
+                                            <div className="flex items-center gap-2 opacity-0 group-hover/comment:opacity-100 transition-opacity">
+                                                <button onClick={() => toggleCommentLike(comment.id, comment.is_liked)} className={`text-[10px] flex items-center gap-1 font-bold ${comment.is_liked ? 'text-red-500' : 'text-slate-500 hover:text-red-400'}`}>
+                                                    {comment.is_liked ? '❤️' : '🤍'} {comment.like_count > 0 && comment.like_count}
+                                                </button>
+                                                {currentUser?.id === comment.user_id && <button onClick={() => deleteComment(comment.id)} className="text-slate-500 hover:text-red-500 font-bold px-1 text-[10px]">✕</button>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {log.comments.length > 2 && (
+                                        <button onClick={() => toggleCommentView(log.id)} className="text-xs font-bold text-slate-500 hover:text-slate-300 mt-1 block">
+                                            {isExpanded ? '댓글 숨기기' : `댓글 ${hiddenCount}개 모두 보기`}
+                                        </button>
+                                    )}
                                 </div>
                             )}
 
-                            {log.image_url && ( <div className="mb-4 rounded-2xl overflow-hidden border border-white/10 shadow-sm"> {log.media_type === 'video' ? ( <video src={log.image_url} controls className="w-full h-auto" /> ) : ( <img src={log.image_url} alt="인증샷" className="w-full h-auto object-cover" /> )} </div> )}
-                        </div>
-
-                        {/* 하단 액션바 */}
-                        <div className="flex items-center justify-between mb-6">
-                            <div className={`px-4 py-2 rounded-xl text-sm font-bold ${log.pain_score > 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}> 강도 {log.pain_score}점 </div>
-                            <button onClick={() => toggleLike(log.id, log.is_liked)} className={`flex items-center gap-2 font-bold text-lg transition px-4 py-2 rounded-full border ${log.is_liked ? 'text-red-500 bg-red-500/10 border-red-500/20' : 'text-slate-400 hover:text-red-500 border-white/10 hover:bg-red-500/10'}`}> {log.is_liked ? '❤️' : '🤍'} {log.like_count || 0} </button>
-                        </div>
-
-                        {/* 댓글 섹션 */}
-                        <div className="bg-slate-950 p-5 rounded-2xl border border-white/5">
-                            <div className="space-y-3 mb-4">
-                            {visibleComments.map(comment => (
-                                <div key={comment.id} className="flex gap-2 items-start text-sm group">
-                                    <span className="font-bold text-slate-300 shrink-0">{comment.profile?.username || '익명'}:</span>
-                                    <span className="text-slate-400 font-medium break-all flex-1">{comment.content}</span>
-                                    
-                                    <button onClick={() => toggleCommentLike(comment.id, comment.is_liked)} className={`text-xs flex items-center gap-1 font-bold ${comment.is_liked ? 'text-red-500' : 'text-slate-600 hover:text-red-400'}`}>
-                                        <span>{comment.is_liked ? '❤️' : '🤍'}</span>
-                                        {comment.like_count > 0 && <span>{comment.like_count}</span>}
+                            <div className="flex gap-2 items-center mt-2 relative">
+                                <div className="w-6 h-6 rounded-full bg-slate-800 shrink-0 overflow-hidden border border-white/10">
+                                     <div className="w-full h-full flex items-center justify-center text-[10px]">👤</div>
+                                </div>
+                                <input 
+                                    type="text" 
+                                    value={commentInputs[log.id] || ''} 
+                                    onChange={(e) => setCommentInputs({...commentInputs, [log.id]: e.target.value})} 
+                                    onKeyDown={(e) => e.key === 'Enter' && addComment(log)} 
+                                    placeholder="댓글 달기..." 
+                                    className="flex-1 bg-transparent border-none text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-0" 
+                                />
+                                {commentInputs[log.id]?.trim() && (
+                                    <button onClick={() => addComment(log)} className="text-blue-500 font-bold text-sm pr-2 hover:text-blue-400 transition animate-fade-in">
+                                        게시
                                     </button>
-
-                                    {currentUser?.id === comment.user_id && <button onClick={() => deleteComment(comment.id)} className="text-slate-600 hover:text-red-500 font-bold px-1 text-xs">✕</button>}
-                                </div>
-                            ))}
-                            {log.comments.length === 0 && <p className="text-xs text-slate-400 font-bold">첫 댓글을 남겨보세요!</p>}
-                            
-                            {log.comments.length > 3 && (
-                                <button 
-                                    onClick={() => toggleCommentView(log.id)}
-                                    className="text-xs font-bold text-blue-400 hover:text-blue-300 mt-2 block w-full text-left"
-                                >
-                                    {isExpanded ? '댓글 접기 ▲' : `댓글 ${hiddenCount}개 더 보기 ▼`}
-                                </button>
-                            )}
-                            </div>
-
-                            <div className="flex gap-2">
-                            <input type="text" value={commentInputs[log.id] || ''} onChange={(e) => setCommentInputs({...commentInputs, [log.id]: e.target.value})} onKeyDown={(e) => e.key === 'Enter' && addComment(log.id)} placeholder="댓글 입력..." className="flex-1 px-4 py-3 rounded-xl border border-white/10 bg-slate-800 text-white font-medium placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm" />
-                            <button onClick={() => addComment(log.id)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-500">등록</button>
+                                )}
                             </div>
                         </div>
                     </div>

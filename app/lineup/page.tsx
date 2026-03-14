@@ -1,14 +1,23 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toPng } from 'html-to-image';
 import toast, { Toaster } from 'react-hot-toast';
+import { createBrowserClient } from "@supabase/ssr"; 
+
+const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
+const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
+const supabase = createBrowserClient(supabaseUrl, supabaseKey)
 
 // 아이콘
 const Icons = {
   ArrowLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
   Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+  Save: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
+  Folder: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
+  X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
 };
 
 // 📍 포메이션 좌표 데이터
@@ -74,11 +83,11 @@ export default function LineupPage() {
   const router = useRouter();
   const fieldRef = useRef<HTMLDivElement>(null);
   
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [formation, setFormation] = useState('4-3-3');
   const [kitColor, setKitColor] = useState(KIT_COLORS[0]);
   const [teamName, setTeamName] = useState('MY TEAM');
   
-  // 🚨 드래그 앤 드롭을 위해 players 상태에 position 객체 추가
   const [players, setPlayers] = useState(Array.from({ length: 11 }, (_, i) => ({
     id: i,
     name: i === 0 ? 'GK' : `Player ${i}`,
@@ -86,18 +95,31 @@ export default function LineupPage() {
     isMOM: false,
     isCaptain: false,
     goals: 0,
-    position: FORMATIONS['4-3-3'][i] // 초기 위치 세팅
+    position: FORMATIONS['4-3-3'][i] 
   })));
 
   const [editingPlayer, setEditingPlayer] = useState<any>(null);
 
-  // 🚨 드래그 상태 관리 변수들
+  // 드래그 상태 관리
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const dragStartPos = useRef({ x: 0, y: 0 });
   const initialPlayerPos = useRef({ top: 0, left: 0 });
   const isDraggingRef = useRef(false);
 
-  // 포메이션 변경 시 선수 위치 일괄 이동
+  // 🚨 저장/불러오기 상태 관리
+  const [savedLineups, setSavedLineups] = useState<any[]>([]);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
+  const [saveName, setSaveName] = useState('');
+
+  useEffect(() => {
+    const getUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentUser(user);
+    };
+    getUser();
+  }, []);
+
   const handleFormationChange = (fmt: string) => {
     setFormation(fmt);
     setPlayers(prev => prev.map((p, i) => ({
@@ -141,20 +163,76 @@ export default function LineupPage() {
     }
   };
 
+  // 🚨 DB에 라인업 저장하기
+  const handleSaveLineupDB = async () => {
+      if (!currentUser) return toast.error("로그인이 필요합니다.");
+      if (!saveName.trim()) return toast.error("저장할 이름을 입력해주세요!");
+
+      const t = toast.loading("전술 저장 중...");
+      const { error } = await supabase.from('lineups').insert({
+          user_id: currentUser.id,
+          save_name: saveName,
+          team_name: teamName,
+          formation: formation,
+          kit_color: kitColor,
+          players: players
+      });
+
+      if (error) {
+          toast.error("저장 실패: " + error.message, { id: t });
+      } else {
+          toast.success("전술이 저장되었습니다! 💾", { id: t });
+          setIsSaveModalOpen(false);
+          setSaveName('');
+      }
+  };
+
+  // 🚨 DB에서 라인업 목록 불러오기
+  const fetchSavedLineups = async () => {
+      if (!currentUser) return;
+      const { data, error } = await supabase.from('lineups').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+      if (!error && data) {
+          setSavedLineups(data);
+          setIsLoadModalOpen(true);
+      }
+  };
+
+  // 🚨 선택한 라인업을 화면에 렌더링하기
+  const loadLineup = (lineup: any) => {
+      setTeamName(lineup.team_name);
+      setFormation(lineup.formation);
+      setKitColor(lineup.kit_color);
+      setPlayers(lineup.players);
+      setIsLoadModalOpen(false);
+      toast.success(`${lineup.save_name} 불러오기 완료! 🔄`);
+  };
+
+  // 🚨 라인업 삭제
+  const deleteLineup = async (id: number, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if(!confirm("정말 삭제하시겠습니까?")) return;
+      
+      const { error } = await supabase.from('lineups').delete().eq('id', id);
+      if(!error) {
+          setSavedLineups(prev => prev.filter(l => l.id !== id));
+          toast.success("삭제되었습니다.");
+      }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-white pb-20">
+    <div className="min-h-screen bg-slate-950 font-sans text-white pb-24">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
       {/* 헤더 */}
       <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-white/5 p-4 flex items-center justify-between">
         <button onClick={() => router.back()} className="text-slate-400 hover:text-white"><Icons.ArrowLeft /></button>
         <span className="font-black text-lg">LINEUP BUILDER ⚽</span>
-        <div className="w-6"></div>
+        <button onClick={fetchSavedLineups} className="text-slate-400 hover:text-white transition"><Icons.Folder /></button>
       </header>
 
-      <main className="max-w-md mx-auto p-4 space-y-6">
+      <main className="max-w-md mx-auto p-4 space-y-5">
         
-        {/* 1. 설정 컨트롤 패널 */}
+        {/* 설정 컨트롤 패널 */}
         <div className="bg-slate-900 p-4 rounded-2xl border border-white/10 space-y-4 shadow-sm">
           <div>
             <label className="text-xs font-bold text-slate-400 mb-2 block">팀 이름</label>
@@ -172,7 +250,7 @@ export default function LineupPage() {
               {Object.keys(FORMATIONS).map(fmt => (
                 <button 
                   key={fmt} 
-                  onClick={() => handleFormationChange(fmt)} // 🚨 수정된 함수 적용
+                  onClick={() => handleFormationChange(fmt)} 
                   className={`flex-grow py-2 px-3 text-xs font-bold rounded-lg transition active:scale-95 ${formation === fmt ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
                 >
                   {fmt}
@@ -195,7 +273,7 @@ export default function LineupPage() {
           </div>
         </div>
 
-        {/* 2. 그라운드 (캡처 영역) */}
+        {/* 그라운드 (캡처 영역) */}
         <div 
           ref={fieldRef} 
           className="relative w-full aspect-[3/4] rounded-xl overflow-hidden shadow-2xl border-[3px] border-white/30"
@@ -235,7 +313,7 @@ export default function LineupPage() {
                     left: player.position.left, 
                     transform: 'translate(-50%, -50%)', 
                     width: '60px',
-                    touchAction: 'none' // 🚨 모바일에서 드래그 시 화면 스크롤 방지
+                    touchAction: 'none'
                 }} 
                 onPointerDown={(e) => {
                     e.currentTarget.setPointerCapture(e.pointerId);
@@ -253,7 +331,6 @@ export default function LineupPage() {
                     const dx = e.clientX - dragStartPos.current.x;
                     const dy = e.clientY - dragStartPos.current.y;
                     
-                    // 움직임이 3px 이상일 때만 '드래그'로 판정 (그 이하는 단순 터치/클릭)
                     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
                         isDraggingRef.current = true;
                     }
@@ -266,7 +343,6 @@ export default function LineupPage() {
                         let newLeft = initialPlayerPos.current.left + dxPercent;
                         let newTop = initialPlayerPos.current.top + dyPercent;
 
-                        // 화면 밖으로 못 나가게 제한 (0% ~ 100%)
                         newLeft = Math.max(0, Math.min(100, newLeft));
                         newTop = Math.max(0, Math.min(100, newTop));
 
@@ -278,7 +354,6 @@ export default function LineupPage() {
                         e.currentTarget.releasePointerCapture(e.pointerId);
                         setDraggingId(null);
                         
-                        // 드래그가 아니라 단순 클릭이었다면 수정 모달 띄우기
                         if (!isDraggingRef.current) {
                             handlePlayerClick(player);
                         }
@@ -286,18 +361,16 @@ export default function LineupPage() {
                     }
                 }}
               >
-                {/* 유니폼 아이콘 (포인터 이벤트 차단하여 드래그 간섭 방지) */}
+                {/* 유니폼 아이콘 */}
                 <div className={`relative w-10 h-10 pointer-events-none ${index === 0 ? 'text-yellow-400' : kitColor.text}`}>
                    <div className={`absolute inset-0 rounded-full opacity-80 ${index === 0 ? 'bg-yellow-900' : kitColor.bg} blur-md`}></div>
                    <div className={`relative z-10 w-full h-full flex items-center justify-center rounded-full border-2 border-white/30 shadow-lg ${index === 0 ? 'bg-yellow-500 text-black' : `${kitColor.bg} ${kitColor.text}`}`}>
                       <span className="font-black text-sm">{player.number}</span>
                    </div>
                    
-                   {/* 뱃지들 */}
                    {player.isCaptain && <span className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 border border-black rounded-full flex items-center justify-center text-[10px] font-black text-black shadow-md z-20">C</span>}
                    {player.isMOM && <span className="absolute -top-2 -left-2 text-lg drop-shadow-md animate-bounce z-20">⭐</span>}
                    
-                   {/* 골 숫자 표시 */}
                    {player.goals > 0 && (
                        <div className="absolute -bottom-2 -right-2 bg-white border border-black rounded-full flex items-center justify-center px-1.5 py-0.5 z-20 shadow-sm gap-0.5">
                            <span className="text-[10px] leading-none">⚽</span>
@@ -306,7 +379,7 @@ export default function LineupPage() {
                    )}
                 </div>
                 
-                {/* 이름표 (포인터 이벤트 차단) */}
+                {/* 이름표 */}
                 <div className="mt-0.5 px-2 py-0.5 bg-black/60 rounded-md backdrop-blur-sm border border-white/10 max-w-[80px] pointer-events-none">
                   <p className="text-[9px] font-bold text-white whitespace-nowrap overflow-hidden text-ellipsis">{player.name}</p>
                 </div>
@@ -314,22 +387,30 @@ export default function LineupPage() {
             );
           })}
 
-          {/* 로고 */}
           <div className="absolute bottom-4 right-4 opacity-50 pointer-events-none">
             <p className="text-[10px] font-black text-white italic">MOVEPLAZA</p>
           </div>
         </div>
 
-        <button 
-          onClick={handleSaveImage}
-          className="w-full py-4 bg-blue-600 text-white font-extrabold rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition flex items-center justify-center gap-2 active:scale-95"
-        >
-          <Icons.Download /> 라인업 이미지 저장하기
-        </button>
+        {/* 🚨 저장 & 다운로드 액션 버튼 */}
+        <div className="flex gap-2">
+            <button 
+                onClick={() => setIsSaveModalOpen(true)}
+                className="flex-1 py-4 bg-slate-800 text-slate-300 font-extrabold rounded-xl hover:bg-slate-700 transition flex items-center justify-center gap-2 border border-white/10"
+            >
+                <Icons.Save /> 전술 저장
+            </button>
+            <button 
+                onClick={handleSaveImage}
+                className="flex-[2] py-4 bg-blue-600 text-white font-extrabold rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition flex items-center justify-center gap-2"
+            >
+                <Icons.Download /> 이미지 캡처
+            </button>
+        </div>
 
       </main>
 
-      {/* 선수 수정 모달 (기존과 동일) */}
+      {/* 선수 수정 모달 */}
       {editingPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setEditingPlayer(null)}>
           <div className="bg-slate-900 border border-white/10 w-full max-w-xs rounded-3xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -363,17 +444,73 @@ export default function LineupPage() {
                 <div className="flex items-center bg-slate-800 rounded-xl border border-slate-700 px-4 py-3 justify-between">
                    <span className="text-sm text-slate-300 font-bold">⚽ 득점 기록</span>
                    <div className="flex items-center gap-3">
-                       <button onClick={() => updatePlayer('goals', Math.max(0, editingPlayer.goals - 1))} className="w-8 h-8 bg-slate-700 rounded-lg text-white font-black hover:bg-slate-600 active:scale-90 transition">-</button>
+                       <button onClick={() => updatePlayer('goals', Math.max(0, editingPlayer.goals - 1))} className="w-8 h-8 bg-slate-700 rounded-lg text-white font-black hover:bg-slate-600 transition">-</button>
                        <span className="font-black text-lg w-6 text-center">{editingPlayer.goals}</span>
-                       <button onClick={() => updatePlayer('goals', editingPlayer.goals + 1)} className="w-8 h-8 bg-slate-700 rounded-lg text-white font-black hover:bg-slate-600 active:scale-90 transition">+</button>
+                       <button onClick={() => updatePlayer('goals', editingPlayer.goals + 1)} className="w-8 h-8 bg-slate-700 rounded-lg text-white font-black hover:bg-slate-600 transition">+</button>
                    </div>
                 </div>
               </div>
             </div>
-            <button onClick={() => setEditingPlayer(null)} className="mt-6 w-full py-4 bg-white text-slate-900 font-black rounded-xl hover:bg-slate-200 transition active:scale-95">완료</button>
+            <button onClick={() => setEditingPlayer(null)} className="mt-6 w-full py-4 bg-white text-slate-900 font-black rounded-xl hover:bg-slate-200 transition">완료</button>
           </div>
         </div>
       )}
+
+      {/* 🚨 전술 저장 모달 */}
+      {isSaveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsSaveModalOpen(false)}>
+          <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setIsSaveModalOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
+            <h3 className="font-black text-white text-lg mb-2">전술 저장하기 💾</h3>
+            <p className="text-xs text-slate-400 font-bold mb-4">현재 세팅된 포메이션과 선수 배치를 그대로 저장합니다.</p>
+            <input 
+                type="text" 
+                value={saveName} 
+                onChange={(e) => setSaveName(e.target.value)} 
+                placeholder="예: 주말 리그 선발, FC무브 1쿼터" 
+                className="w-full p-4 bg-slate-800 text-white font-bold rounded-xl border border-slate-700 outline-none focus:border-blue-500 mb-4" 
+            />
+            <button onClick={handleSaveLineupDB} className="w-full py-4 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-500 transition">저장 완료</button>
+          </div>
+        </div>
+      )}
+
+      {/* 🚨 불러오기 모달 */}
+      {isLoadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm sm:p-4 animate-fade-in" onClick={() => setIsLoadModalOpen(false)}>
+          <div className="bg-slate-900 border border-white/10 w-full max-w-md h-[80vh] sm:h-auto sm:max-h-[80vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-white/10 flex justify-between items-center">
+                <h3 className="font-black text-white text-lg">내 전술 보관함 📂</h3>
+                <button onClick={() => setIsLoadModalOpen(false)} className="text-slate-400 hover:text-white"><Icons.X /></button>
+            </div>
+            
+            <div className="p-4 overflow-y-auto flex-1 custom-scrollbar space-y-3">
+                {savedLineups.length === 0 ? (
+                    <div className="text-center py-10">
+                        <p className="text-3xl mb-2">텅</p>
+                        <p className="text-slate-500 font-bold text-sm">저장된 전술이 없습니다.</p>
+                    </div>
+                ) : (
+                    savedLineups.map(lineup => (
+                        <div key={lineup.id} onClick={() => loadLineup(lineup)} className="bg-slate-800 p-4 rounded-2xl border border-white/5 hover:border-blue-500 hover:bg-slate-800/80 transition cursor-pointer flex justify-between items-center group">
+                            <div>
+                                <h4 className="font-black text-white mb-1">{lineup.save_name}</h4>
+                                <div className="flex gap-2 text-xs font-bold text-slate-400">
+                                    <span className="bg-slate-950 px-2 py-0.5 rounded-md">{lineup.team_name}</span>
+                                    <span className="bg-slate-950 px-2 py-0.5 rounded-md">{lineup.formation}</span>
+                                </div>
+                            </div>
+                            <button onClick={(e) => deleteLineup(lineup.id, e)} className="p-2 text-slate-500 hover:text-red-500 transition opacity-0 group-hover:opacity-100 bg-slate-950 rounded-full">
+                                <Icons.Trash />
+                            </button>
+                        </div>
+                    ))
+                )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
