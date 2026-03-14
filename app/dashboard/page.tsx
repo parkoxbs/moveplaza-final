@@ -133,7 +133,9 @@ export default function Dashboard() {
   
   const [matchStats, setMatchStats] = useState({ win: 0, draw: 0, lose: 0, goals: 0, assists: 0, total: 0 });
 
+  // 장비 스탯 추가
   const [gears, setGears] = useState<any[]>([]);
+  const [gearStats, setGearStats] = useState<any[]>([]); // 🚨 새로 추가된 장비 마일리지 상태
   const [selectedGearId, setSelectedGearId] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -174,9 +176,7 @@ export default function Dashboard() {
     
     const { data: logData } = await supabase.from('logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
     const { data: condData } = await supabase.from('daily_conditions').select('*').eq('user_id', user.id).order('created_at', { ascending: true })
-    
     const { data: gearData } = await supabase.from('gears').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-    if (gearData) setGears(gearData);
 
     if (logData) { 
         setLogs(logData);
@@ -201,6 +201,16 @@ export default function Dashboard() {
         const totalGoals = matches.reduce((acc, l) => acc + (l.goals || 0), 0);
         const totalAssists = matches.reduce((acc, l) => acc + (l.assists || 0), 0);
         setMatchStats({ win, draw, lose, goals: totalGoals, assists: totalAssists, total: matches.length });
+
+        // 🚨 새로 추가된 로직: 장비별 사용 횟수(마일리지) 계산
+        if (gearData) {
+            setGears(gearData);
+            const calculatedStats = gearData.map(g => {
+                const usage = logData.filter(l => l.gear_id === g.id).length; // 해당 장비를 쓴 로그 개수 세기
+                return { ...g, usage };
+            }).sort((a, b) => b.usage - a.usage); // 많이 쓴 순서대로 정렬
+            setGearStats(calculatedStats);
+        }
     }
     
     const today = new Date().toISOString().split('T')[0]
@@ -437,7 +447,6 @@ export default function Dashboard() {
     setUploading(false)
   }
 
-  // 🚨 건의사항 에러 픽스 반영 완료
   const handleSendSuggestion = async () => {
     if(!suggestionText.trim()) return toast.error("내용을 입력해주세요!");
     const t = toast.loading("전송 중...");
@@ -529,7 +538,6 @@ export default function Dashboard() {
     }, 1500); 
   }
 
-  // 🚨 A4 리포트 저장 기능 (정상 작동)
   const handleDownloadImage = async () => {
     if (!dataReportRef.current) return; 
     const t = toast.loading("활동 데이터 리포트 생성 중... 📸");
@@ -596,7 +604,6 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-32 selection:bg-blue-500 selection:text-white">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
-      {/* 데이터 리포트 영역 (숨김) */}
       <div className="absolute top-0 left-[-9999px] z-[-9999] opacity-0 pointer-events-none">
         <div ref={dataReportRef} className="w-[800px] bg-white text-slate-900 p-10 font-sans tracking-tight" style={{ minHeight: '1122px' }}>
           <div className="border-b-4 border-slate-900 pb-4 mb-8 flex justify-between items-end">
@@ -763,7 +770,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 파란색 테마로 복귀 */}
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
         <div className="max-w-md mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.reload()}><div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">M</div><span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span></div>
@@ -820,7 +826,61 @@ export default function Dashboard() {
                 </section>
             )}
 
-            {/* 라인업은 원래도 초록색(잔디) 테마였으니 유지! */}
+            {/* 🚨 장비 마일리지 (수명 관리) 섹션 추가! */}
+            {gearStats.length > 0 && (
+                <section className="bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 border border-white/5 shadow-sm overflow-hidden">
+                    <div className="flex justify-between items-end mb-4">
+                        <div>
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">장비 컨디션 👟</h3>
+                            <p className="text-xs font-bold text-slate-400 mt-1">마모된 스터드와 쿠셔닝은 부상의 지름길!</p>
+                        </div>
+                    </div>
+                    
+                    {/* 가로로 스크롤되는 카드 리스트 */}
+                    <div className="flex overflow-x-auto gap-4 pb-2 custom-scrollbar snap-x">
+                        {gearStats.map(gear => {
+                            const maxUsage = 50; // 권장 교체(점검) 주기
+                            const isWarning = gear.usage >= maxUsage;
+                            const isCaution = gear.usage >= 30 && gear.usage < maxUsage;
+                            const percentage = Math.min(100, (gear.usage / maxUsage) * 100);
+                            
+                            const statusColor = isWarning ? 'bg-red-500' : isCaution ? 'bg-yellow-500' : 'bg-blue-500';
+                            const statusText = isWarning ? 'text-red-400' : isCaution ? 'text-yellow-400' : 'text-blue-400';
+                            const statusBg = isWarning ? 'bg-red-500/10 border-red-500/20' : isCaution ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-slate-800 border-white/5';
+
+                            return (
+                                <div key={gear.id} className={`snap-start shrink-0 w-64 rounded-2xl p-4 border ${statusBg} transition-all`}>
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{gear.brand}</p>
+                                            <p className="text-sm font-black text-white truncate w-40">{gear.name}</p>
+                                        </div>
+                                        <span className="px-2 py-1 bg-slate-950 rounded-md text-[10px] font-bold text-slate-300 border border-white/10">{gear.stud_type}</span>
+                                    </div>
+                                    
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between text-xs font-bold">
+                                            <span className="text-slate-400">착용 횟수</span>
+                                            <span className={`${statusText}`}>{gear.usage} <span className="text-slate-500 text-[10px]">/ 권장 {maxUsage}회</span></span>
+                                        </div>
+                                        {/* 게이지 바 */}
+                                        <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-white/5 relative">
+                                            <div className={`absolute top-0 left-0 h-full ${statusColor} transition-all duration-1000`} style={{ width: `${percentage}%` }}></div>
+                                        </div>
+                                        {/* 경고 알림 */}
+                                        {isWarning && (
+                                            <p className="text-[10px] font-bold text-red-400 mt-2 flex items-center gap-1 animate-pulse">
+                                                <Icons.AlertCircle /> 스터드 마모 점검 요망! (미끄러짐 주의)
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </section>
+            )}
+
             <section className="mb-4">
                 <Link href="/lineup" className="block w-full bg-gradient-to-r from-green-600 to-emerald-600 rounded-3xl p-5 shadow-lg border border-white/10 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-[40px] -mr-5 -mt-5 group-hover:scale-110 transition"></div>
@@ -886,7 +946,6 @@ export default function Dashboard() {
                     </div>
                     <div className="h-64 w-full flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
-                            {/* 파란색 테마 차트 유지 */}
                             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={stats}>
                                 <PolarGrid stroke="#334155" />
                                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }} />
@@ -1002,7 +1061,6 @@ export default function Dashboard() {
         </main>
       )}
 
-      {/* FAB 파란색 테마로 롤백 */}
       <div className="fixed bottom-28 right-6 z-40"><button onClick={() => setIsModalOpen(true)} className="w-16 h-16 bg-blue-600 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center justify-center text-white hover:bg-blue-500 transition transform hover:scale-110 active:scale-95"><Icons.Plus /></button></div>
       
       <AnimatePresence>
@@ -1061,7 +1119,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
           <div className="bg-slate-900 border border-white/10 w-full max-w-md h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-modal">
             <div className="p-4 border-b border-white/5 flex justify-between items-center bg-slate-900"><h3 className="font-extrabold text-lg text-white">새로운 기록 남기기 ✍️</h3><button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full transition text-slate-400"><Icons.X /></button></div>
-            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-900">
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-900 custom-scrollbar">
                 
                 <div className="flex bg-slate-800 p-1 rounded-xl">
                     <button onClick={() => setLogType('workout')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'workout' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500'}`}>💪 훈련</button>

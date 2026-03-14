@@ -78,7 +78,7 @@ export default function LineupPage() {
   const [kitColor, setKitColor] = useState(KIT_COLORS[0]);
   const [teamName, setTeamName] = useState('MY TEAM');
   
-  // 선수 데이터 (11명)
+  // 🚨 드래그 앤 드롭을 위해 players 상태에 position 객체 추가
   const [players, setPlayers] = useState(Array.from({ length: 11 }, (_, i) => ({
     id: i,
     name: i === 0 ? 'GK' : `Player ${i}`,
@@ -86,9 +86,25 @@ export default function LineupPage() {
     isMOM: false,
     isCaptain: false,
     goals: 0,
+    position: FORMATIONS['4-3-3'][i] // 초기 위치 세팅
   })));
 
   const [editingPlayer, setEditingPlayer] = useState<any>(null);
+
+  // 🚨 드래그 상태 관리 변수들
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const initialPlayerPos = useRef({ top: 0, left: 0 });
+  const isDraggingRef = useRef(false);
+
+  // 포메이션 변경 시 선수 위치 일괄 이동
+  const handleFormationChange = (fmt: string) => {
+    setFormation(fmt);
+    setPlayers(prev => prev.map((p, i) => ({
+        ...p,
+        position: FORMATIONS[fmt][i] || { top: '50%', left: '50%' }
+    })));
+  };
 
   const handlePlayerClick = (player: any) => {
     setEditingPlayer(player);
@@ -139,14 +155,14 @@ export default function LineupPage() {
       <main className="max-w-md mx-auto p-4 space-y-6">
         
         {/* 1. 설정 컨트롤 패널 */}
-        <div className="bg-slate-900 p-4 rounded-2xl border border-white/10 space-y-4">
+        <div className="bg-slate-900 p-4 rounded-2xl border border-white/10 space-y-4 shadow-sm">
           <div>
             <label className="text-xs font-bold text-slate-400 mb-2 block">팀 이름</label>
             <input 
               type="text" 
               value={teamName} 
               onChange={(e) => setTeamName(e.target.value)} 
-              className="w-full bg-slate-800 text-white font-black text-center p-2 rounded-lg border border-white/10 focus:border-blue-500 outline-none"
+              className="w-full bg-slate-800 text-white font-black text-center p-2 rounded-lg border border-white/10 focus:border-blue-500 outline-none transition"
             />
           </div>
           
@@ -156,8 +172,8 @@ export default function LineupPage() {
               {Object.keys(FORMATIONS).map(fmt => (
                 <button 
                   key={fmt} 
-                  onClick={() => setFormation(fmt)}
-                  className={`flex-grow py-2 px-3 text-xs font-bold rounded-lg transition ${formation === fmt ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}
+                  onClick={() => handleFormationChange(fmt)} // 🚨 수정된 함수 적용
+                  className={`flex-grow py-2 px-3 text-xs font-bold rounded-lg transition active:scale-95 ${formation === fmt ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
                 >
                   {fmt}
                 </button>
@@ -172,7 +188,7 @@ export default function LineupPage() {
                 <button 
                   key={color.name}
                   onClick={() => setKitColor(color)}
-                  className={`w-8 h-8 rounded-full border-2 shrink-0 transition ${color.bg} ${kitColor.name === color.name ? 'border-white scale-110' : 'border-transparent opacity-50'}`}
+                  className={`w-8 h-8 rounded-full border-2 shrink-0 transition active:scale-90 ${color.bg} ${kitColor.name === color.name ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-50 hover:opacity-100'}`}
                 />
               ))}
             </div>
@@ -193,32 +209,85 @@ export default function LineupPage() {
         >
           
           {/* 센터 서클 & 라인 */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white/70 rounded-full"></div>
-          <div className="absolute top-1/2 left-0 w-full h-[2px] bg-white/70 -translate-y-1/2"></div>
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full bg-transparent"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white/70 rounded-full pointer-events-none"></div>
+          <div className="absolute top-1/2 left-0 w-full h-[2px] bg-white/70 -translate-y-1/2 pointer-events-none"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full bg-transparent pointer-events-none"></div>
 
           {/* 페널티 박스 */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-t-0 border-white/70"></div>
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-b-0 border-white/70"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-t-0 border-white/70 pointer-events-none"></div>
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-b-0 border-white/70 pointer-events-none"></div>
 
           {/* 팀 이름 */}
-          <div className="absolute top-6 left-0 w-full text-center z-10">
+          <div className="absolute top-6 left-0 w-full text-center z-10 pointer-events-none">
             <h2 className="text-3xl font-black text-white drop-shadow-lg italic tracking-tighter uppercase">{teamName}</h2>
             <p className="text-white/80 text-xs font-bold tracking-widest">{formation}</p>
           </div>
 
-          {/* 선수 배치 */}
+          {/* 선수 배치 (드래그 앤 드롭 지원) */}
           {players.map((player, index) => {
-            const pos = FORMATIONS[formation][index] || { top: '50%', left: '50%' };
+            const isDragging = draggingId === player.id;
             return (
               <div 
                 key={player.id}
-                onClick={() => handlePlayerClick(player)}
-                className="absolute flex flex-col items-center justify-center cursor-pointer hover:scale-110 transition active:scale-95"
-                style={{ top: pos.top, left: pos.left, transform: 'translate(-50%, -50%)', width: '60px' }} 
+                className={`absolute flex flex-col items-center justify-center cursor-grab active:cursor-grabbing ${isDragging ? 'scale-110 z-50' : 'z-20 transition-all duration-300'}`}
+                style={{ 
+                    top: player.position.top, 
+                    left: player.position.left, 
+                    transform: 'translate(-50%, -50%)', 
+                    width: '60px',
+                    touchAction: 'none' // 🚨 모바일에서 드래그 시 화면 스크롤 방지
+                }} 
+                onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDraggingId(player.id);
+                    isDraggingRef.current = false;
+                    dragStartPos.current = { x: e.clientX, y: e.clientY };
+                    initialPlayerPos.current = {
+                        top: parseFloat(player.position.top),
+                        left: parseFloat(player.position.left)
+                    };
+                }}
+                onPointerMove={(e) => {
+                    if (draggingId !== player.id) return;
+                    
+                    const dx = e.clientX - dragStartPos.current.x;
+                    const dy = e.clientY - dragStartPos.current.y;
+                    
+                    // 움직임이 3px 이상일 때만 '드래그'로 판정 (그 이하는 단순 터치/클릭)
+                    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                        isDraggingRef.current = true;
+                    }
+
+                    if (isDraggingRef.current && fieldRef.current) {
+                        const rect = fieldRef.current.getBoundingClientRect();
+                        const dxPercent = (dx / rect.width) * 100;
+                        const dyPercent = (dy / rect.height) * 100;
+
+                        let newLeft = initialPlayerPos.current.left + dxPercent;
+                        let newTop = initialPlayerPos.current.top + dyPercent;
+
+                        // 화면 밖으로 못 나가게 제한 (0% ~ 100%)
+                        newLeft = Math.max(0, Math.min(100, newLeft));
+                        newTop = Math.max(0, Math.min(100, newTop));
+
+                        setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, position: { top: `${newTop}%`, left: `${newLeft}%` } } : p));
+                    }
+                }}
+                onPointerUp={(e) => {
+                    if (draggingId === player.id) {
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                        setDraggingId(null);
+                        
+                        // 드래그가 아니라 단순 클릭이었다면 수정 모달 띄우기
+                        if (!isDraggingRef.current) {
+                            handlePlayerClick(player);
+                        }
+                        isDraggingRef.current = false;
+                    }
+                }}
               >
-                {/* 유니폼 아이콘 */}
-                <div className={`relative w-10 h-10 ${index === 0 ? 'text-yellow-400' : kitColor.text}`}>
+                {/* 유니폼 아이콘 (포인터 이벤트 차단하여 드래그 간섭 방지) */}
+                <div className={`relative w-10 h-10 pointer-events-none ${index === 0 ? 'text-yellow-400' : kitColor.text}`}>
                    <div className={`absolute inset-0 rounded-full opacity-80 ${index === 0 ? 'bg-yellow-900' : kitColor.bg} blur-md`}></div>
                    <div className={`relative z-10 w-full h-full flex items-center justify-center rounded-full border-2 border-white/30 shadow-lg ${index === 0 ? 'bg-yellow-500 text-black' : `${kitColor.bg} ${kitColor.text}`}`}>
                       <span className="font-black text-sm">{player.number}</span>
@@ -228,7 +297,7 @@ export default function LineupPage() {
                    {player.isCaptain && <span className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 border border-black rounded-full flex items-center justify-center text-[10px] font-black text-black shadow-md z-20">C</span>}
                    {player.isMOM && <span className="absolute -top-2 -left-2 text-lg drop-shadow-md animate-bounce z-20">⭐</span>}
                    
-                   {/* ✅ 수정된 부분: 골 숫자 표시 (분리 및 flex 사용) */}
+                   {/* 골 숫자 표시 */}
                    {player.goals > 0 && (
                        <div className="absolute -bottom-2 -right-2 bg-white border border-black rounded-full flex items-center justify-center px-1.5 py-0.5 z-20 shadow-sm gap-0.5">
                            <span className="text-[10px] leading-none">⚽</span>
@@ -237,8 +306,8 @@ export default function LineupPage() {
                    )}
                 </div>
                 
-                {/* 이름표 */}
-                <div className="mt-0.5 px-2 py-0.5 bg-black/60 rounded-md backdrop-blur-sm border border-white/10 max-w-[80px]">
+                {/* 이름표 (포인터 이벤트 차단) */}
+                <div className="mt-0.5 px-2 py-0.5 bg-black/60 rounded-md backdrop-blur-sm border border-white/10 max-w-[80px] pointer-events-none">
                   <p className="text-[9px] font-bold text-white whitespace-nowrap overflow-hidden text-ellipsis">{player.name}</p>
                 </div>
               </div>
@@ -246,21 +315,21 @@ export default function LineupPage() {
           })}
 
           {/* 로고 */}
-          <div className="absolute bottom-4 right-4 opacity-50">
+          <div className="absolute bottom-4 right-4 opacity-50 pointer-events-none">
             <p className="text-[10px] font-black text-white italic">MOVEPLAZA</p>
           </div>
         </div>
 
         <button 
           onClick={handleSaveImage}
-          className="w-full py-4 bg-white text-slate-900 font-extrabold rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:bg-slate-200 transition flex items-center justify-center gap-2"
+          className="w-full py-4 bg-blue-600 text-white font-extrabold rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition flex items-center justify-center gap-2 active:scale-95"
         >
           <Icons.Download /> 라인업 이미지 저장하기
         </button>
 
       </main>
 
-      {/* 선수 수정 모달 */}
+      {/* 선수 수정 모달 (기존과 동일) */}
       {editingPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setEditingPlayer(null)}>
           <div className="bg-slate-900 border border-white/10 w-full max-w-xs rounded-3xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -268,40 +337,40 @@ export default function LineupPage() {
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-bold text-slate-400">이름</label>
-                <input type="text" value={editingPlayer.name} onChange={(e) => updatePlayer('name', e.target.value)} className="w-full p-2 bg-slate-800 text-white rounded-lg border border-slate-700" />
+                <input type="text" value={editingPlayer.name} onChange={(e) => updatePlayer('name', e.target.value)} className="w-full p-3 bg-slate-800 text-white font-bold rounded-xl border border-slate-700 outline-none focus:border-blue-500" />
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-400">등번호</label>
-                <input type="number" value={editingPlayer.number} onChange={(e) => updatePlayer('number', e.target.value)} className="w-full p-2 bg-slate-800 text-white rounded-lg border border-slate-700" />
+                <input type="number" value={editingPlayer.number} onChange={(e) => updatePlayer('number', e.target.value)} className="w-full p-3 bg-slate-800 text-white font-bold rounded-xl border border-slate-700 outline-none focus:border-blue-500" />
               </div>
               
-              <div className="pt-2 border-t border-white/10 space-y-2">
+              <div className="pt-4 border-t border-white/10 space-y-3 mt-2">
                 <div className="grid grid-cols-2 gap-2">
                     <button 
                     onClick={() => updatePlayer('isCaptain', !editingPlayer.isCaptain)}
-                    className={`py-2 rounded-lg text-xs font-bold border transition ${editingPlayer.isCaptain ? 'bg-yellow-500 text-black border-yellow-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
+                    className={`py-3 rounded-xl text-xs font-black border transition active:scale-95 ${editingPlayer.isCaptain ? 'bg-yellow-500 text-black border-yellow-400 shadow-md' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
                     >
                     © 주장 선임
                     </button>
                     <button 
                     onClick={() => updatePlayer('isMOM', !editingPlayer.isMOM)}
-                    className={`py-2 rounded-lg text-xs font-bold border transition ${editingPlayer.isMOM ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
+                    className={`py-3 rounded-xl text-xs font-black border transition active:scale-95 ${editingPlayer.isMOM ? 'bg-blue-600 text-white border-blue-400 shadow-md' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
                     >
                     ⭐ MOM
                     </button>
                 </div>
                 
-                <div className="flex items-center bg-slate-800 rounded-lg border border-slate-700 px-3 py-2 justify-between">
-                   <span className="text-xs text-slate-400 font-bold">⚽ 득점</span>
-                   <div className="flex items-center gap-2">
-                       <button onClick={() => updatePlayer('goals', Math.max(0, editingPlayer.goals - 1))} className="w-6 h-6 bg-slate-700 rounded text-white font-bold">-</button>
-                       <span className="font-black w-4 text-center">{editingPlayer.goals}</span>
-                       <button onClick={() => updatePlayer('goals', editingPlayer.goals + 1)} className="w-6 h-6 bg-slate-700 rounded text-white font-bold">+</button>
+                <div className="flex items-center bg-slate-800 rounded-xl border border-slate-700 px-4 py-3 justify-between">
+                   <span className="text-sm text-slate-300 font-bold">⚽ 득점 기록</span>
+                   <div className="flex items-center gap-3">
+                       <button onClick={() => updatePlayer('goals', Math.max(0, editingPlayer.goals - 1))} className="w-8 h-8 bg-slate-700 rounded-lg text-white font-black hover:bg-slate-600 active:scale-90 transition">-</button>
+                       <span className="font-black text-lg w-6 text-center">{editingPlayer.goals}</span>
+                       <button onClick={() => updatePlayer('goals', editingPlayer.goals + 1)} className="w-8 h-8 bg-slate-700 rounded-lg text-white font-black hover:bg-slate-600 active:scale-90 transition">+</button>
                    </div>
                 </div>
               </div>
             </div>
-            <button onClick={() => setEditingPlayer(null)} className="mt-6 w-full py-3 bg-blue-600 text-white font-bold rounded-xl">완료</button>
+            <button onClick={() => setEditingPlayer(null)} className="mt-6 w-full py-4 bg-white text-slate-900 font-black rounded-xl hover:bg-slate-200 transition active:scale-95">완료</button>
           </div>
         </div>
       )}
