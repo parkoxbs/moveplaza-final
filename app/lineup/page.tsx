@@ -360,10 +360,10 @@ export default function LineupPage() {
                    )}
                 </div>
                 
-                {/* 🚨 FC온라인 스타일 이름표 (포지션 라벨 동적 부여) */}
-                <div className="mt-1 px-1.5 py-0.5 bg-black/60 rounded-md backdrop-blur-sm border border-white/10 flex items-center justify-center gap-1 min-w-[50px] max-w-[80px] pointer-events-none shadow-md">
+                {/* 🚨 최대 너비 제한(max-w)을 풀고, 글자 길이에 맞춰 자동 확장(w-max)되게 수정했습니다! */}
+                <div className="mt-1 px-1.5 py-0.5 bg-black/60 rounded-md backdrop-blur-sm border border-white/10 flex items-center justify-center gap-1 w-max min-w-[50px] pointer-events-none shadow-md whitespace-nowrap z-30">
                   <span className={`text-[8px] font-black px-1 rounded-sm ${posInfo.color}`}>{posInfo.label}</span>
-                  <p className="text-[9px] font-bold text-white whitespace-nowrap overflow-hidden text-ellipsis">{player.name}</p>
+                  <p className="text-[10px] font-bold text-white">{player.name}</p>
                 </div>
               </div>
             );
