@@ -21,7 +21,6 @@ const containsBadWord = (text: string) => {
   return BAD_WORDS.some(word => text.includes(word));
 };
 
-// 🎨 고급스러운 UI 아이콘 세트 (알림 아이콘 추가!)
 const Icons = {
   Search: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>,
   X: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
@@ -29,11 +28,9 @@ const Icons = {
   HeartFilled: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform active:scale-75 animate-bounce-slow"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
   Comment: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-blue-400 transition-colors"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   More: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>,
-  // 🔔 럭셔리한 알림 아이콘 (Apple 스타일 Stroke)
   Bell: () => <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-blue-400 transition-colors"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
 }
 
-// 타입 정의들
 type Profile = { id: string; username: string; sport: string; position: string; avatar_url?: string; level?: string; emoji?: string; color?: string; };
 type Comment = { id: number; content: string; user_id: string; created_at: string; profile?: Profile; like_count: number; is_liked: boolean; };
 type Log = { id: string; title?: string; content: string; created_at: string; pain_score: number; user_id: string; is_public: boolean; image_url?: string; log_type?: 'workout' | 'rehab' | 'match'; media_type?: 'image' | 'video'; match_result?: 'win' | 'lose' | 'draw' | 'none'; goals?: number; assists?: number; profile?: Profile; like_count: number; is_liked: boolean; comments: Comment[]; };
@@ -75,7 +72,6 @@ export default function CommunityPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 🚨 알림 상태 관리
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -86,7 +82,6 @@ export default function CommunityPage() {
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
 
-    // 🚨 내 알림 데이터 가져오기
     if (user) {
         const { data: notiData } = await supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20);
         if (notiData) setNotifications(notiData);
@@ -260,11 +255,11 @@ export default function CommunityPage() {
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-24 selection:bg-blue-500 selection:text-white">
         
-        {/* 🌟 프리미엄 헤더 */}
-        <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
-            <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
+        {/* 🌟 헤더 (Fixed) */}
+        <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950 border-b border-white/5 h-16 flex items-center shadow-md">
+            <div className="max-w-2xl w-full mx-auto px-4 flex items-center justify-between">
                 <div className="flex items-center gap-2 cursor-pointer group" onClick={() => router.push('/dashboard')}>
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)] group-hover:scale-105 transition">M</div>
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_10px_rgba(37,99,235,0.4)]">M</div>
                     <span className="text-xl font-black tracking-tight text-white hidden sm:block">MOVEPLAZA</span>
                 </div>
                 
@@ -276,12 +271,12 @@ export default function CommunityPage() {
                         )}
                     </button>
 
-                    <button onClick={() => router.push('/dashboard')} className="text-sm font-bold text-slate-300 hover:text-blue-400 bg-slate-900/50 border border-white/5 px-4 py-2 rounded-full hover:bg-slate-800 transition shadow-sm">
+                    <button onClick={() => router.push('/dashboard')} className="text-sm font-bold text-slate-300 hover:text-blue-400 bg-slate-900 border border-white/10 px-4 py-2 rounded-full hover:bg-slate-800 transition shadow-sm">
                         🏠 내 일지
                     </button>
 
                     {showNotifications && (
-                        <div className="absolute top-14 right-0 w-80 max-h-96 overflow-y-auto bg-slate-900/95 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-2xl p-4 z-50 animate-slide-up custom-scrollbar">
+                        <div className="absolute top-14 right-0 w-80 max-h-96 overflow-y-auto bg-slate-900 border border-white/10 shadow-2xl rounded-2xl p-4 z-50 animate-slide-up custom-scrollbar">
                             <div className="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
                                 <h3 className="font-black text-white text-sm">알림 센터</h3>
                                 {unreadCount > 0 && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold">{unreadCount} 새 알림</span>}
@@ -292,7 +287,7 @@ export default function CommunityPage() {
                             ) : (
                                 <div className="space-y-2">
                                     {notifications.map(noti => (
-                                        <div key={noti.id} onClick={() => handleNotificationClick(noti.id)} className={`p-3 rounded-xl cursor-pointer transition flex items-start gap-3 border border-transparent ${noti.is_read ? 'opacity-50 hover:bg-white/5' : 'bg-blue-900/20 hover:bg-blue-900/30 border-blue-500/20 shadow-sm'}`}>
+                                        <div key={noti.id} onClick={() => handleNotificationClick(noti.id)} className={`p-3 rounded-xl cursor-pointer transition flex items-start gap-3 border border-transparent ${noti.is_read ? 'opacity-50 hover:bg-slate-800' : 'bg-blue-900/20 hover:bg-blue-900/30 border-blue-500/20 shadow-sm'}`}>
                                             <span className="text-xl shrink-0 mt-0.5">{noti.type === 'like' ? '❤️' : '💬'}</span>
                                             <div>
                                                 <p className="text-sm text-slate-200 font-medium leading-snug tracking-tight">{noti.message}</p>
@@ -308,19 +303,21 @@ export default function CommunityPage() {
             </div>
         </header>
 
-        <div className="pt-24 pb-20 px-4 md:px-8 max-w-2xl mx-auto space-y-8 animate-slide-up" onClick={() => showNotifications && setShowNotifications(false)}>
+        {/* 메인 컨텐츠 (상단 헤더 높이만큼 pt-24 여백 줌) */}
+        <div className="pt-24 pb-20 px-4 md:px-8 max-w-2xl mx-auto space-y-6 md:space-y-8" onClick={() => showNotifications && setShowNotifications(false)}>
             
-            <div className="flex justify-between items-center mb-2 px-2">
+            <div className="flex justify-between items-center px-1">
                 <div>
                     <h1 className="text-3xl font-black text-white tracking-tight">광장</h1>
                     <p className="text-slate-400 font-medium mt-1 text-sm">전국 무브플라자 선수들의 활동 피드</p>
                 </div>
                 {currentUser?.email === ADMIN_EMAIL && (
-                    <button onClick={() => setShowNoticeForm(!showNoticeForm)} className="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-2 rounded-full font-bold transition backdrop-blur-md">📢 공지 쓰기</button>
+                    <button onClick={() => setShowNoticeForm(!showNoticeForm)} className="bg-slate-800 hover:bg-slate-700 text-white text-xs px-3 py-2 rounded-full font-bold transition border border-white/10">📢 공지 쓰기</button>
                 )}
             </div>
 
-            <div className="sticky top-20 z-40">
+            {/* 🚨 겹침의 원인이었던 sticky 속성 및 투명도 제거! 이제 자연스럽게 스크롤됩니다 */}
+            <div className="mb-4">
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
                         <Icons.Search />
@@ -330,7 +327,7 @@ export default function CommunityPage() {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="관심 부위나 선수를 검색해보세요" 
-                        className="w-full pl-12 pr-10 py-3.5 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl text-sm text-white font-bold placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 shadow-lg transition-all"
+                        className="w-full pl-12 pr-10 py-3.5 bg-slate-800 border border-white/10 rounded-2xl text-sm text-white font-bold placeholder-slate-500 focus:outline-none focus:border-blue-500 shadow-md transition-all"
                     />
                     {searchTerm && (
                         <button onClick={() => setSearchTerm('')} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-white transition-colors">
@@ -365,21 +362,18 @@ export default function CommunityPage() {
                 </div>
             )}
 
-            {/* 🚨 🏆 명예의 전당 (Grid를 사용하여 모바일 깨짐 완벽 차단!) */}
+            {/* 🚨 🏆 명예의 전당 (블랙스크린을 일으키는 무거운 그래픽/그림자 효과 전부 제거) */}
             {!searchTerm && ranking.length > 0 && (
-                <div className="bg-slate-900 rounded-3xl p-5 md:p-8 text-white shadow-xl relative border border-white/5 overflow-hidden">
-                    <div className="absolute top-[-50px] right-[-50px] w-48 h-48 md:w-64 md:h-64 bg-blue-600 rounded-full blur-[80px] md:blur-[100px] opacity-20 pointer-events-none"></div>
+                <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-5 md:p-8 text-white shadow-xl border border-white/10 relative overflow-hidden">
                     
-                    {/* 타이틀 줄바꿈 절대 방지 (whitespace-nowrap) */}
-                    <h2 className="text-lg md:text-xl font-black mb-8 flex items-center gap-2 tracking-tight whitespace-nowrap">
+                    <h2 className="text-lg md:text-xl font-black mb-6 md:mb-8 flex items-center gap-2 tracking-tight whitespace-nowrap">
                         🏆 명예의 전당 <span className="text-[10px] md:text-xs text-slate-400 font-medium">TOP 3</span>
                     </h2>
                     
-                    {/* 폰 화면을 무조건 3등분으로 강제 고정하는 Grid 레이아웃 */}
                     <div className="grid grid-cols-3 gap-2 md:gap-4 items-end w-full">
                         {ranking[1] && (
                             <div className="flex flex-col items-center gap-1.5 pb-2 md:pb-4 w-full">
-                                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-slate-500 overflow-hidden bg-slate-800 shadow-lg">
+                                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-slate-500 overflow-hidden bg-slate-700 shadow-md">
                                     {ranking[1].avatar_url ? <img src={ranking[1].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
                                 </div>
                                 <div className="flex flex-col items-center w-full px-1">
@@ -390,13 +384,12 @@ export default function CommunityPage() {
                         )}
                         
                         {ranking[0] && (
-                            <div className="flex flex-col items-center gap-1.5 z-10 w-full relative">
-                                {/* 왕관 위치를 absolute에서 상대적 위치(-mb-3)로 변경하여 위 글자 가림 방지 */}
-                                <div className="text-2xl md:text-3xl drop-shadow-[0_0_10px_rgba(250,204,21,0.8)] -mb-3 md:-mb-4 relative z-20">👑</div>
-                                <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border-4 border-yellow-400 overflow-hidden bg-slate-800 shadow-[0_0_20px_rgba(250,204,21,0.4)] relative z-10">
+                            <div className="flex flex-col items-center gap-1 z-10 w-full relative">
+                                <div className="text-2xl md:text-3xl -mb-2 z-20">👑</div>
+                                <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border-4 border-yellow-400 overflow-hidden bg-slate-700 z-10">
                                     {ranking[0].avatar_url ? <img src={ranking[0].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-2xl md:text-3xl">👤</div>}
                                 </div>
-                                <div className="flex flex-col items-center w-full px-1">
+                                <div className="flex flex-col items-center w-full px-1 mt-1">
                                     <span className="bg-yellow-400 text-yellow-950 text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded-full mb-0.5 shadow-sm">1ST</span>
                                     <p className="font-black text-xs md:text-base text-yellow-100 text-center truncate w-full">{ranking[0].username}</p>
                                     <p className="text-[8px] md:text-[10px] text-yellow-500/80 font-bold">{ranking[0].logCount}회</p>
@@ -406,7 +399,7 @@ export default function CommunityPage() {
                         
                         {ranking[2] && (
                             <div className="flex flex-col items-center gap-1.5 pb-2 md:pb-4 w-full">
-                                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-orange-700 overflow-hidden bg-slate-800 shadow-lg">
+                                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-orange-700 overflow-hidden bg-slate-700 shadow-md">
                                     {ranking[2].avatar_url ? <img src={ranking[2].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
                                 </div>
                                 <div className="flex flex-col items-center w-full px-1">
@@ -436,7 +429,7 @@ export default function CommunityPage() {
                     return (
                     <div key={log.id} className="bg-slate-900 border border-white/5 rounded-3xl overflow-hidden shadow-xl mb-8">
                         
-                        <div className="p-5 pb-3 flex items-center justify-between">
+                        <div className="p-4 md:p-5 pb-3 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0 cursor-pointer">
                                     {log.profile?.avatar_url ? <img src={log.profile.avatar_url} alt="프사" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
@@ -458,7 +451,7 @@ export default function CommunityPage() {
                             <button className="text-slate-600 hover:text-slate-300 p-1"><Icons.More /></button>
                         </div>
 
-                        <div className="px-5 pb-4">
+                        <div className="px-4 md:px-5 pb-4">
                             <div className="flex items-center gap-2 mb-2">
                                 <span className={`text-[9px] px-2 py-0.5 rounded font-black tracking-wider uppercase border ${
                                     log.log_type === 'match' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 
@@ -475,7 +468,7 @@ export default function CommunityPage() {
                             
                             {log.title && <h2 className="text-lg font-black text-white mb-2 tracking-tight">{log.title}</h2>}
                             
-                            <p className="text-slate-200 text-sm font-medium whitespace-pre-wrap break-all leading-relaxed">
+                            <p className="text-slate-200 text-sm font-medium whitespace-pre-wrap break-words leading-relaxed">
                                 {text}
                             </p>
                             
@@ -501,7 +494,7 @@ export default function CommunityPage() {
                         )}
 
                         {log.log_type === 'match' && (
-                            <div className="mx-5 my-4 bg-slate-800/50 p-4 rounded-2xl flex items-center justify-between border border-white/5 shadow-inner">
+                            <div className="mx-4 md:mx-5 my-4 bg-slate-800/50 p-4 rounded-2xl flex items-center justify-between border border-white/5 shadow-inner">
                                 <div className="text-center flex-1">
                                     <p className="text-[9px] text-slate-500 font-bold mb-1 tracking-widest">RESULT</p>
                                     <p className={`text-base font-black uppercase tracking-tight ${log.match_result === 'win' ? 'text-blue-400' : (log.match_result === 'lose' ? 'text-red-400' : 'text-slate-300')}`}>
@@ -521,7 +514,7 @@ export default function CommunityPage() {
                             </div>
                         )}
 
-                        <div className="px-5 py-3 flex items-center gap-4">
+                        <div className="px-4 md:px-5 py-3 flex items-center gap-4">
                             <button onClick={() => toggleLike(log)} className="flex items-center gap-1.5 group">
                                 {log.is_liked ? <Icons.HeartFilled /> : <Icons.HeartOutline />}
                                 <span className={`text-sm font-bold ${log.is_liked ? 'text-red-500' : 'text-slate-400 group-hover:text-slate-300'}`}>{log.like_count || 0}</span>
@@ -532,15 +525,15 @@ export default function CommunityPage() {
                             </button>
                         </div>
 
-                        <div className="px-5 pb-5">
+                        <div className="px-4 md:px-5 pb-5">
                             {log.comments.length > 0 && (
                                 <div className="space-y-2 mb-3">
                                     {visibleComments.map(comment => (
-                                        <div key={comment.id} className="flex gap-2 items-start text-sm group/comment">
+                                        <div key={comment.id} className="flex gap-2 items-start text-xs md:text-sm group/comment">
                                             <span className="font-bold text-slate-200 shrink-0 cursor-pointer">{comment.profile?.username || '익명'}</span>
-                                            <span className="text-slate-300 font-normal break-all flex-1">{comment.content}</span>
+                                            <span className="text-slate-300 font-normal break-words flex-1">{comment.content}</span>
                                             
-                                            <div className="flex items-center gap-2 opacity-0 group-hover/comment:opacity-100 transition-opacity">
+                                            <div className="flex items-center gap-2 transition-opacity">
                                                 <button onClick={() => toggleCommentLike(comment.id, comment.is_liked)} className={`text-[10px] flex items-center gap-1 font-bold ${comment.is_liked ? 'text-red-500' : 'text-slate-500 hover:text-red-400'}`}>
                                                     {comment.is_liked ? '❤️' : '🤍'} {comment.like_count > 0 && comment.like_count}
                                                 </button>
@@ -566,7 +559,7 @@ export default function CommunityPage() {
                                     onChange={(e) => setCommentInputs({...commentInputs, [log.id]: e.target.value})} 
                                     onKeyDown={(e) => e.key === 'Enter' && addComment(log)} 
                                     placeholder="댓글 달기..." 
-                                    className="flex-1 bg-transparent border-none text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-0" 
+                                    className="flex-1 bg-transparent border-none text-xs md:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-0" 
                                 />
                                 {commentInputs[log.id]?.trim() && (
                                     <button onClick={() => addComment(log)} className="text-blue-500 font-bold text-sm pr-2 hover:text-blue-400 transition animate-fade-in">
