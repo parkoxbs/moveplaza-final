@@ -9,10 +9,11 @@ import 'react-calendar/dist/Calendar.css'
 import { LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend } from 'recharts'
 import { toPng } from 'html-to-image'
 import BodyMap from "../components/BodyMap"
-import ActivityCalendar from "..//components/ActivityCalendar" // 🚨 방금 만든 달력 컴포넌트 불러오기
+import ActivityCalendar from "..//components/ActivityCalendar"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
 import BottomNav from "../components/BottomNav"
+import * as nsfwjs from 'nsfwjs' // 🚨 AI 검열 라이브러리 추가!
 
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
@@ -62,7 +63,7 @@ const REHAB_TIPS = [
   "🦶 족저근막염(발바닥 통증)이 있다면, 기상 직후 첫발을 딛기 전 침대에서 발바닥 스트레칭을 꼭 해주세요.",
   "🙆‍♂️ 어깨 충돌증후군이 의심될 때는 팔을 머리 위로 올리는 동작을 피하고, 하부 승모근과 전거근 강화에 집중해야 합니다.",
   "🦴 관절에서 나는 단순한 '뚝' 소리는 괜찮지만, '통증'을 동반한 소리라면 연골 손상 신호일 수 있으니 검진이 필요합니다.",
-  "🩹 테이핑(키네시오)은 관절을 고정하는 것이 아니라 근막 공간을 늘려 혈류를 개선하고 통증을 완화하는 보조 수단입니다.",
+  "🩹 테이핑(키네시오)은 관절을 고정하는 것이 아니라 근막 공간을 늘려 혈류 파트너 보조 수단입니다.",
   "⚡ 운동 후 발생하는 근육통(DOMS)은 24~72시간에 최고조에 달합니다. 폼롤링과 가벼운 유산소(액티브 리커버리)가 회복을 돕습니다.",
   "🏋️‍♀️ 웨이트 트레이닝 시 호흡을 꾹 참는 발살바 호흡은 코어를 강하게 잡지만, 뇌압과 혈압을 급상승시키므로 횟수를 조절하세요.",
   "🔄 재활의 완성은 '통증이 없는 것'이 아니라 '부상 이전의 퍼포먼스를 내는 것'입니다. 조급해하지 말고 점진적 과부하 원칙을 지키세요.",
@@ -134,7 +135,6 @@ export default function Dashboard() {
   
   const [matchStats, setMatchStats] = useState({ win: 0, draw: 0, lose: 0, goals: 0, assists: 0, total: 0 });
 
-  // 장비 스탯 추가
   const [gears, setGears] = useState<any[]>([]);
   const [gearStats, setGearStats] = useState<any[]>([]); 
   const [selectedGearId, setSelectedGearId] = useState<string | null>(null);
@@ -403,6 +403,7 @@ export default function Dashboard() {
     toast.success("기록을 복사했습니다! (날짜는 오늘)");
   };
 
+  // 🚨 AI 검열 탑재된 업로드 함수
   const handleAddLog = async () => {
     if (!title.trim()) return toast.error("제목을 입력해주세요!")
     setUploading(true)
@@ -411,6 +412,37 @@ export default function Dashboard() {
       try {
         let mediaUrl = null; let mediaType = 'image';
         if (mediaFile) {
+           
+           // 🤖 AI 이미지 스캔 로직 (영상은 패스)
+           if (mediaFile.type.startsWith('image')) {
+               const checkToast = toast.loading("AI가 이미지를 검사 중입니다... 🕵️‍♂️");
+               try {
+                   const model = await nsfwjs.load();
+                   const img = new Image();
+                   img.src = URL.createObjectURL(mediaFile);
+                   await new Promise((resolve) => (img.onload = resolve));
+                   
+                   const predictions = await model.classify(img);
+                   
+                   // 포르노(Porn)나 선정적(Hentai, Sexy) 확률이 높으면 컷!
+                   const isBad = predictions.some(p => 
+                       (p.className === 'Porn' || p.className === 'Hentai' || p.className === 'Sexy') && p.probability > 0.6
+                   );
+
+                   toast.dismiss(checkToast);
+
+                   if (isBad) {
+                       toast.error("🚫 부적절한 이미지가 감지되어 업로드할 수 없습니다.");
+                       setUploading(false);
+                       return; // 🚨 여기서 차단해서 서버로 안 올라감!
+                   }
+               } catch(aiError) {
+                   toast.dismiss(checkToast);
+                   console.error("AI 모델 로딩 실패", aiError);
+               }
+           }
+
+           // AI 검사를 무사히 통과했다면 원래대로 Supabase에 업로드
            const fileExt = mediaFile.name.split('.').pop();
            const filePath = `${user.id}/${Date.now()}.${fileExt}`;
            const { error: uploadError } = await supabase.storage.from('images').upload(filePath, mediaFile);
@@ -419,6 +451,7 @@ export default function Dashboard() {
            mediaUrl = data.publicUrl;
            mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
         }
+
         const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''
         
         const { error } = await supabase.from('logs').insert({ 
@@ -1013,7 +1046,6 @@ export default function Dashboard() {
                 <p className="text-[10px] text-slate-500 mt-2 text-center">💡 컨디션(노란색)이 낮을 때 운동강도(파란선)가 높으면 부상 위험!</p>
             </section>
 
-            {/* 🚨 방금 만든 잔디 달력 컴포넌트 장착! */}
             <section>
                 <div className="flex justify-between items-center mb-4 px-1">
                     <h3 className="text-xl font-black text-white">활동 캘린더 📅</h3>
@@ -1025,7 +1057,6 @@ export default function Dashboard() {
                 />
             </section>
 
-            {/* 👇 달력에서 누른 날짜에 맞춰 필터링되는 리스트 */}
             <section>
                 <div className="flex justify-between items-center mb-4 px-1 mt-6">
                     <h3 className="text-xl font-black text-white">{selectedDate ? `${selectedDate.getMonth()+1}월 ${selectedDate.getDate()}일 기록` : '최근 활동'}</h3>

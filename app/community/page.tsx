@@ -28,7 +28,9 @@ const Icons = {
   HeartFilled: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform active:scale-75 animate-bounce-slow"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
   Comment: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-blue-400 transition-colors"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   More: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>,
-  Bell: () => <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-blue-400 transition-colors"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+  Bell: () => <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-blue-400 transition-colors"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>,
+  // 🚨 신고 아이콘 추가!
+  Flag: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
 }
 
 type Profile = { id: string; username: string; sport: string; position: string; avatar_url?: string; level?: string; emoji?: string; color?: string; };
@@ -76,6 +78,9 @@ export default function CommunityPage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
+  // 🚨 신고 드롭다운 메뉴 상태 관리
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
   useEffect(() => { fetchData(); }, []);
 
   async function fetchData() {
@@ -90,10 +95,18 @@ export default function CommunityPage() {
     const { data: noticesData } = await supabase.from('notices').select('*').order('created_at', { ascending: false });
     if (noticesData) setNotices(noticesData);
 
-    const { data: logsData } = await supabase.from('logs').select('*').eq('is_public', true).order('created_at', { ascending: false });
+    const { data: rawLogsData } = await supabase.from('logs').select('*').eq('is_public', true).order('created_at', { ascending: false });
     const { data: allLogs } = await supabase.from('logs').select('user_id');
 
-    if (!logsData || !allLogs) { setLoading(false); return; }
+    if (!rawLogsData || !allLogs) { setLoading(false); return; }
+
+    // 🚨 [핵심] 신고 데이터 불러와서 3회 이상 신고된 글 블라인드 처리!
+    const { data: reportsData } = await supabase.from('reports').select('log_id');
+    const reportCounts: Record<string, number> = {};
+    reportsData?.forEach(r => { reportCounts[r.log_id] = (reportCounts[r.log_id] || 0) + 1; });
+
+    // 신고 3회 미만인 게시물만 화면에 보여줍니다
+    const logsData = rawLogsData.filter(log => (reportCounts[log.id] || 0) < 3);
 
     const counts: {[key: string]: number} = {};
     allLogs.forEach(l => { counts[l.user_id] = (counts[l.user_id] || 0) + 1; });
@@ -158,6 +171,22 @@ export default function CommunityPage() {
     setLogs(combinedLogs);
     setLoading(false);
   }
+
+  // 🚨 신고하기 실행 함수
+  const handleReport = async (logId: string) => {
+      if (!currentUser) return alert("로그인이 필요합니다.");
+      if (confirm("이 게시물이 부적절한가요?\n신고가 3회 누적되면 자동으로 숨김 처리됩니다.")) {
+          const { error } = await supabase.from('reports').insert({ user_id: currentUser.id, log_id: logId });
+          if (error) {
+              if (error.code === '23505') alert("이미 신고하신 게시물입니다.");
+              else alert("오류가 발생했습니다: " + error.message);
+          } else {
+              alert("🚨 신고가 접수되었습니다. 깨끗한 문화를 위해 기여해주셔서 감사합니다!");
+              setActiveDropdown(null);
+              fetchData(); // 3회 누적 시 화면에서 바로 사라지도록 새로고침
+          }
+      }
+  };
 
   const toggleLike = async (log: Log) => { 
     if (!currentUser) { alert('로그인 필요'); return; } 
@@ -303,8 +332,8 @@ export default function CommunityPage() {
             </div>
         </header>
 
-        {/* 메인 컨텐츠 (상단 헤더 높이만큼 pt-24 여백 줌) */}
-        <div className="pt-24 pb-20 px-4 md:px-8 max-w-2xl mx-auto space-y-6 md:space-y-8" onClick={() => showNotifications && setShowNotifications(false)}>
+        {/* 🚨 화면 전체를 감싸는 div에 onClick 이벤트를 달아서 드롭다운 바깥 클릭 시 닫히도록 함 */}
+        <div className="pt-24 pb-20 px-4 md:px-8 max-w-2xl mx-auto space-y-6 md:space-y-8" onClick={() => { if(showNotifications) setShowNotifications(false); if(activeDropdown) setActiveDropdown(null); }}>
             
             <div className="flex justify-between items-center px-1">
                 <div>
@@ -316,7 +345,6 @@ export default function CommunityPage() {
                 )}
             </div>
 
-            {/* 🚨 겹침의 원인이었던 sticky 속성 및 투명도 제거! 이제 자연스럽게 스크롤됩니다 */}
             <div className="mb-4">
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
@@ -362,7 +390,6 @@ export default function CommunityPage() {
                 </div>
             )}
 
-            {/* 🚨 🏆 명예의 전당 (블랙스크린을 일으키는 무거운 그래픽/그림자 효과 전부 제거) */}
             {!searchTerm && ranking.length > 0 && (
                 <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-5 md:p-8 text-white shadow-xl border border-white/10 relative overflow-hidden">
                     
@@ -429,7 +456,7 @@ export default function CommunityPage() {
                     return (
                     <div key={log.id} className="bg-slate-900 border border-white/5 rounded-3xl overflow-hidden shadow-xl mb-8">
                         
-                        <div className="p-4 md:p-5 pb-3 flex items-center justify-between">
+                        <div className="p-4 md:p-5 pb-3 flex items-center justify-between relative">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0 cursor-pointer">
                                     {log.profile?.avatar_url ? <img src={log.profile.avatar_url} alt="프사" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
@@ -448,7 +475,20 @@ export default function CommunityPage() {
                                     </div>
                                 </div>
                             </div>
-                            <button className="text-slate-600 hover:text-slate-300 p-1"><Icons.More /></button>
+                            
+                            {/* 🚨 신고 버튼 드롭다운 메뉴 (쩜쩜쩜 아이콘 클릭 시 오픈) */}
+                            <div className="relative">
+                                <button onClick={(e) => { e.stopPropagation(); setActiveDropdown(activeDropdown === log.id ? null : log.id); }} className="text-slate-600 hover:text-slate-300 p-1">
+                                    <Icons.More />
+                                </button>
+                                {activeDropdown === log.id && (
+                                    <div className="absolute right-0 top-8 mt-1 w-32 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-20 overflow-hidden animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                                        <button onClick={() => handleReport(log.id)} className="w-full px-4 py-3 text-left text-sm font-bold text-red-400 hover:bg-red-500/10 transition flex items-center gap-2">
+                                            <Icons.Flag /> 신고하기
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="px-4 md:px-5 pb-4">
