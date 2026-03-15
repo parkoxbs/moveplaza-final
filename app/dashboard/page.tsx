@@ -37,7 +37,8 @@ const Icons = {
   Bulb: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>,
   Star: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
   Trophy: () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
-  Ball: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/><path d="M12 12 4.93 4.93"/><path d="M19.07 4.93 12 12"/><path d="M12 12v10"/><path d="M12 2v10"/></svg>
+  Ball: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/><path d="M12 12 4.93 4.93"/><path d="M19.07 4.93 12 12"/><path d="M12 12v10"/><path d="M12 2v10"/></svg>,
+  Shield: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
 }
 
 // 레벨 시스템 정의
@@ -167,10 +168,7 @@ export default function Dashboard() {
     if (isFirstLoad) setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     
-    if (!user) { 
-        router.replace('/login'); 
-        return; 
-    }
+    if (!user) { router.replace('/login'); return; }
 
     const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single()
     setUserName(profile?.username || user.email?.split("@")[0] || "선수")
@@ -190,26 +188,21 @@ export default function Dashboard() {
         setMyLevel(newLevel);
         setPrevLevelName(newLevel.name);
 
-        calculateStreak(logData); 
-        analyzeLogs(logData); 
-        calculateStats(logData); 
-        processChartData(logData, condData || []);
+        calculateStreak(logData); analyzeLogs(logData); calculateStats(logData); processChartData(logData, condData || []);
         
         const matches = logData.filter(l => l.log_type === 'match');
-        const win = matches.filter(l => l.match_result === 'win').length;
-        const draw = matches.filter(l => l.match_result === 'draw').length;
-        const lose = matches.filter(l => l.match_result === 'lose').length;
-        const totalGoals = matches.reduce((acc, l) => acc + (l.goals || 0), 0);
-        const totalAssists = matches.reduce((acc, l) => acc + (l.assists || 0), 0);
-        setMatchStats({ win, draw, lose, goals: totalGoals, assists: totalAssists, total: matches.length });
+        setMatchStats({ 
+            win: matches.filter(l => l.match_result === 'win').length, 
+            draw: matches.filter(l => l.match_result === 'draw').length, 
+            lose: matches.filter(l => l.match_result === 'lose').length, 
+            goals: matches.reduce((acc, l) => acc + (l.goals || 0), 0), 
+            assists: matches.reduce((acc, l) => acc + (l.assists || 0), 0), 
+            total: matches.length 
+        });
 
         if (gearData) {
             setGears(gearData);
-            const calculatedStats = gearData.map(g => {
-                const usage = logData.filter(l => l.gear_id === g.id).length; 
-                return { ...g, usage };
-            }).sort((a, b) => b.usage - a.usage); 
-            setGearStats(calculatedStats);
+            setGearStats(gearData.map(g => ({ ...g, usage: logData.filter(l => l.gear_id === g.id).length })).sort((a, b) => b.usage - a.usage));
         }
     }
     
@@ -220,12 +213,9 @@ export default function Dashboard() {
   }
 
   const triggerConfetti = () => {
-    const duration = 3000;
-    const animationEnd = Date.now() + duration;
+    const duration = 3000; const animationEnd = Date.now() + duration;
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
-
     const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
     const interval: any = setInterval(function() {
       const timeLeft = animationEnd - Date.now();
       if (timeLeft <= 0) return clearInterval(interval);
@@ -237,78 +227,36 @@ export default function Dashboard() {
 
   const processChartData = (logs: any[], conditions: any[]) => {
     const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (6 - i));
-        return d.toISOString().split('T')[0];
+        const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d.toISOString().split('T')[0];
     });
-
-    const processed = last7Days.map(date => {
+    setChartData(last7Days.map(date => {
         const dayLogs = logs.filter(l => l.created_at.startsWith(date));
-        const avgScore = dayLogs.length > 0 
-            ? dayLogs.reduce((acc, cur) => acc + cur.pain_score, 0) / dayLogs.length 
-            : 0;
-
+        const avgScore = dayLogs.length > 0 ? dayLogs.reduce((acc, cur) => acc + cur.pain_score, 0) / dayLogs.length : 0;
         const dayCond = conditions.filter(c => c.created_at.startsWith(date)).pop();
         let condScore = 0; 
-        if (dayCond) {
-            if (dayCond.status === 'good') condScore = 10;
-            else if (dayCond.status === 'normal') condScore = 6;
-            else if (dayCond.status === 'bad') condScore = 3;
-        }
-
-        return {
-            date: date.slice(5),
-            score: Number(avgScore.toFixed(1)),
-            condition: condScore
-        };
-    });
-
-    setChartData(processed);
+        if (dayCond) { if (dayCond.status === 'good') condScore = 10; else if (dayCond.status === 'normal') condScore = 6; else if (dayCond.status === 'bad') condScore = 3; }
+        return { date: date.slice(5), score: Number(avgScore.toFixed(1)), condition: condScore };
+    }));
   };
 
   const calculateStats = (data: any[]) => {
     if (!data || data.length === 0) {
-        setStats([
-            { subject: '열정', A: 20, fullMark: 100 },
-            { subject: '강도', A: 20, fullMark: 100 },
-            { subject: '활동량', A: 20, fullMark: 100 },
-            { subject: '밸런스', A: 20, fullMark: 100 },
-            { subject: '관리', A: 20, fullMark: 100 },
-            { subject: '컨디션', A: 20, fullMark: 100 },
-        ]);
-        return;
+        setStats([{ subject: '열정', A: 20, fullMark: 100 }, { subject: '강도', A: 20, fullMark: 100 }, { subject: '활동량', A: 20, fullMark: 100 }, { subject: '밸런스', A: 20, fullMark: 100 }, { subject: '관리', A: 20, fullMark: 100 }, { subject: '컨디션', A: 20, fullMark: 100 }]); return;
     }
     const uniqueDays = new Set(data.map(l => new Date(l.created_at).toDateString())).size;
-    const consistency = Math.min(uniqueDays * 5, 100); 
-    
     const workoutLogs = data.filter(l => l.log_type === 'workout' || l.log_type === 'match');
-    const avgScore = workoutLogs.length > 0 
-        ? workoutLogs.reduce((acc, cur) => acc + cur.pain_score, 0) / workoutLogs.length 
-        : 0;
-    const intensity = Math.min(avgScore * 12, 100);
-
-    const volume = Math.min(data.length * 2, 100);
+    const avgScore = workoutLogs.length > 0 ? workoutLogs.reduce((acc, cur) => acc + cur.pain_score, 0) / workoutLogs.length : 0;
     const usedParts = new Set();
-    data.forEach(l => {
-        const match = (l.content || '').match(/^\[(.*?)\]/);
-        if(match) match[1].split(', ').forEach((p: string) => usedParts.add(p));
-    });
-    const balance = Math.min(usedParts.size * 8, 100);
-    const rehabCount = data.filter(l => l.log_type === 'rehab').length;
-    const rehabRatio = rehabCount / data.length;
-    let care = 50;
-    if (rehabRatio > 0 && rehabRatio < 0.4) care = 95; 
-    else if (rehabRatio === 0) care = 60; 
-    else care = 80; 
-    const physical = 75 + (data.length > 5 ? 10 : 0);
+    data.forEach(l => { const match = (l.content || '').match(/^\[(.*?)\]/); if(match) match[1].split(', ').forEach((p: string) => usedParts.add(p)); });
+    const rehabRatio = data.filter(l => l.log_type === 'rehab').length / data.length;
 
     setStats([
-        { subject: '열정', full: '꾸준함', A: consistency, fullMark: 100 },
-        { subject: '강도', full: '평균강도', A: intensity, fullMark: 100 },
-        { subject: '활동량', full: '총볼륨', A: volume, fullMark: 100 },
-        { subject: '밸런스', full: '다양성', A: balance, fullMark: 100 },
-        { subject: '관리', full: '부상방지', A: care, fullMark: 100 },
-        { subject: '컨디션', full: '신체상태', A: physical, fullMark: 100 },
+        { subject: '열정', full: '꾸준함', A: Math.min(uniqueDays * 5, 100), fullMark: 100 },
+        { subject: '강도', full: '평균강도', A: Math.min(avgScore * 12, 100), fullMark: 100 },
+        { subject: '활동량', full: '총볼륨', A: Math.min(data.length * 2, 100), fullMark: 100 },
+        { subject: '밸런스', full: '다양성', A: Math.min(usedParts.size * 8, 100), fullMark: 100 },
+        { subject: '관리', full: '부상방지', A: (rehabRatio > 0 && rehabRatio < 0.4) ? 95 : (rehabRatio === 0 ? 60 : 80), fullMark: 100 },
+        { subject: '컨디션', full: '신체상태', A: 75 + (data.length > 5 ? 10 : 0), fullMark: 100 },
     ]);
   };
 
@@ -317,7 +265,6 @@ export default function Dashboard() {
     const rehabLogs = data.filter(l => l.log_type === 'rehab');
     const partCounts: {[key: string]: number} = {};
     let totalPain = 0;
-    
     rehabLogs.forEach(log => {
         totalPain += log.pain_score;
         const match = (log.content || '').match(/^\[(.*?)\]/);
@@ -329,25 +276,14 @@ export default function Dashboard() {
     const avgPain = rehabLogs.length > 0 ? (totalPain / rehabLogs.length).toFixed(1) : '0';
 
     let advice = "부상 없이 건강하게 운동하고 계시네요! 👍";
-    
     if (rehabLogs.length > 0) {
-        if (Number(avgPain) >= 8) {
-            advice = "🚨 평균 통증 점수가 매우 높습니다! 무리한 운동은 멈추고, 충분한 휴식이나 점검을 권장합니다.";
-        } else if (Number(avgPain) >= 5) {
-            advice = "⚠️ 통증이 지속되고 있습니다. 운동 강도를 낮추고 충분한 스트레칭이 필요합니다.";
-        } else if (worstPart.includes("무릎")) {
-            advice = "🦵 무릎에 부하가 많이 가고 있네요. 대퇴사두근 강화 운동과 햄스트링 스트레칭을 루틴에 추가해보세요.";
-        } else if (worstPart.includes("허리")) {
-            advice = "🧘 허리가 불편하시군요. 코어 운동(플랭크, 버드독)을 강화하고, 허리를 과하게 꺾는 동작은 피하세요.";
-        } else if (worstPart.includes("발목")) {
-            advice = "🦶 발목 불안정성이 의심됩니다. 밸런스 운동과 밴드를 이용한 발목 강화 운동이 도움됩니다.";
-        } else if (worstPart.includes("어깨")) {
-            advice = "🙆‍♂️ 어깨 충돌을 조심하세요. 회전근개 강화와 흉추 가동성 운동을 추천합니다.";
-        }
-    } else {
-        advice = "🔥 부상 기록이 없습니다! 아주 훌륭합니다. 이대로 꾸준히 득근하세요!";
+        if (Number(avgPain) >= 8) advice = "🚨 평균 통증 점수가 매우 높습니다! 무리한 운동은 멈추고, 충분한 휴식이나 점검을 권장합니다.";
+        else if (Number(avgPain) >= 5) advice = "⚠️ 통증이 지속되고 있습니다. 운동 강도를 낮추고 충분한 스트레칭이 필요합니다.";
+        else if (worstPart.includes("무릎")) advice = "🦵 무릎에 부하가 많이 가고 있네요. 대퇴사두근 강화 운동과 햄스트링 스트레칭을 루틴에 추가해보세요.";
+        else if (worstPart.includes("허리")) advice = "🧘 허리가 불편하시군요. 코어 운동(플랭크, 버드독)을 강화하고, 허리를 과하게 꺾는 동작은 피하세요.";
+        else if (worstPart.includes("발목")) advice = "🦶 발목 불안정성이 의심됩니다. 밸런스 운동과 밴드를 이용한 발목 강화 운동이 도움됩니다.";
+        else if (worstPart.includes("어깨")) advice = "🙆‍♂️ 어깨 충돌을 조심하세요. 회전근개 강화와 흉추 가동성 운동을 추천합니다.";
     }
-
     setAnalysisData({ worstPart, avgPain, advice, totalLogs: data.length });
   };
 
@@ -379,31 +315,14 @@ export default function Dashboard() {
 
   const handleCopyLog = (log: any) => {
     if (!log) return;
-    setTitle(log.title || ''); 
-    setScore(log.pain_score);
-    setLogType(log.log_type);
-    
-    if (log.log_type === 'match') {
-        setGoals(log.goals || 0);
-        setAssists(log.assists || 0);
-        setMatchResult(log.match_result || 'none');
-    }
-
-    const contentText = (log.content || '') as string;
-    const match = contentText.match(/^\[([^\]]*)\]\s*([\s\S]*)/);
-    if (match) {
-        const parts = match[1].split(', ');
-        setSelectedParts(parts);
-        setContent(match[2]);
-    } else {
-        setContent(contentText);
-        setSelectedParts([]);
-    }
-    setIsModalOpen(true);
-    toast.success("기록을 복사했습니다! (날짜는 오늘)");
+    setTitle(log.title || ''); setScore(log.pain_score); setLogType(log.log_type);
+    if (log.log_type === 'match') { setGoals(log.goals || 0); setAssists(log.assists || 0); setMatchResult(log.match_result || 'none'); }
+    const match = (log.content || '').match(/^\[([^\]]*)\]\s*([\s\S]*)/);
+    if (match) { setSelectedParts(match[1].split(', ')); setContent(match[2]); } 
+    else { setContent(log.content || ''); setSelectedParts([]); }
+    setIsModalOpen(true); toast.success("기록을 복사했습니다! (날짜는 오늘)");
   };
 
-  // 🚨 AI 검열 탑재된 업로드 함수
   const handleAddLog = async () => {
     if (!title.trim()) return toast.error("제목을 입력해주세요!")
     setUploading(true)
@@ -412,66 +331,36 @@ export default function Dashboard() {
       try {
         let mediaUrl = null; let mediaType = 'image';
         if (mediaFile) {
-           
-           // 🤖 AI 이미지 스캔 로직 (영상은 패스)
            if (mediaFile.type.startsWith('image')) {
                const checkToast = toast.loading("AI가 이미지를 검사 중입니다... 🕵️‍♂️");
                try {
                    const model = await nsfwjs.load();
-                   const img = new Image();
-                   img.src = URL.createObjectURL(mediaFile);
+                   const img = new Image(); img.src = URL.createObjectURL(mediaFile);
                    await new Promise((resolve) => (img.onload = resolve));
-                   
                    const predictions = await model.classify(img);
-                   
-                   // 포르노(Porn)나 선정적(Hentai, Sexy) 확률이 높으면 컷!
-                   const isBad = predictions.some(p => 
-                       (p.className === 'Porn' || p.className === 'Hentai' || p.className === 'Sexy') && p.probability > 0.6
-                   );
-
+                   const isBad = predictions.some(p => (p.className === 'Porn' || p.className === 'Hentai' || p.className === 'Sexy') && p.probability > 0.6);
                    toast.dismiss(checkToast);
-
                    if (isBad) {
                        toast.error("🚫 부적절한 이미지가 감지되어 업로드할 수 없습니다.");
-                       setUploading(false);
-                       return; // 🚨 여기서 차단해서 서버로 안 올라감!
+                       setUploading(false); return; 
                    }
-               } catch(aiError) {
-                   toast.dismiss(checkToast);
-                   console.error("AI 모델 로딩 실패", aiError);
-               }
+               } catch(aiError) { toast.dismiss(checkToast); console.error("AI 모델 로딩 실패", aiError); }
            }
-
-           // AI 검사를 무사히 통과했다면 원래대로 Supabase에 업로드
            const fileExt = mediaFile.name.split('.').pop();
            const filePath = `${user.id}/${Date.now()}.${fileExt}`;
            const { error: uploadError } = await supabase.storage.from('images').upload(filePath, mediaFile);
            if (uploadError) throw uploadError;
            const { data } = supabase.storage.from('images').getPublicUrl(filePath);
-           mediaUrl = data.publicUrl;
-           mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
+           mediaUrl = data.publicUrl; mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
         }
-
         const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''
-        
         const { error } = await supabase.from('logs').insert({ 
-            user_id: user.id, 
-            title, 
-            content: partsString + content, 
-            pain_score: score, 
-            log_type: logType, 
-            is_public: isPublic, 
-            image_url: mediaUrl, 
-            media_type: mediaType, 
-            created_at: new Date().toISOString(),
-            goals: logType === 'match' ? goals : 0,
-            assists: logType === 'match' ? assists : 0,
-            match_result: logType === 'match' ? matchResult : 'none',
-            gear_id: selectedGearId
+            user_id: user.id, title, content: partsString + content, pain_score: score, log_type: logType, is_public: isPublic, 
+            image_url: mediaUrl, media_type: mediaType, created_at: new Date().toISOString(), goals: logType === 'match' ? goals : 0,
+            assists: logType === 'match' ? assists : 0, match_result: logType === 'match' ? matchResult : 'none', gear_id: selectedGearId
         })
         if (error) throw error;
-        toast.success("기록 저장 완료! 🎉"); 
-        setIsModalOpen(false); 
+        toast.success("기록 저장 완료! 🎉"); setIsModalOpen(false); 
         setTitle(''); setContent(''); setScore(5); setSelectedParts([]); setMediaFile(null); setMediaPreview(null); 
         setGoals(0); setAssists(0); setMatchResult('none'); setLogType('workout'); setSelectedGearId(null);
         fetchData(false)
@@ -483,31 +372,15 @@ export default function Dashboard() {
   const handleSendSuggestion = async () => {
     if(!suggestionText.trim()) return toast.error("내용을 입력해주세요!");
     const t = toast.loading("전송 중...");
-    
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        toast.error("로그인이 필요합니다.", { id: t });
-        return;
-    }
-
-    const { error } = await supabase.from('suggestions').insert({ 
-        content: suggestionText,
-        user_id: user.id 
-    });
-    
-    if(error) {
-        toast.error("전송 실패 ㅠ " + error.message, { id: t });
-    } else {
-        toast.success("소중한 의견 감사합니다! 💌", { id: t });
-        setSuggestionText("");
-        setIsSuggestionOpen(false);
-    }
+    if (!user) return toast.error("로그인이 필요합니다.", { id: t });
+    const { error } = await supabase.from('suggestions').insert({ content: suggestionText, user_id: user.id });
+    if(error) toast.error("전송 실패 ㅠ " + error.message, { id: t });
+    else { toast.success("소중한 의견 감사합니다! 💌", { id: t }); setSuggestionText(""); setIsSuggestionOpen(false); }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0]; setMediaFile(file); setMediaPreview(URL.createObjectURL(file))
-    }
+    if (e.target.files && e.target.files.length > 0) { const file = e.target.files[0]; setMediaFile(file); setMediaPreview(URL.createObjectURL(file)) }
   }
 
   const handleDeleteLog = async (id: string) => {
@@ -518,20 +391,12 @@ export default function Dashboard() {
 
   const handleDeleteAccount = async () => {
     if (!confirm("🚨 정말 탈퇴하시겠습니까?\n\n모든 훈련 기록, 라인업 전술, 프로필 정보가 영구적으로 삭제되며 절대 복구할 수 없습니다.")) return;
-    
-    const t = toast.loading("데이터를 영구 삭제하는 중...");
+    const t = toast.loading("데이터 영구 삭제 중...");
     const { data: { user } } = await supabase.auth.getUser();
-    
     if (user) {
       const { error } = await supabase.rpc('delete_user');
-      
-      if (error) {
-        toast.error("탈퇴 실패. 다시 시도해주세요.", { id: t });
-      } else {
-        await supabase.auth.signOut();
-        toast.success("회원 탈퇴가 완료되었습니다. 그동안 감사했습니다!", { id: t });
-        router.replace('/login');
-      }
+      if (error) toast.error("탈퇴 실패. 다시 시도해주세요.", { id: t });
+      else { await supabase.auth.signOut(); toast.success("회원 탈퇴 완료. 그동안 감사했습니다!", { id: t }); router.replace('/login'); }
     }
   };
 
@@ -541,32 +406,15 @@ export default function Dashboard() {
   }
 
   const handleShareClick = async (log: any) => {
-    setShareData(log)
-    const t = toast.loading("카드 디자인 중... 🎨")
-    
+    setShareData(log); const t = toast.loading("카드 디자인 중... 🎨")
     setTimeout(async () => {
       if (shareCardRef.current) {
         try {
-          const dataUrl = await toPng(shareCardRef.current, { 
-            cacheBust: true, 
-            pixelRatio: 2, 
-            backgroundColor: '#0f172a',
-            skipAutoScale: true
-          })
-          
-          const link = document.createElement('a');
-          link.download = `moveplaza_magazine_${Date.now()}.png`;
-          link.href = dataUrl;
-          link.click();
-          
+          const dataUrl = await toPng(shareCardRef.current, { cacheBust: true, pixelRatio: 2, backgroundColor: '#0f172a', skipAutoScale: true })
+          const link = document.createElement('a'); link.download = `moveplaza_magazine_${Date.now()}.png`; link.href = dataUrl; link.click();
           toast.success("저장 완료! 📸", { id: t });
-        } catch (error) { 
-          console.error(error); 
-          toast.error("저장 실패 ㅠ 다시 시도해주세요.", { id: t }); 
-        }
+        } catch (error) { toast.error("저장 실패 ㅠ 다시 시도해주세요.", { id: t }); }
         setShareData(null); 
-      } else {
-        toast.error("오류: 카드를 찾을 수 없습니다.", { id: t });
       }
     }, 1500); 
   }
@@ -574,36 +422,14 @@ export default function Dashboard() {
   const handleDownloadImage = async () => {
     if (!dataReportRef.current) return; 
     const t = toast.loading("활동 데이터 리포트 생성 중... 📸");
-    
     setTimeout(async () => {
       try {
         if(!dataReportRef.current) return;
         const element = dataReportRef.current;
-        const width = element.scrollWidth;
-        const height = element.scrollHeight;
-        
-        const dataUrl = await toPng(element, { 
-          cacheBust: true, 
-          pixelRatio: 2, 
-          backgroundColor: '#ffffff', 
-          width: width, 
-          height: height, 
-          style: { padding: '20px', background: '#ffffff' }, 
-          fetchRequestInit: { cache: 'no-cache' } 
-        });
-
-        const link = document.createElement('a');
-        link.download = `${userName}_Activity_Report_${Date.now()}.png`;
-        link.href = dataUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
+        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff', width: element.scrollWidth, height: element.scrollHeight, style: { padding: '20px', background: '#ffffff' }, fetchRequestInit: { cache: 'no-cache' } });
+        const link = document.createElement('a'); link.download = `${userName}_Activity_Report_${Date.now()}.png`; link.href = dataUrl; document.body.appendChild(link); link.click(); document.body.removeChild(link);
         toast.success("데이터 리포트가 갤러리에 저장되었습니다! 📊", { id: t });
-      } catch (e) { 
-        console.error(e); 
-        toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t, duration: 5000 }); 
-      }
+      } catch (e) { toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t, duration: 5000 }); }
     }, 1000);
   }
 
@@ -611,14 +437,13 @@ export default function Dashboard() {
     const now = new Date();
     return logs.filter(log => {
       if (log.log_type !== 'rehab') return false;
-      const logDate = new Date(log.created_at);
       if (heatmapRange === 'all') return true;
       const cutoff = new Date();
       if (heatmapRange === '1w') cutoff.setDate(now.getDate() - 7);
       else if (heatmapRange === '1m') cutoff.setMonth(now.getMonth() - 1);
       else if (heatmapRange === '6m') cutoff.setMonth(now.getMonth() - 6);
       else if (heatmapRange === '1y') cutoff.setFullYear(now.getFullYear() - 1);
-      return logDate >= cutoff;
+      return new Date(log.created_at) >= cutoff;
     });
   };
 
@@ -629,9 +454,7 @@ export default function Dashboard() {
       if (match) match[1].split(', ').forEach((p: string) => acc[p] = (acc[p] || 0) + 1); 
       return acc; 
   }, {} as any)
-
   const getSeverityColor = (count: number) => { if (count >= 5) return "bg-red-500/80 text-white border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]"; if (count >= 3) return "bg-orange-500/80 text-white border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]"; if (count >= 1) return "bg-yellow-500/80 text-white border-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]"; return "bg-slate-800 text-slate-400 border-slate-700"; }
-  
   const filteredLogs = selectedDate ? logs.filter(l => new Date(l.created_at).toDateString() === selectedDate.toDateString()) : logs
 
   return (
@@ -717,12 +540,8 @@ export default function Dashboard() {
             </table>
           </div>
           <div className="mt-12 pt-6 border-t-2 border-slate-100 text-center">
-            <p className="text-sm font-bold text-red-500 mb-1">
-              ⚠️ 본 리포트는 사용자가 직접 기록한 주관적인 운동 및 통증 수치를 요약한 것입니다.
-            </p>
-            <p className="text-xs font-bold text-slate-500">
-              의학적 진단서나 소견서가 아니며, 병원 진료 시 참고용 데이터로만 활용해 주시기 바랍니다.
-            </p>
+            <p className="text-sm font-bold text-red-500 mb-1">⚠️ 본 리포트는 사용자가 직접 기록한 주관적인 운동 및 통증 수치를 요약한 것입니다.</p>
+            <p className="text-xs font-bold text-slate-500">의학적 진단서나 소견서가 아니며, 병원 진료 시 참고용 데이터로만 활용해 주시기 바랍니다.</p>
           </div>
         </div>
       </div>
@@ -874,7 +693,6 @@ export default function Dashboard() {
                             const isWarning = gear.usage >= maxUsage;
                             const isCaution = gear.usage >= 30 && gear.usage < maxUsage;
                             const percentage = Math.min(100, (gear.usage / maxUsage) * 100);
-                            
                             const statusColor = isWarning ? 'bg-red-500' : isCaution ? 'bg-yellow-500' : 'bg-blue-500';
                             const statusText = isWarning ? 'text-red-400' : isCaution ? 'text-yellow-400' : 'text-blue-400';
                             const statusBg = isWarning ? 'bg-red-500/10 border-red-500/20' : isCaution ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-slate-800 border-white/5';
@@ -898,7 +716,7 @@ export default function Dashboard() {
                                         </div>
                                         {isWarning && (
                                             <p className="text-[10px] font-bold text-red-400 mt-2 flex items-center gap-1 animate-pulse">
-                                                <Icons.AlertCircle /> 스터드 마모 점검 요망! (미끄러짐 주의)
+                                                <Icons.AlertCircle /> 스터드 마모 점검 요망!
                                             </p>
                                         )}
                                     </div>
@@ -1050,11 +868,7 @@ export default function Dashboard() {
                 <div className="flex justify-between items-center mb-4 px-1">
                     <h3 className="text-xl font-black text-white">활동 캘린더 📅</h3>
                 </div>
-                <ActivityCalendar 
-                  logs={logs} 
-                  selectedDate={selectedDate} 
-                  onSelectDate={setSelectedDate} 
-                />
+                <ActivityCalendar logs={logs} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
             </section>
 
             <section>
@@ -1071,7 +885,6 @@ export default function Dashboard() {
                 <div className="space-y-3">{filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { 
                     const isWorkout = log.log_type === 'workout' || log.log_type === 'match'; 
                     const isMatch = log.log_type === 'match';
-                    
                     return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group shadow-sm">
                         <div className="flex items-center gap-4">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isMatch ? 'bg-yellow-500/10 text-yellow-400' : (isWorkout ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400')}`}>
@@ -1079,9 +892,7 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <div className="font-black text-white text-sm mb-0.5">{log.title}</div>
-                                <div className="text-xs font-bold text-slate-500 line-clamp-1">
-                                    {isMatch ? `⚽ ${log.goals}골 ${log.assists}어시 (${log.match_result === 'win' ? '승' : (log.match_result === 'lose' ? '패' : '무')})` : log.content}
-                                </div>
+                                <div className="text-xs font-bold text-slate-500 line-clamp-1">{isMatch ? `⚽ ${log.goals}골 ${log.assists}어시 (${log.match_result === 'win' ? '승' : (log.match_result === 'lose' ? '패' : '무')})` : log.content}</div>
                             </div>
                         </div>
                         <div className="flex items-center gap-3"><button onClick={() => handleCopyLog(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/10 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-500">점</div></div></div></div>) }))}</div>
@@ -1089,13 +900,11 @@ export default function Dashboard() {
 
             <section className="mt-12 mb-4 text-center">
                 <div className="flex justify-center items-center gap-4 mb-4">
-                    <button onClick={() => setIsDisclaimerOpen(true)} className="text-[10px] text-slate-500 font-bold hover:text-slate-300 transition flex items-center gap-1"><Icons.Info /> 약관 및 면책 조항</button>
+                    <button onClick={() => setIsDisclaimerOpen(true)} className="text-[10px] text-slate-500 font-bold hover:text-slate-300 transition flex items-center gap-1"><Icons.Info /> 약관 및 이용정책</button>
                     <span className="text-slate-700 text-[10px]">|</span>
-                    <button onClick={() => setIsSuggestionOpen(true)} className="text-[10px] text-blue-500/70 font-bold hover:text-blue-400 transition flex items-center gap-1"><Icons.MessageSquare /> 구단주(개발자)에게 건의하기</button>
+                    <button onClick={() => setIsSuggestionOpen(true)} className="text-[10px] text-blue-500/70 font-bold hover:text-blue-400 transition flex items-center gap-1"><Icons.MessageSquare /> 개발자 건의하기</button>
                 </div>
-                <button onClick={handleDeleteAccount} className="text-[10px] text-red-500/50 font-bold hover:text-red-500 transition underline underline-offset-2">
-                    회원 탈퇴 (데이터 영구 삭제)
-                </button>
+                <button onClick={handleDeleteAccount} className="text-[10px] text-red-500/50 font-bold hover:text-red-500 transition underline underline-offset-2">회원 탈퇴 (데이터 영구 삭제)</button>
             </section>
         </main>
       )}
@@ -1159,13 +968,11 @@ export default function Dashboard() {
           <div className="bg-slate-900 border border-white/10 w-full max-w-md h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-modal">
             <div className="p-4 border-b border-white/5 flex justify-between items-center bg-slate-900"><h3 className="font-extrabold text-lg text-white">새로운 기록 남기기 ✍️</h3><button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full transition text-slate-400"><Icons.X /></button></div>
             <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-900 custom-scrollbar">
-                
                 <div className="flex bg-slate-800 p-1 rounded-xl">
                     <button onClick={() => setLogType('workout')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'workout' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500'}`}>💪 훈련</button>
                     <button onClick={() => setLogType('match')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'match' ? 'bg-slate-700 text-yellow-400 shadow-sm' : 'text-slate-500'}`}>⚽ 경기</button>
                     <button onClick={() => setLogType('rehab')} className={`flex-1 py-3 rounded-lg font-extrabold text-xs sm:text-sm transition ${logType === 'rehab' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-500'}`}>🏥 재활</button>
                 </div>
-
                 <div><label className="block text-sm font-bold text-slate-400 mb-1">제목</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 placeholder-slate-600" placeholder="제목 입력 (예: 조기축구, 하체훈련)" /></div>
                 
                 {logType === 'match' && (
@@ -1201,27 +1008,14 @@ export default function Dashboard() {
 
                 <div>
                     <label className="block text-sm font-bold text-slate-400 mb-2">장비 선택 (오늘 신은 축구화)</label>
-                    <select 
-                        value={selectedGearId || ''} 
-                        onChange={(e) => setSelectedGearId(e.target.value || null)} 
-                        className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-                    >
+                    <select value={selectedGearId || ''} onChange={(e) => setSelectedGearId(e.target.value || null)} className="w-full p-4 bg-slate-800 text-white rounded-xl font-bold border-none focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
                         <option value="">선택 안함</option>
-                        {gears.map((gear) => (
-                            <option key={gear.id} value={gear.id}>
-                                {gear.brand} {gear.name} ({gear.stud_type})
-                            </option>
-                        ))}
+                        {gears.map((gear) => (<option key={gear.id} value={gear.id}>{gear.brand} {gear.name} ({gear.stud_type})</option>))}
                     </select>
                 </div>
 
                 <div><label className="block text-sm font-bold text-slate-400 mb-2">사진/영상 추가</label><div className="flex items-center gap-3"><label className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-500/10 transition overflow-hidden text-slate-500">{mediaPreview ? <img src={mediaPreview} className="w-full h-full object-cover" /> : <Icons.Camera />}<input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} /></label><span className="text-xs text-slate-500 font-bold">{mediaFile ? "파일 선택됨 ✅" : "운동 인증샷이나 통증 부위를 찍어보세요."}</span></div></div>
-                
-                <div>
-                  <label className="block text-sm font-bold text-slate-400 mb-2">관련 부위 (선택)</label>
-                  <BodyMap selectedParts={selectedParts} togglePart={togglePart} type={logType === 'match' ? 'workout' : logType} />
-                </div>
-
+                <div><label className="block text-sm font-bold text-slate-400 mb-2">관련 부위 (선택)</label><BodyMap selectedParts={selectedParts} togglePart={togglePart} type={logType === 'match' ? 'workout' : logType} /></div>
                 <div><label className="block text-sm font-bold text-slate-400 mb-1">메모 / 내용</label><textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full p-4 h-32 bg-slate-800 text-white rounded-xl border-none focus:ring-2 focus:ring-blue-500 resize-none placeholder-slate-600" placeholder="경기 내용이나 특이사항을 적어주세요." /></div>
                 <div><div className="flex justify-between mb-2"><span className="font-bold text-slate-400">{logType === 'rehab' ? '통증 점수' : '훈련 강도 (RPE)'}</span><span className={`font-black text-xl ${score > 7 ? 'text-red-500' : 'text-blue-500'}`}>{score}</span></div><input type="range" min="0" max="10" value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
                 <div className="flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-white/5"><input type="checkbox" id="public" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-5 h-5 rounded text-blue-600 bg-slate-700 border-slate-600 focus:ring-blue-500"/><label htmlFor="public" className="text-sm font-bold text-slate-300 cursor-pointer">광장에 자랑하기 (공개)</label></div>
@@ -1231,27 +1025,45 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* 🚨 업그레이드된 약관 및 정책 모달 */}
       {isDisclaimerOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsDisclaimerOpen(false)}>
             <div className="bg-slate-900 border border-white/10 w-full max-w-md max-h-[85vh] overflow-y-auto rounded-3xl p-6 shadow-2xl relative custom-scrollbar" onClick={e => e.stopPropagation()}>
                 <button onClick={() => setIsDisclaimerOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white transition"><Icons.X /></button>
                 
                 <h3 className="text-xl font-black text-white mb-6 flex items-center gap-2 border-b border-white/10 pb-4">
-                    📜 약관 및 정책
+                    📜 이용약관 및 정책
                 </h3>
                 
-                <div className="space-y-6 text-sm text-slate-300 leading-relaxed">
+                <div className="space-y-6 text-sm text-slate-300 leading-relaxed pb-4">
                     <div className="bg-red-500/10 p-5 rounded-2xl border border-red-500/20">
-                        <h4 className="font-black text-red-400 mb-2 flex items-center gap-2"><Icons.AlertCircle /> 중요: 의학적 면책 공지</h4>
-                        <p className="text-slate-200 text-xs font-bold">
-                            본 서비스(Moveplaza)가 제공하는 분석 결과는 의학적 진단을 대신할 수 없습니다. 심각한 통증이나 부상이 의심될 경우 반드시 전문 의료기관의 진료를 받으시기 바랍니다.
+                        <h4 className="font-black text-red-400 mb-2 flex items-center gap-2"><Icons.AlertCircle /> 의학적 면책 공지</h4>
+                        <p className="text-slate-200 text-xs font-bold leading-relaxed">
+                            본 서비스(MOVEPLAZA)가 제공하는 자가 진단, AI 분석 결과 및 재활 팁은 사용자의 주관적 데이터를 바탕으로 한 <span className="text-red-400 font-black">단순 참고용 정보</span>입니다. 어떠한 경우에도 전문 의료 기관의 진단, 처방 및 치료를 대신할 수 없으며, 본 앱의 정보를 바탕으로 취한 행동에 대한 법적 책임은 사용자 본인에게 있습니다. 심각한 통증이나 부상이 의심될 경우 반드시 의사와 상담하십시오.
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <h4 className="font-black text-white flex items-center gap-2"><Icons.Shield /> 광장(커뮤니티) 이용 규칙</h4>
+                        <ul className="list-disc pl-5 text-xs text-slate-400 font-bold space-y-1.5">
+                            <li>모든 공개 게시물 및 업로드된 미디어(사진/영상)에 대한 법적 책임은 <span className="text-white">작성자 본인</span>에게 있습니다.</li>
+                            <li>타인을 비방하거나 욕설, 혐오 표현을 포함한 글은 무통보 삭제될 수 있습니다.</li>
+                            <li><span className="text-blue-400">AI 기반 이미지 필터링 시스템</span>이 작동 중이며, 선정적이거나 부적절한 이미지 업로드 시도 시 계정 이용이 영구 정지될 수 있습니다.</li>
+                            <li>유저 신고가 3회 이상 누적된 게시물은 자동으로 블라인드(숨김) 처리됩니다.</li>
+                        </ul>
+                    </div>
+
+                    <div className="space-y-2 border-t border-white/10 pt-4">
+                        <h4 className="font-black text-white">데이터 보관 및 파기</h4>
+                        <p className="text-xs text-slate-400 font-bold leading-relaxed">
+                            사용자가 회원 탈퇴를 요청할 경우, 기록된 모든 훈련 데이터, 프로필, 전술판 설정 및 커뮤니티 게시물은 즉각적으로 DB에서 <span className="text-red-400 font-black">영구 삭제</span>되며 복구할 수 없습니다. 
                         </p>
                     </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/10">
+                <div className="mt-4 pt-4 border-t border-white/10 sticky bottom-0 bg-slate-900">
                     <button onClick={() => setIsDisclaimerOpen(false)} className="w-full py-4 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-500 transition shadow-lg">
-                        위 내용을 모두 확인했습니다
+                        위 내용을 모두 확인 및 동의합니다
                     </button>
                 </div>
             </div>
