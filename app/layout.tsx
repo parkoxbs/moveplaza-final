@@ -52,9 +52,12 @@ export const metadata: Metadata = {
     },
   },
   
-  // 🔥👇 여기에 구글 서치 콘솔 인증 코드를 추가했습니다! 👇🔥
+  // 🔥👇 구글 & 네이버 서치어드바이저 인증 코드 통합 👇🔥
   verification: {
     google: 'ezk3LP2egWHd7QFyMc-y7sISEnLJcU5XGVGXZdmcoys',
+    other: {
+      'naver-site-verification': 'bad037c6762a0d5e1b0ec2d5c7df618eaf53b96f',
+    },
   },
 }
 
