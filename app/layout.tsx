@@ -51,6 +51,11 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  
+  // 🔥👇 여기에 구글 서치 콘솔 인증 코드를 추가했습니다! 👇🔥
+  verification: {
+    google: 'ezk3LP2egWHd7QFyMc-y7sISEnLJcU5XGVGXZdmcoys',
+  },
 }
 
 // 👇 뷰포트 설정 (모바일 앱처럼 보이게 하기 + 상단바 색상)
