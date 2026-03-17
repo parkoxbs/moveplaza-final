@@ -13,7 +13,8 @@ import ActivityCalendar from "..//components/ActivityCalendar"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
 import BottomNav from "../components/BottomNav"
-import * as nsfwjs from 'nsfwjs' // 🚨 AI 검열 라이브러리 추가!
+// 🚨 AI 검열 라이브러리 임시 비활성화 (주석 처리)
+// import * as nsfwjs from 'nsfwjs' 
 
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
@@ -331,27 +332,31 @@ export default function Dashboard() {
       try {
         let mediaUrl = null; let mediaType = 'image';
         if (mediaFile) {
-           if (mediaFile.type.startsWith('image')) {
-               const checkToast = toast.loading("AI가 이미지를 검사 중입니다... 🕵️‍♂️");
-               try {
-                   const model = await nsfwjs.load();
-                   const img = new Image(); img.src = URL.createObjectURL(mediaFile);
-                   await new Promise((resolve) => (img.onload = resolve));
-                   const predictions = await model.classify(img);
-                   const isBad = predictions.some(p => (p.className === 'Porn' || p.className === 'Hentai' || p.className === 'Sexy') && p.probability > 0.6);
-                   toast.dismiss(checkToast);
-                   if (isBad) {
-                       toast.error("🚫 부적절한 이미지가 감지되어 업로드할 수 없습니다.");
-                       setUploading(false); return; 
-                   }
-               } catch(aiError) { toast.dismiss(checkToast); console.error("AI 모델 로딩 실패", aiError); }
-           }
-           const fileExt = mediaFile.name.split('.').pop();
-           const filePath = `${user.id}/${Date.now()}.${fileExt}`;
-           const { error: uploadError } = await supabase.storage.from('images').upload(filePath, mediaFile);
-           if (uploadError) throw uploadError;
-           const { data } = supabase.storage.from('images').getPublicUrl(filePath);
-           mediaUrl = data.publicUrl; mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
+            // 🚨 18대 0 승리 기념사진을 위해 AI 필터링 로직 전체를 임시 주석 처리합니다!
+            /*
+            if (mediaFile.type.startsWith('image')) {
+                const checkToast = toast.loading("AI가 이미지를 검사 중입니다... 🕵️‍♂️");
+                try {
+                    const model = await nsfwjs.load();
+                    const img = new Image(); img.src = URL.createObjectURL(mediaFile);
+                    await new Promise((resolve) => (img.onload = resolve));
+                    const predictions = await model.classify(img);
+                    const isBad = predictions.some(p => (p.className === 'Porn' || p.className === 'Hentai' || p.className === 'Sexy') && p.probability > 0.6);
+                    toast.dismiss(checkToast);
+                    if (isBad) {
+                        toast.error("🚫 부적절한 이미지가 감지되어 업로드할 수 없습니다.");
+                        setUploading(false); return; 
+                    }
+                } catch(aiError) { toast.dismiss(checkToast); console.error("AI 모델 로딩 실패", aiError); }
+            }
+            */
+
+            const fileExt = mediaFile.name.split('.').pop();
+            const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage.from('images').upload(filePath, mediaFile);
+            if (uploadError) throw uploadError;
+            const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+            mediaUrl = data.publicUrl; mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
         }
         const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''
         const { error } = await supabase.from('logs').insert({ 
