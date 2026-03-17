@@ -160,6 +160,9 @@ export default function Dashboard() {
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreview, setMediaPreview] = useState<string | null>(null)
 
+  // 🚨 추가: 이미지가 완전히 로드되었는지 확인하는 상태
+  const [isImageReady, setIsImageReady] = useState(false)
+
   const bodyParts = ["목", "승모근", "어깨", "가슴", "등", "복근", "허리", "삼두", "이두", "전완근", "손목", "손", "엉덩이", "고관절", "허벅지(앞)", "허벅지(뒤)(햄스트링)", "무릎", "종아리", "발목", "발"]
 
   useEffect(() => { 
@@ -331,7 +334,6 @@ export default function Dashboard() {
     setIsModalOpen(true); toast.success("기록을 복사했습니다! (날짜는 오늘)");
   };
 
-  // 📸 사진/영상 첨부 기능
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) { 
         const file = e.target.files[0]; 
@@ -340,7 +342,6 @@ export default function Dashboard() {
     }
   }
 
-  // 🚨 변경된 게시물(기록) 등록 함수 (압축 적용)
   const handleAddLog = async () => {
     if (!title.trim()) return toast.error("제목을 입력해주세요!")
     setUploading(true)
@@ -351,12 +352,10 @@ export default function Dashboard() {
         if (mediaFile) {
             let fileToUpload = mediaFile;
             
-            // 🚨 압축 및 AI 검열 로직
             if (mediaFile.type.startsWith('image')) {
-                // 1. 먼저 이미지 다이어트(압축) 시키기
                 const compressOptions = {
-                    maxSizeMB: 1,           // 최대 1MB
-                    maxWidthOrHeight: 1920, // 최대 해상도 Full HD
+                    maxSizeMB: 1,
+                    maxWidthOrHeight: 1920,
                     useWebWorker: true,
                 };
                 
@@ -368,7 +367,6 @@ export default function Dashboard() {
                     console.error("이미지 압축 실패, 원본으로 진행합니다.", compressError);
                 }
 
-                // 2. 압축된 이미지로 AI 필터 검사
                 const checkToast = toast.loading("AI가 이미지를 검사 중입니다... 🕵️‍♂️");
                 try {
                     const model = await nsfwjs.load();
@@ -391,7 +389,6 @@ export default function Dashboard() {
                 }
             }
 
-            // 3. 압축 완료된 파일을 Supabase에 업로드
             const fileExt = fileToUpload.name.split('.').pop();
             const filePath = `${user.id}/${Date.now()}.${fileExt}`;
             const { error: uploadError } = await supabase.storage.from('images').upload(filePath, fileToUpload);
@@ -400,7 +397,6 @@ export default function Dashboard() {
             mediaUrl = data.publicUrl; mediaType = fileToUpload.type.startsWith('video') ? 'video' : 'image';
         }
         
-        // 데이터 DB 저장
         const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''
         const { error } = await supabase.from('logs').insert({ 
             user_id: user.id, title, content: partsString + content, pain_score: score, log_type: logType, is_public: isPublic, 
@@ -460,20 +456,20 @@ export default function Dashboard() {
     else setSelectedParts([...selectedParts, part])
   }
 
-  // 🚨 완벽 수정본: Safari 이미지 블록 우회를 위해 이미지를 Base64 Data URL로 완전히 변환!
+  // 🚨 캡처 함수 수정: 이미지가 완벽하게 화면에 그려진 후(onLoad) 캡처 진행
   const handleShareClick = async (log: any) => {
     const t = toast.loading("카드 디자인 중... 🎨");
     
-    let safeImageUrl = log.image_url;
+    let safeImageUrl = null;
+    
+    // 이미지가 있다면 Base64로 우선 변환
     if (log.image_url) {
         try {
-            // 1. URL 끝에 타임스탬프를 붙여서 캐시된 이미지 대신 새로 받아오기 (CORS 우회)
             const response = await fetch(log.image_url + '?t=' + new Date().getTime(), {
                 cache: 'no-store'
             });
             const blob = await response.blob();
             
-            // 2. 이미지를 텍스트 형태(Base64)로 변환! (Safari가 절대 차단 못 함)
             safeImageUrl = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result as string);
@@ -485,31 +481,51 @@ export default function Dashboard() {
         }
     }
 
+    // 상태 업데이트 (모달 열기)
     setShareData({ ...log, image_url: safeImageUrl });
+    
+    // 이미지가 없으면 바로 캡처 진행
+    if (!safeImageUrl) {
+        setIsImageReady(true);
+    } else {
+        setIsImageReady(false); // 이미지가 있다면 img 태그의 onLoad에서 true로 바꿔줄 예정
+    }
 
-    // 3. 이미지가 화면에 그려질 넉넉한 시간(0.8초) 주기
-    setTimeout(async () => {
-      if (shareCardRef.current) {
-        try {
-          const dataUrl = await toPng(shareCardRef.current, { 
-              cacheBust: true, 
-              pixelRatio: 2, 
-              backgroundColor: '#0f172a', 
-              skipAutoScale: true 
-          });
-          const link = document.createElement('a'); 
-          link.download = `moveplaza_magazine_${Date.now()}.png`; 
-          link.href = dataUrl; 
-          link.click();
-          toast.success("저장 완료! 📸", { id: t });
-        } catch (error: any) { 
-          console.error(error);
-          toast.error("저장 실패 ㅠ 다시 시도해주세요.", { id: t }); 
-        }
-        setShareData(null); 
-      }
-    }, 800); 
+    // 약간의 딜레이 후 캡처 실행을 위한 로직 (isImageReady를 감지하는 useEffect로 넘김)
+    // 에러 방지를 위해 toast id 저장
+    sessionStorage.setItem('currentToast', t);
   }
+
+  // 🚨 isImageReady가 true가 되면 캡처를 실행하는 useEffect
+  useEffect(() => {
+      if (shareData && isImageReady && shareCardRef.current) {
+          const t = sessionStorage.getItem('currentToast') || "loading";
+          
+          setTimeout(async () => {
+              try {
+                  if (shareCardRef.current) { // ref 다시 확인
+                      const dataUrl = await toPng(shareCardRef.current, { 
+                          cacheBust: true, 
+                          pixelRatio: 2, 
+                          backgroundColor: '#0f172a', 
+                          skipAutoScale: true 
+                      });
+                      const link = document.createElement('a'); 
+                      link.download = `moveplaza_magazine_${Date.now()}.png`; 
+                      link.href = dataUrl; 
+                      link.click();
+                      toast.success("저장 완료! 📸", { id: t });
+                  }
+              } catch (error: any) { 
+                  console.error(error);
+                  toast.error("저장 실패 ㅠ 다시 시도해주세요.", { id: t }); 
+              }
+              setShareData(null); 
+              setIsImageReady(false);
+              sessionStorage.removeItem('currentToast');
+          }, 300); // 렌더링 후 아주 짧은 지연시간
+      }
+  }, [isImageReady, shareData]);
 
   const handleDownloadImage = async () => {
     if (!dataReportRef.current) return; 
@@ -643,8 +659,13 @@ export default function Dashboard() {
           <div ref={shareCardRef} className="w-[450px] h-[650px] relative bg-slate-950 overflow-hidden font-sans">
             {shareData.image_url ? (
               <>
-                {/* 🚨 변경점: Base64 이미지에는 crossOrigin="anonymous"가 있으면 오히려 에러가 나서 삭제함! */}
-                <img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" alt="배경" />
+                {/* 🚨 이미지가 로드되면 onLoad 이벤트를 통해 isImageReady를 true로 변경 */}
+                <img 
+                    src={shareData.image_url} 
+                    onLoad={() => setIsImageReady(true)}
+                    className="absolute inset-0 w-full h-full object-cover z-0" 
+                    alt="배경" 
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30 z-0"></div>
               </>
             ) : (
