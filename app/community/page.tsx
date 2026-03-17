@@ -3,12 +3,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { createBrowserClient } from "@supabase/ssr"; 
 import { useRouter } from 'next/navigation';
+import toast, { Toaster } from 'react-hot-toast'; // 🚨 토스트 알림 추가!
 
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 const supabase = createBrowserClient(supabaseUrl, supabaseKey)
 
-// ✅ [설정] 관리자 이메일
+// ✅ [설정] 관리자 이메일 (구단주님 이메일 확인!)
 const ADMIN_EMAIL = "agricb83@gmail.com"; 
 
 // 🚫 [설정] 차단할 단어 리스트
@@ -29,8 +30,8 @@ const Icons = {
   Comment: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-blue-400 transition-colors"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   More: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>,
   Bell: () => <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-blue-400 transition-colors"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>,
-  // 🚨 신고 아이콘 추가!
-  Flag: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+  Flag: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
+  Hammer: () => <span className="text-sm">🔨</span> // 철퇴 아이콘
 }
 
 type Profile = { id: string; username: string; sport: string; position: string; avatar_url?: string; level?: string; emoji?: string; color?: string; };
@@ -78,7 +79,6 @@ export default function CommunityPage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  // 🚨 신고 드롭다운 메뉴 상태 관리
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   useEffect(() => { fetchData(); }, []);
@@ -100,12 +100,10 @@ export default function CommunityPage() {
 
     if (!rawLogsData || !allLogs) { setLoading(false); return; }
 
-    // 🚨 [핵심] 신고 데이터 불러와서 3회 이상 신고된 글 블라인드 처리!
     const { data: reportsData } = await supabase.from('reports').select('log_id');
     const reportCounts: Record<string, number> = {};
     reportsData?.forEach(r => { reportCounts[r.log_id] = (reportCounts[r.log_id] || 0) + 1; });
 
-    // 신고 3회 미만인 게시물만 화면에 보여줍니다
     const logsData = rawLogsData.filter(log => (reportCounts[log.id] || 0) < 3);
 
     const counts: {[key: string]: number} = {};
@@ -183,8 +181,22 @@ export default function CommunityPage() {
           } else {
               alert("🚨 신고가 접수되었습니다. 깨끗한 문화를 위해 기여해주셔서 감사합니다!");
               setActiveDropdown(null);
-              fetchData(); // 3회 누적 시 화면에서 바로 사라지도록 새로고침
+              fetchData(); 
           }
+      }
+  };
+
+  // 👑 어드민 전용 즉시 삭제(철퇴) 함수!
+  const handleAdminForceDelete = async (logId: string) => {
+      if (!confirm('🚨 [CEO 권한] 이 게시물을 즉시 영구 삭제하시겠습니까?')) return;
+      
+      const { error } = await supabase.from('logs').delete().eq('id', logId);
+      if (!error) { 
+          toast.success('관리자 권한으로 게시물을 삭제했습니다! 🔨'); 
+          setActiveDropdown(null);
+          setLogs(prev => prev.filter(l => l.id !== logId)); // 화면에서도 즉시 지우기
+      } else {
+          toast.error('삭제 실패! (Supabase 권한 확인 필요)');
       }
   };
 
@@ -283,6 +295,7 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-24 selection:bg-blue-500 selection:text-white">
+        <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
         
         {/* 🌟 헤더 (Fixed) */}
         <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950 border-b border-white/5 h-16 flex items-center shadow-md">
@@ -332,7 +345,6 @@ export default function CommunityPage() {
             </div>
         </header>
 
-        {/* 🚨 화면 전체를 감싸는 div에 onClick 이벤트를 달아서 드롭다운 바깥 클릭 시 닫히도록 함 */}
         <div className="pt-24 pb-20 px-4 md:px-8 max-w-2xl mx-auto space-y-6 md:space-y-8" onClick={() => { if(showNotifications) setShowNotifications(false); if(activeDropdown) setActiveDropdown(null); }}>
             
             <div className="flex justify-between items-center px-1">
@@ -476,16 +488,22 @@ export default function CommunityPage() {
                                 </div>
                             </div>
                             
-                            {/* 🚨 신고 버튼 드롭다운 메뉴 (쩜쩜쩜 아이콘 클릭 시 오픈) */}
+                            {/* 🚨 신고 및 관리자 강제 삭제 드롭다운 메뉴 */}
                             <div className="relative">
                                 <button onClick={(e) => { e.stopPropagation(); setActiveDropdown(activeDropdown === log.id ? null : log.id); }} className="text-slate-600 hover:text-slate-300 p-1">
                                     <Icons.More />
                                 </button>
                                 {activeDropdown === log.id && (
-                                    <div className="absolute right-0 top-8 mt-1 w-32 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-20 overflow-hidden animate-fade-in" onClick={(e) => e.stopPropagation()}>
-                                        <button onClick={() => handleReport(log.id)} className="w-full px-4 py-3 text-left text-sm font-bold text-red-400 hover:bg-red-500/10 transition flex items-center gap-2">
+                                    <div className="absolute right-0 top-8 mt-1 w-36 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-20 overflow-hidden animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                                        <button onClick={() => handleReport(log.id)} className="w-full px-4 py-3 text-left text-sm font-bold text-slate-300 hover:bg-slate-700 transition flex items-center gap-2">
                                             <Icons.Flag /> 신고하기
                                         </button>
+                                        {/* 👑 어드민 계정일 때만 보이는 철퇴 버튼! */}
+                                        {currentUser?.email === ADMIN_EMAIL && (
+                                            <button onClick={() => handleAdminForceDelete(log.id)} className="w-full px-4 py-3 text-left text-sm font-black text-red-400 hover:bg-red-500/10 transition flex items-center gap-2 border-t border-slate-700">
+                                                <Icons.Hammer /> 강제 삭제
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
