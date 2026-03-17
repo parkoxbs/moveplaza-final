@@ -20,52 +20,99 @@ const Icons = {
   Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
 };
 
-// 📍 포메이션 좌표 데이터
+// 📍 포메이션 좌표 데이터 (11인조, 6인조, 5인조 완벽 분리!)
 const FORMATIONS: any = {
-  '4-3-3': [
-    { top: '90%', left: '50%' }, // GK
-    { top: '75%', left: '15%' }, { top: '75%', left: '38%' }, { top: '75%', left: '62%' }, { top: '75%', left: '85%' }, // DF
-    { top: '52%', left: '25%' }, { top: '55%', left: '50%' }, { top: '52%', left: '75%' }, // MF
-    { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }  // FW
-  ],
-  '4-4-2': [
-    { top: '90%', left: '50%' }, // GK
-    { top: '75%', left: '15%' }, { top: '75%', left: '38%' }, { top: '75%', left: '62%' }, { top: '75%', left: '85%' }, // DF
-    { top: '50%', left: '15%' }, { top: '50%', left: '38%' }, { top: '50%', left: '62%' }, { top: '50%', left: '85%' }, // MF
-    { top: '25%', left: '35%' }, { top: '25%', left: '65%' }  // FW
-  ],
-  '4-2-3-1': [
-    { top: '90%', left: '50%' }, // GK
-    { top: '78%', left: '15%' }, { top: '78%', left: '38%' }, { top: '78%', left: '62%' }, { top: '78%', left: '85%' }, // DF
-    { top: '60%', left: '35%' }, { top: '60%', left: '65%' }, // CDM
-    { top: '40%', left: '15%' }, { top: '40%', left: '50%' }, { top: '40%', left: '85%' }, // CAM/Wing
-    { top: '22%', left: '50%' }  // ST
-  ],
-  '3-5-2': [
-    { top: '90%', left: '50%' }, // GK
-    { top: '75%', left: '25%' }, { top: '75%', left: '50%' }, { top: '75%', left: '75%' }, // DF
-    { top: '50%', left: '10%' }, { top: '50%', left: '30%' }, { top: '55%', left: '50%' }, { top: '50%', left: '70%' }, { top: '50%', left: '90%' }, // MF
-    { top: '25%', left: '35%' }, { top: '25%', left: '65%' }  // FW
-  ],
-  '3-4-3': [
-    { top: '90%', left: '50%' }, // GK
-    { top: '75%', left: '20%' }, { top: '75%', left: '50%' }, { top: '75%', left: '80%' }, // DF
-    { top: '52%', left: '10%' }, { top: '52%', left: '35%' }, { top: '52%', left: '65%' }, { top: '52%', left: '90%' }, // MF
-    { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }  // FW
-  ],
-  '5-2-3': [
-    { top: '92%', left: '50%' }, // GK
-    { top: '78%', left: '10%' }, { top: '78%', left: '30%' }, { top: '78%', left: '50%' }, { top: '78%', left: '70%' }, { top: '78%', left: '90%' }, // DF
-    { top: '52%', left: '35%' }, { top: '52%', left: '65%' }, // MF
-    { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }  // FW
-  ],
-  '4-1-4-1': [
-    { top: '92%', left: '50%' }, // GK
-    { top: '80%', left: '15%' }, { top: '80%', left: '38%' }, { top: '80%', left: '62%' }, { top: '80%', left: '85%' }, // DF
-    { top: '62%', left: '50%' }, // CDM
-    { top: '42%', left: '12%' }, { top: '42%', left: '35%' }, { top: '42%', left: '65%' }, { top: '42%', left: '88%' }, // MF
-    { top: '22%', left: '50%' }  // ST
-  ]
+  '11v11': {
+    '4-3-3': [
+      { top: '90%', left: '50%' }, // GK
+      { top: '75%', left: '15%' }, { top: '75%', left: '38%' }, { top: '75%', left: '62%' }, { top: '75%', left: '85%' }, // DF
+      { top: '52%', left: '25%' }, { top: '55%', left: '50%' }, { top: '52%', left: '75%' }, // MF
+      { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }  // FW
+    ],
+    '4-4-2': [
+      { top: '90%', left: '50%' },
+      { top: '75%', left: '15%' }, { top: '75%', left: '38%' }, { top: '75%', left: '62%' }, { top: '75%', left: '85%' },
+      { top: '50%', left: '15%' }, { top: '50%', left: '38%' }, { top: '50%', left: '62%' }, { top: '50%', left: '85%' },
+      { top: '25%', left: '35%' }, { top: '25%', left: '65%' }
+    ],
+    '4-2-3-1': [
+      { top: '90%', left: '50%' },
+      { top: '78%', left: '15%' }, { top: '78%', left: '38%' }, { top: '78%', left: '62%' }, { top: '78%', left: '85%' },
+      { top: '60%', left: '35%' }, { top: '60%', left: '65%' },
+      { top: '40%', left: '15%' }, { top: '40%', left: '50%' }, { top: '40%', left: '85%' },
+      { top: '22%', left: '50%' }
+    ],
+    '3-5-2': [
+      { top: '90%', left: '50%' },
+      { top: '75%', left: '25%' }, { top: '75%', left: '50%' }, { top: '75%', left: '75%' },
+      { top: '50%', left: '10%' }, { top: '50%', left: '30%' }, { top: '55%', left: '50%' }, { top: '50%', left: '70%' }, { top: '50%', left: '90%' },
+      { top: '25%', left: '35%' }, { top: '25%', left: '65%' }
+    ],
+    '3-4-3': [
+      { top: '90%', left: '50%' },
+      { top: '75%', left: '20%' }, { top: '75%', left: '50%' }, { top: '75%', left: '80%' },
+      { top: '52%', left: '10%' }, { top: '52%', left: '35%' }, { top: '52%', left: '65%' }, { top: '52%', left: '90%' },
+      { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }
+    ],
+    '5-2-3': [
+      { top: '92%', left: '50%' },
+      { top: '78%', left: '10%' }, { top: '78%', left: '30%' }, { top: '78%', left: '50%' }, { top: '78%', left: '70%' }, { top: '78%', left: '90%' },
+      { top: '52%', left: '35%' }, { top: '52%', left: '65%' },
+      { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }
+    ],
+    '4-1-4-1': [
+      { top: '92%', left: '50%' },
+      { top: '80%', left: '15%' }, { top: '80%', left: '38%' }, { top: '80%', left: '62%' }, { top: '80%', left: '85%' },
+      { top: '62%', left: '50%' },
+      { top: '42%', left: '12%' }, { top: '42%', left: '35%' }, { top: '42%', left: '65%' }, { top: '42%', left: '88%' },
+      { top: '22%', left: '50%' }
+    ]
+  },
+  '6v6': {
+    '2-2-1': [
+      { top: '90%', left: '50%' }, // GK
+      { top: '70%', left: '30%' }, { top: '70%', left: '70%' }, // FIXO
+      { top: '45%', left: '20%' }, { top: '45%', left: '80%' }, // ALA
+      { top: '25%', left: '50%' }  // PIVO
+    ],
+    '2-1-2': [
+      { top: '90%', left: '50%' },
+      { top: '72%', left: '30%' }, { top: '72%', left: '70%' },
+      { top: '50%', left: '50%' },
+      { top: '28%', left: '30%' }, { top: '28%', left: '70%' }
+    ],
+    '1-3-1': [
+      { top: '90%', left: '50%' },
+      { top: '75%', left: '50%' },
+      { top: '50%', left: '20%' }, { top: '50%', left: '50%' }, { top: '50%', left: '80%' },
+      { top: '25%', left: '50%' }
+    ],
+    '3-1-1': [
+      { top: '90%', left: '50%' },
+      { top: '70%', left: '20%' }, { top: '72%', left: '50%' }, { top: '70%', left: '80%' },
+      { top: '45%', left: '50%' },
+      { top: '25%', left: '50%' }
+    ]
+  },
+  '5v5': {
+    '1-2-1': [
+      { top: '90%', left: '50%' }, // GK
+      { top: '70%', left: '50%' }, // FIXO
+      { top: '45%', left: '20%' }, { top: '45%', left: '80%' }, // ALA
+      { top: '25%', left: '50%' }  // PIVO
+    ],
+    '2-2': [
+      { top: '90%', left: '50%' },
+      { top: '65%', left: '30%' }, { top: '65%', left: '70%' },
+      { top: '35%', left: '30%' }, { top: '35%', left: '70%' }
+    ],
+    '2-1-1': [
+      { top: '90%', left: '50%' },
+      { top: '70%', left: '30%' }, { top: '70%', left: '70%' },
+      { top: '48%', left: '50%' },
+      { top: '25%', left: '50%' }
+    ]
+  }
 };
 
 // 유니폼 색상 프리셋
@@ -79,50 +126,59 @@ const KIT_COLORS = [
   { name: 'Sky', bg: 'bg-sky-400', text: 'text-white' },
 ];
 
-// 🚨 FC온라인 스타일 스마트 포지션 계산기!
-const getPositionInfo = (topPercent: string, leftPercent: string) => {
+// 🚨 매치 타입에 따라 포지션 이름을 다르게 출력하는 스마트 계산기!
+const getPositionInfo = (topPercent: string, leftPercent: string, matchType: string) => {
   const y = parseFloat(topPercent);
   const x = parseFloat(leftPercent);
 
-  // 1. 골키퍼 라인
+  // 🥅 풋살 (5v5, 6v6) 전용 포지션 명칭
+  if (matchType !== '11v11') {
+      if (y >= 85) return { label: 'GK', color: 'bg-yellow-400 text-black' }; // Goleiro (골레이로)
+      
+      let side = 'C';
+      if (x < 35) side = 'L';
+      else if (x > 65) side = 'R';
+
+      if (y >= 60) return { label: 'FIXO', color: 'bg-blue-500 text-white' }; // Fixo (픽소/수비)
+      if (y >= 40) {
+          if (side === 'C') return { label: 'CM', color: 'bg-emerald-500 text-white' };
+          return { label: 'ALA', color: 'bg-emerald-500 text-white' }; // Ala (알라/윙어)
+      }
+      return { label: 'PIVO', color: 'bg-red-500 text-white' }; // Pivo (피보/공격)
+  }
+
+  // ⚽ 11인조 (기존) 포지션 명칭
   if (y >= 85) return { label: 'GK', color: 'bg-yellow-400 text-black' };
 
-  // 좌우 중앙 판별
   let side = 'C';
   if (x < 28) side = 'L';
   else if (x > 72) side = 'R';
 
-  // 2. 수비수 라인
   if (y >= 68) {
     if (side === 'L') return { label: 'LB', color: 'bg-blue-500 text-white' };
     if (side === 'R') return { label: 'RB', color: 'bg-blue-500 text-white' };
     return { label: 'CB', color: 'bg-blue-500 text-white' };
   }
-  // 3. 수비형 미드필더 라인
   if (y >= 56) {
     if (side === 'L') return { label: 'LWB', color: 'bg-blue-500 text-white' };
     if (side === 'R') return { label: 'RWB', color: 'bg-blue-500 text-white' };
     return { label: 'CDM', color: 'bg-emerald-500 text-white' };
   }
-  // 4. 중앙 미드필더 라인
   if (y >= 44) {
     if (side === 'L') return { label: 'LM', color: 'bg-emerald-500 text-white' };
     if (side === 'R') return { label: 'RM', color: 'bg-emerald-500 text-white' };
     return { label: 'CM', color: 'bg-emerald-500 text-white' };
   }
-  // 5. 공격형 미드필더 라인
   if (y >= 34) {
     if (side === 'L') return { label: 'LW', color: 'bg-red-500 text-white' };
     if (side === 'R') return { label: 'RW', color: 'bg-red-500 text-white' };
     return { label: 'CAM', color: 'bg-emerald-500 text-white' };
   }
-  // 6. 처진 공격수 라인
   if (y >= 24) {
     if (side === 'L') return { label: 'LW', color: 'bg-red-500 text-white' };
     if (side === 'R') return { label: 'RW', color: 'bg-red-500 text-white' };
     return { label: 'CF', color: 'bg-red-500 text-white' };
   }
-  // 7. 최전방 공격수 라인
   if (side === 'L') return { label: 'LW', color: 'bg-red-500 text-white' };
   if (side === 'R') return { label: 'RW', color: 'bg-red-500 text-white' };
   return { label: 'ST', color: 'bg-red-500 text-white' };
@@ -133,6 +189,7 @@ export default function LineupPage() {
   const fieldRef = useRef<HTMLDivElement>(null);
   
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [matchType, setMatchType] = useState<'11v11' | '6v6' | '5v5'>('11v11'); // 🚨 매치 타입 상태 추가!
   const [formation, setFormation] = useState('4-3-3');
   const [kitColor, setKitColor] = useState(KIT_COLORS[0]);
   const [teamName, setTeamName] = useState('MY TEAM');
@@ -144,7 +201,7 @@ export default function LineupPage() {
     isMOM: false,
     isCaptain: false,
     goals: 0,
-    position: FORMATIONS['4-3-3'][i] 
+    position: FORMATIONS['11v11']['4-3-3'][i] 
   })));
 
   const [editingPlayer, setEditingPlayer] = useState<any>(null);
@@ -168,11 +225,29 @@ export default function LineupPage() {
     getUser();
   }, []);
 
+  // 🚨 매치 타입 (11, 6, 5인조) 변경 함수
+  const handleMatchTypeChange = (type: '11v11' | '6v6' | '5v5') => {
+      setMatchType(type);
+      const defaultFmt = type === '11v11' ? '4-3-3' : (type === '6v6' ? '2-2-1' : '1-2-1');
+      setFormation(defaultFmt);
+      
+      const playerNum = type === '11v11' ? 11 : (type === '6v6' ? 6 : 5);
+      setPlayers(Array.from({ length: playerNum }, (_, i) => ({
+          id: i,
+          name: i === 0 ? 'GK' : `Player ${i}`,
+          number: i === 0 ? 1 : i + 1,
+          isMOM: false,
+          isCaptain: false,
+          goals: 0,
+          position: FORMATIONS[type][defaultFmt][i]
+      })));
+  };
+
   const handleFormationChange = (fmt: string) => {
     setFormation(fmt);
     setPlayers(prev => prev.map((p, i) => ({
         ...p,
-        position: FORMATIONS[fmt][i] || { top: '50%', left: '50%' }
+        position: FORMATIONS[matchType][fmt][i] || { top: '50%', left: '50%' }
     })));
   };
 
@@ -230,8 +305,19 @@ export default function LineupPage() {
   };
 
   const loadLineup = (lineup: any) => {
-      setTeamName(lineup.team_name); setFormation(lineup.formation); setKitColor(lineup.kit_color); setPlayers(lineup.players);
-      setIsLoadModalOpen(false); toast.success(`${lineup.save_name} 불러오기 완료! 🔄`);
+      // 🚨 불러올 때 선수 명수 보고 자동으로 11인조/풋살 판별해줌!
+      const numPlayers = lineup.players.length;
+      let loadedType: '11v11' | '6v6' | '5v5' = '11v11';
+      if (numPlayers === 5) loadedType = '5v5';
+      else if (numPlayers === 6) loadedType = '6v6';
+
+      setMatchType(loadedType);
+      setTeamName(lineup.team_name); 
+      setFormation(lineup.formation); 
+      setKitColor(lineup.kit_color); 
+      setPlayers(lineup.players);
+      setIsLoadModalOpen(false); 
+      toast.success(`${lineup.save_name} 불러오기 완료! 🔄`);
   };
 
   const deleteLineup = async (id: number, e: React.MouseEvent) => {
@@ -240,6 +326,11 @@ export default function LineupPage() {
       const { error } = await supabase.from('lineups').delete().eq('id', id);
       if(!error) { setSavedLineups(prev => prev.filter(l => l.id !== id)); toast.success("삭제되었습니다."); }
   };
+
+  // 🚨 풋살 모드일 때는 실내 풋살장 느낌의 파란색 코트로 변경!
+  const fieldStyle = matchType === '11v11' 
+    ? { backgroundColor: '#2d6a35', backgroundImage: `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%), repeating-linear-gradient(to bottom, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 25px, transparent 25px, transparent 50px)` }
+    : { backgroundColor: '#1e3a8a', backgroundImage: `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.5) 100%), linear-gradient(0deg, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`, backgroundSize: '40px 40px' };
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white pb-24">
@@ -252,15 +343,23 @@ export default function LineupPage() {
       </header>
 
       <main className="max-w-md mx-auto p-4 space-y-5">
+        
+        {/* 🚨 매치 타입 선택 탭 */}
+        <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-white/10 shadow-sm">
+            <button onClick={() => handleMatchTypeChange('11v11')} className={`flex-1 py-2.5 text-xs font-black rounded-xl transition ${matchType === '11v11' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>⚽ 11인조</button>
+            <button onClick={() => handleMatchTypeChange('6v6')} className={`flex-1 py-2.5 text-xs font-black rounded-xl transition ${matchType === '6v6' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>🥅 6인조</button>
+            <button onClick={() => handleMatchTypeChange('5v5')} className={`flex-1 py-2.5 text-xs font-black rounded-xl transition ${matchType === '5v5' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>🥅 5인조</button>
+        </div>
+
         <div className="bg-slate-900 p-4 rounded-2xl border border-white/10 space-y-4 shadow-sm">
           <div>
             <label className="text-xs font-bold text-slate-400 mb-2 block">팀 이름</label>
             <input type="text" value={teamName} onChange={(e) => setTeamName(e.target.value)} className="w-full bg-slate-800 text-white font-black text-center p-2 rounded-lg border border-white/10 focus:border-blue-500 outline-none transition" />
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-400 mb-2 block">포메이션</label>
+            <label className="text-xs font-bold text-slate-400 mb-2 block">포메이션 ({matchType === '11v11' ? '축구' : '풋살'})</label>
             <div className="flex flex-wrap gap-1">
-              {Object.keys(FORMATIONS).map(fmt => (
+              {Object.keys(FORMATIONS[matchType]).map(fmt => (
                 <button key={fmt} onClick={() => handleFormationChange(fmt)} className={`flex-grow py-2 px-3 text-xs font-bold rounded-lg transition active:scale-95 ${formation === fmt ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                   {fmt}
                 </button>
@@ -277,10 +376,12 @@ export default function LineupPage() {
           </div>
         </div>
 
-        <div ref={fieldRef} className="relative w-full aspect-[3/4] rounded-xl overflow-hidden shadow-2xl border-[3px] border-white/30" style={{ backgroundColor: '#2d6a35', backgroundImage: `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%), repeating-linear-gradient(to bottom, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 25px, transparent 25px, transparent 50px)` }}>
+        <div ref={fieldRef} className="relative w-full aspect-[3/4] rounded-xl overflow-hidden shadow-2xl border-[3px] border-white/30" style={fieldStyle}>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white/70 rounded-full pointer-events-none"></div>
           <div className="absolute top-1/2 left-0 w-full h-[2px] bg-white/70 -translate-y-1/2 pointer-events-none"></div>
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full bg-transparent pointer-events-none"></div>
+          
+          {/* 풋살일 때는 페널티 박스를 약간 둥글게(D존 느낌) 하거나 그대로 유지 (여기선 통일성 있게 유지) */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-t-0 border-white/70 pointer-events-none"></div>
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-b-0 border-white/70 pointer-events-none"></div>
 
@@ -292,8 +393,8 @@ export default function LineupPage() {
           {players.map((player, index) => {
             const isDragging = draggingId === player.id;
             
-            // 🚨 포지션 자동 계산!
-            const posInfo = getPositionInfo(player.position.top, player.position.left);
+            // 🚨 matchType 넘겨줘서 풋살인지 축구인지에 따라 라벨 다르게 출력!
+            const posInfo = getPositionInfo(player.position.top, player.position.left, matchType);
 
             return (
               <div 
@@ -328,7 +429,6 @@ export default function LineupPage() {
                         newLeft = Math.max(0, Math.min(100, newLeft));
                         newTop = Math.max(0, Math.min(100, newTop));
 
-                        // 🚨 자석 그리드 스냅! (2.5% 단위로 착착 붙게 만듦)
                         const step = 2.5; 
                         newLeft = Math.round(newLeft / step) * step;
                         newTop = Math.round(newTop / step) * step;
@@ -360,7 +460,6 @@ export default function LineupPage() {
                    )}
                 </div>
                 
-                {/* 🚨 최대 너비 제한(max-w)을 풀고, 글자 길이에 맞춰 자동 확장(w-max)되게 수정했습니다! */}
                 <div className="mt-1 px-1.5 py-0.5 bg-black/60 rounded-md backdrop-blur-sm border border-white/10 flex items-center justify-center gap-1 w-max min-w-[50px] pointer-events-none shadow-md whitespace-nowrap z-30">
                   <span className={`text-[8px] font-black px-1 rounded-sm ${posInfo.color}`}>{posInfo.label}</span>
                   <p className="text-[10px] font-bold text-white">{player.name}</p>
@@ -384,7 +483,6 @@ export default function LineupPage() {
         </div>
       </main>
 
-      {/* 모달창 생략됨 (기존과 동일하게 유지) */}
       {editingPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setEditingPlayer(null)}>
           <div className="bg-slate-900 border border-white/10 w-full max-w-xs rounded-3xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
