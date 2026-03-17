@@ -115,18 +115,18 @@ const FORMATIONS: any = {
   }
 };
 
-// 유니폼 색상 프리셋
+// 🚨 유니폼 SVG 렌더링을 위해 svgFill과 stroke 속성 추가!
 const KIT_COLORS = [
-  { name: 'Red', bg: 'bg-red-600', text: 'text-white' },
-  { name: 'Blue', bg: 'bg-blue-600', text: 'text-white' },
-  { name: 'White', bg: 'bg-white', text: 'text-black' },
-  { name: 'Black', bg: 'bg-slate-900', text: 'text-white' },
-  { name: 'Yellow', bg: 'bg-yellow-400', text: 'text-black' },
-  { name: 'Green', bg: 'bg-green-600', text: 'text-white' },
-  { name: 'Sky', bg: 'bg-sky-400', text: 'text-white' },
+  { name: 'Red', bg: 'bg-red-600', text: 'text-white', svgFill: 'text-red-600', stroke: 'stroke-red-800' },
+  { name: 'Blue', bg: 'bg-blue-600', text: 'text-white', svgFill: 'text-blue-600', stroke: 'stroke-blue-800' },
+  { name: 'White', bg: 'bg-white', text: 'text-black', svgFill: 'text-white', stroke: 'stroke-slate-300' },
+  { name: 'Black', bg: 'bg-slate-900', text: 'text-white', svgFill: 'text-slate-900', stroke: 'stroke-slate-950' },
+  { name: 'Yellow', bg: 'bg-yellow-400', text: 'text-black', svgFill: 'text-yellow-400', stroke: 'stroke-yellow-600' },
+  { name: 'Green', bg: 'bg-green-600', text: 'text-white', svgFill: 'text-green-600', stroke: 'stroke-green-800' },
+  { name: 'Sky', bg: 'bg-sky-400', text: 'text-white', svgFill: 'text-sky-400', stroke: 'stroke-sky-600' },
 ];
 
-// 🚨 매치 타입에 따라 포지션 이름을 다르게 출력하는 스마트 계산기!
+// 🚨 매치 타입에 따라 포지션 이름을 다르게 출력하는 스마트 계산기
 const getPositionInfo = (topPercent: string, leftPercent: string, matchType: string) => {
   const y = parseFloat(topPercent);
   const x = parseFloat(leftPercent);
@@ -189,7 +189,7 @@ export default function LineupPage() {
   const fieldRef = useRef<HTMLDivElement>(null);
   
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [matchType, setMatchType] = useState<'11v11' | '6v6' | '5v5'>('11v11'); // 🚨 매치 타입 상태 추가!
+  const [matchType, setMatchType] = useState<'11v11' | '6v6' | '5v5'>('11v11'); 
   const [formation, setFormation] = useState('4-3-3');
   const [kitColor, setKitColor] = useState(KIT_COLORS[0]);
   const [teamName, setTeamName] = useState('MY TEAM');
@@ -225,7 +225,6 @@ export default function LineupPage() {
     getUser();
   }, []);
 
-  // 🚨 매치 타입 (11, 6, 5인조) 변경 함수
   const handleMatchTypeChange = (type: '11v11' | '6v6' | '5v5') => {
       setMatchType(type);
       const defaultFmt = type === '11v11' ? '4-3-3' : (type === '6v6' ? '2-2-1' : '1-2-1');
@@ -269,7 +268,8 @@ export default function LineupPage() {
     if (!fieldRef.current) return;
     const t = toast.loading("이미지 생성 중... 🎨");
     try {
-      const dataUrl = await toPng(fieldRef.current, { cacheBust: true, pixelRatio: 2, backgroundColor: '#0f172a' });
+      // 🚨 backgroundColor 옵션 완전 삭제 (이것 때문에 배경이 까맣게 나왔었음!)
+      const dataUrl = await toPng(fieldRef.current, { cacheBust: true, pixelRatio: 2 });
       const link = document.createElement('a');
       link.download = `moveplaza_lineup_${Date.now()}.png`;
       link.href = dataUrl;
@@ -305,7 +305,6 @@ export default function LineupPage() {
   };
 
   const loadLineup = (lineup: any) => {
-      // 🚨 불러올 때 선수 명수 보고 자동으로 11인조/풋살 판별해줌!
       const numPlayers = lineup.players.length;
       let loadedType: '11v11' | '6v6' | '5v5' = '11v11';
       if (numPlayers === 5) loadedType = '5v5';
@@ -327,7 +326,6 @@ export default function LineupPage() {
       if(!error) { setSavedLineups(prev => prev.filter(l => l.id !== id)); toast.success("삭제되었습니다."); }
   };
 
-  // 🚨 풋살 모드일 때는 실내 풋살장 느낌의 파란색 코트로 변경!
   const fieldStyle = matchType === '11v11' 
     ? { backgroundColor: '#2d6a35', backgroundImage: `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%), repeating-linear-gradient(to bottom, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 25px, transparent 25px, transparent 50px)` }
     : { backgroundColor: '#1e3a8a', backgroundImage: `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.5) 100%), linear-gradient(0deg, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`, backgroundSize: '40px 40px' };
@@ -344,7 +342,6 @@ export default function LineupPage() {
 
       <main className="max-w-md mx-auto p-4 space-y-5">
         
-        {/* 🚨 매치 타입 선택 탭 */}
         <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-white/10 shadow-sm">
             <button onClick={() => handleMatchTypeChange('11v11')} className={`flex-1 py-2.5 text-xs font-black rounded-xl transition ${matchType === '11v11' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>⚽ 11인조</button>
             <button onClick={() => handleMatchTypeChange('6v6')} className={`flex-1 py-2.5 text-xs font-black rounded-xl transition ${matchType === '6v6' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>🥅 6인조</button>
@@ -381,7 +378,6 @@ export default function LineupPage() {
           <div className="absolute top-1/2 left-0 w-full h-[2px] bg-white/70 -translate-y-1/2 pointer-events-none"></div>
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full bg-transparent pointer-events-none"></div>
           
-          {/* 풋살일 때는 페널티 박스를 약간 둥글게(D존 느낌) 하거나 그대로 유지 (여기선 통일성 있게 유지) */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-t-0 border-white/70 pointer-events-none"></div>
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-b-0 border-white/70 pointer-events-none"></div>
 
@@ -392,8 +388,6 @@ export default function LineupPage() {
 
           {players.map((player, index) => {
             const isDragging = draggingId === player.id;
-            
-            // 🚨 matchType 넘겨줘서 풋살인지 축구인지에 따라 라벨 다르게 출력!
             const posInfo = getPositionInfo(player.position.top, player.position.left, matchType);
 
             return (
@@ -445,15 +439,30 @@ export default function LineupPage() {
                     }
                 }}
               >
-                <div className={`relative w-10 h-10 pointer-events-none ${index === 0 ? 'text-yellow-400' : kitColor.text}`}>
-                   <div className={`absolute inset-0 rounded-full opacity-80 ${index === 0 ? 'bg-yellow-900' : kitColor.bg} blur-md`}></div>
-                   <div className={`relative z-10 w-full h-full flex items-center justify-center rounded-full border-2 border-white/30 shadow-lg ${index === 0 ? 'bg-yellow-500 text-black' : `${kitColor.bg} ${kitColor.text}`}`}>
-                      <span className="font-black text-sm">{player.number}</span>
-                   </div>
-                   {player.isCaptain && <span className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 border border-black rounded-full flex items-center justify-center text-[10px] font-black text-black shadow-md z-20">C</span>}
-                   {player.isMOM && <span className="absolute -top-2 -left-2 text-lg drop-shadow-md animate-bounce z-20">⭐</span>}
+                {/* 🚨 원형 아이콘에서 예쁜 유니폼 SVG로 교체 완료! */}
+                <div className={`relative w-12 h-12 pointer-events-none flex flex-col items-center justify-center`}>
+                   {/* 👕 유니폼 SVG */}
+                   <svg 
+                     xmlns="http://www.w3.org/2000/svg" 
+                     viewBox="0 0 24 24" 
+                     fill="currentColor" 
+                     stroke="currentColor"
+                     strokeWidth="1"
+                     className={`absolute inset-0 w-full h-full drop-shadow-md z-10 transition-colors duration-200 ${index === 0 ? 'text-yellow-400 stroke-yellow-600' : `${kitColor.svgFill} ${kitColor.stroke}`}`}
+                   >
+                     <path d="M20.33 6.06l-4.22-1.76A2.92 2.92 0 0015 4H9a2.92 2.92 0 00-1.11.22L3.67 6.06a1 1 0 00-.5.81v3.25a1 1 0 001 1h1.83v8.38a1 1 0 001 1h10a1 1 0 001-1V11.12h1.83a1 1 0 001-1V6.87a1 1 0 00-.5-.81z" />
+                   </svg>
+                   
+                   {/* 등번호 */}
+                   <span className={`relative z-20 font-black text-sm mt-1 ${index === 0 ? 'text-black' : kitColor.text}`}>
+                     {player.number}
+                   </span>
+                   
+                   {/* 주장 마크, MOM, 골 표시 */}
+                   {player.isCaptain && <span className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 border border-black rounded-full flex items-center justify-center text-[10px] font-black text-black shadow-md z-30">C</span>}
+                   {player.isMOM && <span className="absolute -top-2 -left-2 text-lg drop-shadow-md animate-bounce z-30">⭐</span>}
                    {player.goals > 0 && (
-                       <div className="absolute -bottom-2 -right-2 bg-white border border-black rounded-full flex items-center justify-center px-1.5 py-0.5 z-20 shadow-sm gap-0.5">
+                       <div className="absolute -bottom-1 -right-1 bg-white border border-black rounded-full flex items-center justify-center px-1.5 py-0.5 z-30 shadow-sm gap-0.5">
                            <span className="text-[10px] leading-none">⚽</span>
                            <span className="text-[10px] font-black text-black leading-none font-sans">{player.goals}</span>
                        </div>
