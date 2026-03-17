@@ -30,9 +30,9 @@ function LegalModal({ title, content, onClose }: { title: string, content: React
 export default function LoginPage() {
   const router = useRouter();
   
-  // 상태 관리
+  // 🚨 상태 관리: 'FORGOT_PASSWORD' 단계 추가!
   const [isSignUp, setIsSignUp] = useState(false); 
-  const [step, setStep] = useState<'FORM' | 'OTP'>('FORM'); 
+  const [step, setStep] = useState<'FORM' | 'OTP' | 'FORGOT_PASSWORD'>('FORM'); 
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState(''); 
@@ -99,7 +99,6 @@ export default function LoginPage() {
     if (timeLeft === 0) return toast.error("인증 시간이 만료되었습니다. 처음부터 다시 시도해주세요.");
     
     setLoading(true);
-    // signup 타입으로 OTP 검증
     const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'signup' });
     setLoading(false);
 
@@ -108,6 +107,23 @@ export default function LoginPage() {
     } else {
       toast.success("회원가입 완료! 환영합니다 ⚽");
       setTimeout(() => window.location.replace('/dashboard'), 500);
+    }
+  };
+
+  // 3. 🚨 비밀번호 재설정 메일 발송 함수
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return toast.error("이메일을 입력해주세요.");
+    
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    setLoading(false);
+
+    if (error) {
+      toast.error("메일 발송 실패: 가입된 이메일인지 확인해주세요.");
+    } else {
+      toast.success("비밀번호 재설정 메일을 보냈습니다! 메일함을 확인해주세요. 📧", { duration: 4000 });
+      setStep('FORM'); // 발송 후 다시 로그인 화면으로 이동
     }
   };
 
@@ -121,11 +137,13 @@ export default function LoginPage() {
         <div className="text-center relative z-10">
           <h1 className="text-3xl font-black text-white italic tracking-tight">MOVEPLAZA</h1>
           <p className="text-slate-400 font-bold mt-2 text-sm">
-            {step === 'OTP' ? '이메일 인증' : (isSignUp ? '선수 등록 (회원가입)' : '라커룸 입장 (로그인)')}
+            {/* 🚨 현재 상태에 따라 타이틀 변경 */}
+            {step === 'OTP' ? '이메일 인증' : step === 'FORGOT_PASSWORD' ? '비밀번호 재설정' : (isSignUp ? '선수 등록 (회원가입)' : '라커룸 입장 (로그인)')}
           </p>
         </div>
 
-        {step === 'FORM' ? (
+        {/* 🟢 STEP 1: 기본 로그인 / 회원가입 폼 */}
+        {step === 'FORM' && (
           <form onSubmit={handleAuth} className="space-y-5 relative z-10">
             <div>
               <label className="block text-sm font-extrabold text-slate-300 mb-2">이메일</label>
@@ -140,7 +158,15 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-extrabold text-slate-300 mb-2">비밀번호</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-extrabold text-slate-300">비밀번호</label>
+                {/* 🚨 비밀번호 찾기 버튼 추가 (로그인 모드일 때만 표시) */}
+                {!isSignUp && (
+                  <button type="button" onClick={() => setStep('FORGOT_PASSWORD')} className="text-xs text-blue-400 hover:text-blue-300 font-bold transition">
+                    비밀번호를 잊으셨나요?
+                  </button>
+                )}
+              </div>
               <input
                 type="password"
                 value={password}
@@ -175,7 +201,10 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
-        ) : (
+        )}
+
+        {/* 🔵 STEP 2: 이메일 OTP 인증 폼 (회원가입 시) */}
+        {step === 'OTP' && (
           <div className="space-y-5 relative z-10">
             <form onSubmit={handleVerifyOTP} className="space-y-5">
               <div className="text-center bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl mb-6">
@@ -190,7 +219,6 @@ export default function LoginPage() {
                     {formatTime(timeLeft)}
                   </span>
                 </div>
-                {/* 👇 6자리 입력 가능하게 수정 */}
                 <input
                   type="text"
                   value={otp}
@@ -220,6 +248,41 @@ export default function LoginPage() {
               ← 뒤로 가기 (이메일 다시 입력)
             </button>
           </div>
+        )}
+
+        {/* 🟠 STEP 3: 비밀번호 찾기 폼 추가! */}
+        {step === 'FORGOT_PASSWORD' && (
+          <form onSubmit={handleResetPassword} className="space-y-5 relative z-10">
+            <div className="text-center bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl mb-6">
+              <p className="text-xs font-bold text-slate-300 leading-relaxed">
+                가입하신 이메일 주소를 입력하시면,<br/>비밀번호를 재설정할 수 있는 링크를 보내드립니다.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-extrabold text-slate-300 mb-2">이메일</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-4 bg-slate-800 border border-white/10 rounded-xl focus:border-blue-500 outline-none text-white font-bold placeholder-slate-500 transition"
+                placeholder="가입했던 이메일 입력"
+                required
+              />
+            </div>
+
+            <button type="submit" disabled={loading || !email} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-lg font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] transition disabled:opacity-50">
+              {loading ? '발송 중...' : '재설정 링크 받기 📧'}
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => setStep('FORM')} 
+              className="w-full text-slate-400 text-sm font-bold hover:text-white transition mt-2"
+            >
+              ← 로그인 화면으로 돌아가기
+            </button>
+          </form>
         )}
       </div>
 
