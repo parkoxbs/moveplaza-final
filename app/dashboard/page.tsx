@@ -460,33 +460,55 @@ export default function Dashboard() {
     else setSelectedParts([...selectedParts, part])
   }
 
-  // 🚨 변경된 부분: Safari 이미지 블록 우회를 위해 이미지를 Blob으로 먼저 다운받음
+  // 🚨 완벽 수정본: Safari 이미지 블록 우회를 위해 이미지를 Base64 Data URL로 완전히 변환!
   const handleShareClick = async (log: any) => {
     const t = toast.loading("카드 디자인 중... 🎨");
     
-    let secureImageUrl = log.image_url;
+    let safeImageUrl = log.image_url;
     if (log.image_url) {
         try {
-            const response = await fetch(log.image_url);
+            // 1. URL 끝에 타임스탬프를 붙여서 캐시된 이미지 대신 새로 받아오기 (CORS 우회)
+            const response = await fetch(log.image_url + '?t=' + new Date().getTime(), {
+                cache: 'no-store'
+            });
             const blob = await response.blob();
-            secureImageUrl = URL.createObjectURL(blob);
+            
+            // 2. 이미지를 텍스트 형태(Base64)로 변환! (Safari가 절대 차단 못 함)
+            safeImageUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
         } catch (e) {
-            console.error("이미지 로드 실패", e);
+            console.error("이미지 변환 실패", e);
         }
     }
 
-    setShareData({ ...log, image_url: secureImageUrl });
+    setShareData({ ...log, image_url: safeImageUrl });
 
+    // 3. 이미지가 화면에 그려질 넉넉한 시간(0.8초) 주기
     setTimeout(async () => {
       if (shareCardRef.current) {
         try {
-          const dataUrl = await toPng(shareCardRef.current, { cacheBust: true, pixelRatio: 2, backgroundColor: '#0f172a', skipAutoScale: true });
-          const link = document.createElement('a'); link.download = `moveplaza_magazine_${Date.now()}.png`; link.href = dataUrl; link.click();
+          const dataUrl = await toPng(shareCardRef.current, { 
+              cacheBust: true, 
+              pixelRatio: 2, 
+              backgroundColor: '#0f172a', 
+              skipAutoScale: true 
+          });
+          const link = document.createElement('a'); 
+          link.download = `moveplaza_magazine_${Date.now()}.png`; 
+          link.href = dataUrl; 
+          link.click();
           toast.success("저장 완료! 📸", { id: t });
-        } catch (error) { toast.error("저장 실패 ㅠ 다시 시도해주세요.", { id: t }); }
+        } catch (error: any) { 
+          console.error(error);
+          toast.error("저장 실패 ㅠ 다시 시도해주세요.", { id: t }); 
+        }
         setShareData(null); 
       }
-    }, 500); 
+    }, 800); 
   }
 
   const handleDownloadImage = async () => {
@@ -621,7 +643,8 @@ export default function Dashboard() {
           <div ref={shareCardRef} className="w-[450px] h-[650px] relative bg-slate-950 overflow-hidden font-sans">
             {shareData.image_url ? (
               <>
-                <img src={shareData.image_url} crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover z-0" alt="배경" />
+                {/* 🚨 변경점: Base64 이미지에는 crossOrigin="anonymous"가 있으면 오히려 에러가 나서 삭제함! */}
+                <img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" alt="배경" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30 z-0"></div>
               </>
             ) : (
