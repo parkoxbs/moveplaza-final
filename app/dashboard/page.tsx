@@ -460,18 +460,33 @@ export default function Dashboard() {
     else setSelectedParts([...selectedParts, part])
   }
 
+  // 🚨 변경된 부분: Safari 이미지 블록 우회를 위해 이미지를 Blob으로 먼저 다운받음
   const handleShareClick = async (log: any) => {
-    setShareData(log); const t = toast.loading("카드 디자인 중... 🎨")
+    const t = toast.loading("카드 디자인 중... 🎨");
+    
+    let secureImageUrl = log.image_url;
+    if (log.image_url) {
+        try {
+            const response = await fetch(log.image_url);
+            const blob = await response.blob();
+            secureImageUrl = URL.createObjectURL(blob);
+        } catch (e) {
+            console.error("이미지 로드 실패", e);
+        }
+    }
+
+    setShareData({ ...log, image_url: secureImageUrl });
+
     setTimeout(async () => {
       if (shareCardRef.current) {
         try {
-          const dataUrl = await toPng(shareCardRef.current, { cacheBust: true, pixelRatio: 2, backgroundColor: '#0f172a', skipAutoScale: true })
+          const dataUrl = await toPng(shareCardRef.current, { cacheBust: true, pixelRatio: 2, backgroundColor: '#0f172a', skipAutoScale: true });
           const link = document.createElement('a'); link.download = `moveplaza_magazine_${Date.now()}.png`; link.href = dataUrl; link.click();
           toast.success("저장 완료! 📸", { id: t });
         } catch (error) { toast.error("저장 실패 ㅠ 다시 시도해주세요.", { id: t }); }
         setShareData(null); 
       }
-    }, 1500); 
+    }, 500); 
   }
 
   const handleDownloadImage = async () => {
