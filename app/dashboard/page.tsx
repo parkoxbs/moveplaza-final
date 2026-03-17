@@ -13,17 +13,16 @@ import ActivityCalendar from "..//components/ActivityCalendar"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
 import BottomNav from "../components/BottomNav"
-// 🚨 똑똑해진 AI 검열 라이브러리 부활!
 import * as nsfwjs from 'nsfwjs' 
+// 🚨 서버비 다이어트! 이미지 압축 라이브러리 추가
+import imageCompression from 'browser-image-compression'
 
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 const supabase = createBrowserClient(supabaseUrl, supabaseKey)
 
-// 🚨 [어드민 세팅] 창조주(CEO)님 계정 이메일 등록 완료!
 const ADMIN_EMAILS = ['agricb83@gmail.com']; 
 
-// 아이콘
 const Icons = {
   Activity: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
   AlertCircle: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
@@ -45,7 +44,6 @@ const Icons = {
   Shield: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
 }
 
-// 레벨 시스템 정의
 const LEVEL_SYSTEM = [
   { name: 'Rookie', rank: '루키', emoji: '🐣', min: 0, color: 'bg-gradient-to-br from-slate-700 to-slate-600', glow: 'shadow-none', desc: '운동의 세계에 첫 발을 내딛은 신인' },
   { name: 'Beginner', rank: '비기너', emoji: '🌱', min: 15, color: 'bg-gradient-to-br from-emerald-600 to-teal-500', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.4)]', desc: '기초 체력을 다지며 성장하는 단계' },
@@ -116,7 +114,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState("")
   
-  // 👑 어드민 상태 관리 (기본값 false)
   const [isAdmin, setIsAdmin] = useState(false);
   
   const dataReportRef = useRef<HTMLDivElement>(null)
@@ -177,7 +174,6 @@ export default function Dashboard() {
     
     if (!user) { router.replace('/login'); return; }
 
-    // 👑 현재 로그인한 사람이 어드민인지 체크!
     if (user.email && ADMIN_EMAILS.includes(user.email)) {
         setIsAdmin(true);
     }
@@ -344,6 +340,7 @@ export default function Dashboard() {
     }
   }
 
+  // 🚨 변경된 게시물(기록) 등록 함수 (압축 적용)
   const handleAddLog = async () => {
     if (!title.trim()) return toast.error("제목을 입력해주세요!")
     setUploading(true)
@@ -352,17 +349,33 @@ export default function Dashboard() {
       try {
         let mediaUrl = null; let mediaType = 'image';
         if (mediaFile) {
+            let fileToUpload = mediaFile;
             
-            // 🚨 재교육 완료! 똑똑해진 문지기 AI 다시 부활!
+            // 🚨 압축 및 AI 검열 로직
             if (mediaFile.type.startsWith('image')) {
+                // 1. 먼저 이미지 다이어트(압축) 시키기
+                const compressOptions = {
+                    maxSizeMB: 1,           // 최대 1MB
+                    maxWidthOrHeight: 1920, // 최대 해상도 Full HD
+                    useWebWorker: true,
+                };
+                
+                try {
+                    const compressToast = toast.loading("이미지 최적화 중... 🗜️");
+                    fileToUpload = await imageCompression(mediaFile, compressOptions);
+                    toast.dismiss(compressToast);
+                } catch (compressError) {
+                    console.error("이미지 압축 실패, 원본으로 진행합니다.", compressError);
+                }
+
+                // 2. 압축된 이미지로 AI 필터 검사
                 const checkToast = toast.loading("AI가 이미지를 검사 중입니다... 🕵️‍♂️");
                 try {
                     const model = await nsfwjs.load();
-                    const img = new Image(); img.src = URL.createObjectURL(mediaFile);
+                    const img = new Image(); img.src = URL.createObjectURL(fileToUpload);
                     await new Promise((resolve) => (img.onload = resolve));
                     const predictions = await model.classify(img);
                     
-                    // 핵심 로직 변경: Sexy 항목 빼고, 진짜 19금 확률이 85%(0.85) 이상일 때만 차단!
                     const isBad = predictions.some(p => 
                         (p.className === 'Porn' || p.className === 'Hentai') && p.probability > 0.85
                     );
@@ -378,13 +391,16 @@ export default function Dashboard() {
                 }
             }
 
-            const fileExt = mediaFile.name.split('.').pop();
+            // 3. 압축 완료된 파일을 Supabase에 업로드
+            const fileExt = fileToUpload.name.split('.').pop();
             const filePath = `${user.id}/${Date.now()}.${fileExt}`;
-            const { error: uploadError } = await supabase.storage.from('images').upload(filePath, mediaFile);
+            const { error: uploadError } = await supabase.storage.from('images').upload(filePath, fileToUpload);
             if (uploadError) throw uploadError;
             const { data } = supabase.storage.from('images').getPublicUrl(filePath);
-            mediaUrl = data.publicUrl; mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
+            mediaUrl = data.publicUrl; mediaType = fileToUpload.type.startsWith('video') ? 'video' : 'image';
         }
+        
+        // 데이터 DB 저장
         const partsString = selectedParts.length > 0 ? `[${selectedParts.join(', ')}] ` : ''
         const { error } = await supabase.from('logs').insert({ 
             user_id: user.id, title, content: partsString + content, pain_score: score, log_type: logType, is_public: isPublic, 
@@ -417,15 +433,12 @@ export default function Dashboard() {
     if (!error) { toast.success('삭제 완료!'); setLogs(logs.filter(l => l.id !== id)) }
   }
 
-  // 👑 어드민 전용 즉시 삭제(철퇴) 함수!
   const handleAdminForceDelete = async (id: string) => {
     if (!confirm('🚨 [CEO 권한] 이 게시물을 즉시 영구 삭제하시겠습니까?')) return;
-    
-    // DB에서 다이렉트로 삭제 때려버림
     const { error } = await supabase.from('logs').delete().eq('id', id);
     if (!error) { 
         toast.success('관리자 권한으로 철퇴를 내렸습니다! 💥'); 
-        setLogs(logs.filter(l => l.id !== id)); // 화면에서도 즉시 지우기
+        setLogs(logs.filter(l => l.id !== id)); 
     } else {
         toast.error('삭제 실패! (Supabase 정책 확인 필요)');
     }
@@ -668,7 +681,6 @@ export default function Dashboard() {
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
         <div className="max-w-md mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.reload()}><div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">M</div><span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span></div>
-          {/* 👑 어드민 접속 시 뜨는 배지 */}
           {isAdmin && <span className="ml-auto text-[10px] bg-red-600 text-white px-2 py-1 rounded-md font-black animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.8)]">👑 CEO 모드</span>}
         </div>
       </header>
