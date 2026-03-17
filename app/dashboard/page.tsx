@@ -13,12 +13,15 @@ import ActivityCalendar from "..//components/ActivityCalendar"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
 import BottomNav from "../components/BottomNav"
-// 🚨 AI 검열 라이브러리 임시 비활성화 (주석 처리)
-// import * as nsfwjs from 'nsfwjs' 
+// 🚨 똑똑해진 AI 검열 라이브러리 부활!
+import * as nsfwjs from 'nsfwjs' 
 
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 const supabase = createBrowserClient(supabaseUrl, supabaseKey)
+
+// 🚨 [어드민 세팅] 창조주(CEO)님 계정 이메일 등록 완료!
+const ADMIN_EMAILS = ['agricb83@gmail.com']; 
 
 // 아이콘
 const Icons = {
@@ -113,6 +116,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState("")
   
+  // 👑 어드민 상태 관리 (기본값 false)
+  const [isAdmin, setIsAdmin] = useState(false);
+  
   const dataReportRef = useRef<HTMLDivElement>(null)
   const shareCardRef = useRef<HTMLDivElement>(null)
   const [shareData, setShareData] = useState<any>(null)
@@ -170,6 +176,11 @@ export default function Dashboard() {
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) { router.replace('/login'); return; }
+
+    // 👑 현재 로그인한 사람이 어드민인지 체크!
+    if (user.email && ADMIN_EMAILS.includes(user.email)) {
+        setIsAdmin(true);
+    }
 
     const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single()
     setUserName(profile?.username || user.email?.split("@")[0] || "선수")
@@ -324,6 +335,15 @@ export default function Dashboard() {
     setIsModalOpen(true); toast.success("기록을 복사했습니다! (날짜는 오늘)");
   };
 
+  // 📸 사진/영상 첨부 기능
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) { 
+        const file = e.target.files[0]; 
+        setMediaFile(file); 
+        setMediaPreview(URL.createObjectURL(file)); 
+    }
+  }
+
   const handleAddLog = async () => {
     if (!title.trim()) return toast.error("제목을 입력해주세요!")
     setUploading(true)
@@ -332,8 +352,8 @@ export default function Dashboard() {
       try {
         let mediaUrl = null; let mediaType = 'image';
         if (mediaFile) {
-            // 🚨 18대 0 승리 기념사진을 위해 AI 필터링 로직 전체를 임시 주석 처리합니다!
-            /*
+            
+            // 🚨 재교육 완료! 똑똑해진 문지기 AI 다시 부활!
             if (mediaFile.type.startsWith('image')) {
                 const checkToast = toast.loading("AI가 이미지를 검사 중입니다... 🕵️‍♂️");
                 try {
@@ -341,15 +361,22 @@ export default function Dashboard() {
                     const img = new Image(); img.src = URL.createObjectURL(mediaFile);
                     await new Promise((resolve) => (img.onload = resolve));
                     const predictions = await model.classify(img);
-                    const isBad = predictions.some(p => (p.className === 'Porn' || p.className === 'Hentai' || p.className === 'Sexy') && p.probability > 0.6);
+                    
+                    // 핵심 로직 변경: Sexy 항목 빼고, 진짜 19금 확률이 85%(0.85) 이상일 때만 차단!
+                    const isBad = predictions.some(p => 
+                        (p.className === 'Porn' || p.className === 'Hentai') && p.probability > 0.85
+                    );
+                    
                     toast.dismiss(checkToast);
                     if (isBad) {
                         toast.error("🚫 부적절한 이미지가 감지되어 업로드할 수 없습니다.");
                         setUploading(false); return; 
                     }
-                } catch(aiError) { toast.dismiss(checkToast); console.error("AI 모델 로딩 실패", aiError); }
+                } catch(aiError) { 
+                    toast.dismiss(checkToast); 
+                    console.error("AI 모델 로딩 실패", aiError); 
+                }
             }
-            */
 
             const fileExt = mediaFile.name.split('.').pop();
             const filePath = `${user.id}/${Date.now()}.${fileExt}`;
@@ -384,14 +411,24 @@ export default function Dashboard() {
     else { toast.success("소중한 의견 감사합니다! 💌", { id: t }); setSuggestionText(""); setIsSuggestionOpen(false); }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) { const file = e.target.files[0]; setMediaFile(file); setMediaPreview(URL.createObjectURL(file)) }
-  }
-
   const handleDeleteLog = async (id: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return
     const { error } = await supabase.from('logs').delete().eq('id', id)
     if (!error) { toast.success('삭제 완료!'); setLogs(logs.filter(l => l.id !== id)) }
+  }
+
+  // 👑 어드민 전용 즉시 삭제(철퇴) 함수!
+  const handleAdminForceDelete = async (id: string) => {
+    if (!confirm('🚨 [CEO 권한] 이 게시물을 즉시 영구 삭제하시겠습니까?')) return;
+    
+    // DB에서 다이렉트로 삭제 때려버림
+    const { error } = await supabase.from('logs').delete().eq('id', id);
+    if (!error) { 
+        toast.success('관리자 권한으로 철퇴를 내렸습니다! 💥'); 
+        setLogs(logs.filter(l => l.id !== id)); // 화면에서도 즉시 지우기
+    } else {
+        toast.error('삭제 실패! (Supabase 정책 확인 필요)');
+    }
   }
 
   const handleDeleteAccount = async () => {
@@ -631,6 +668,8 @@ export default function Dashboard() {
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all">
         <div className="max-w-md mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.reload()}><div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)]">M</div><span className="text-xl font-black tracking-tight text-white">MOVEPLAZA</span></div>
+          {/* 👑 어드민 접속 시 뜨는 배지 */}
+          {isAdmin && <span className="ml-auto text-[10px] bg-red-600 text-white px-2 py-1 rounded-md font-black animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.8)]">👑 CEO 모드</span>}
         </div>
       </header>
 
@@ -900,7 +939,20 @@ export default function Dashboard() {
                                 <div className="text-xs font-bold text-slate-500 line-clamp-1">{isMatch ? `⚽ ${log.goals}골 ${log.assists}어시 (${log.match_result === 'win' ? '승' : (log.match_result === 'lose' ? '패' : '무')})` : log.content}</div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3"><button onClick={() => handleCopyLog(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/10 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button><button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button><button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button><div className="text-right"><div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div><div className="text-[10px] font-bold text-slate-500">점</div></div></div></div>) }))}</div>
+                        <div className="flex items-center gap-3">
+                            {/* 👑 어드민 철퇴 버튼 (어드민일 때만 보임) */}
+                            {isAdmin && <button onClick={() => handleAdminForceDelete(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-white bg-red-600 hover:bg-red-500 rounded-full transition shadow-lg text-[10px] font-black mr-1" title="관리자 권한 즉시 삭제">철퇴 🔨</button>}
+                            
+                            <button onClick={() => handleCopyLog(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/10 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button>
+                            <button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button>
+                            <button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button>
+                            <div className="text-right">
+                                <div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div>
+                                <div className="text-[10px] font-bold text-slate-500">점</div>
+                            </div>
+                        </div>
+                    </div>) 
+                }))}</div>
             </section>
 
             <section className="mt-12 mb-4 text-center">
