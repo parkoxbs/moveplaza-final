@@ -941,26 +941,34 @@ export default function Dashboard() {
                 <div className="space-y-3">{filteredLogs.length === 0 ? (<div className="text-center py-12 bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-800"><p className="text-slate-500 font-bold text-sm">기록이 없습니다.</p><button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-400 font-black text-sm hover:underline">+ 첫 기록 남기기</button></div>) : (filteredLogs.slice(0, 10).map((log) => { 
                     const isWorkout = log.log_type === 'workout' || log.log_type === 'match'; 
                     const isMatch = log.log_type === 'match';
-                    return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex items-center justify-between transition hover:bg-slate-800 cursor-default group shadow-sm">
+                    return (<div key={log.id} className="bg-slate-900/50 backdrop-blur-sm p-4 rounded-2xl border border-white/5 flex flex-col gap-3 transition hover:bg-slate-800 cursor-default shadow-sm">
+                        
+                        {/* 🚨 위쪽: 아이콘 + 제목/내용 영역 */}
                         <div className="flex items-center gap-4">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/5 ${isMatch ? 'bg-yellow-500/10 text-yellow-400' : (isWorkout ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400')}`}>
                                 {log.image_url ? <img src={log.image_url} crossOrigin="anonymous" alt="인증" className="w-full h-full object-cover" /> : (isMatch ? <Icons.Trophy /> : (isWorkout ? <Icons.Activity /> : <Icons.AlertCircle />))}
                             </div>
-                            <div>
+                            <div className="flex-1">
                                 <div className="font-black text-white text-sm mb-0.5">{log.title}</div>
                                 <div className="text-xs font-bold text-slate-500 line-clamp-1">{isMatch ? `⚽ ${log.goals}골 ${log.assists}어시 (${log.match_result === 'win' ? '승' : (log.match_result === 'lose' ? '패' : '무')})` : log.content}</div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                            {/* 👑 어드민 철퇴 버튼 (어드민일 때만 보임) */}
-                            {isAdmin && <button onClick={() => handleAdminForceDelete(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-white bg-red-600 hover:bg-red-500 rounded-full transition shadow-lg text-[10px] font-black mr-1" title="관리자 권한 즉시 삭제">철퇴 🔨</button>}
-                            
-                            <button onClick={() => handleCopyLog(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/10 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button>
-                            <button onClick={() => handleShareClick(log)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-500/10 rounded-full transition"><Icons.Share /></button>
-                            <button onClick={() => handleDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"><Icons.Trash /></button>
-                            <div className="text-right">
+                        
+                        {/* 🚨 아래쪽: 숨겨져 있던 버튼들 항상 보이도록 꺼내놓음 (모바일 친화적) */}
+                        <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                {/* 👑 어드민 철퇴 버튼 */}
+                                {isAdmin && <button onClick={() => handleAdminForceDelete(log.id)} className="p-1.5 text-white bg-red-600 hover:bg-red-500 rounded-lg transition shadow-sm text-[10px] font-black" title="관리자 권한 즉시 삭제">철퇴 🔨</button>}
+                                
+                                <button onClick={() => handleShareClick(log)} className="p-2 text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 rounded-full transition shadow-sm flex items-center gap-1" title="카드 만들기">
+                                    <Icons.Share /> <span className="text-[10px] font-bold hidden sm:inline">카드</span>
+                                </button>
+                                <button onClick={() => handleCopyLog(log)} className="p-2 text-slate-400 bg-slate-800/80 hover:text-green-400 hover:bg-slate-700 rounded-full transition" title="복사해서 쓰기"><Icons.Copy /></button>
+                                <button onClick={() => handleDeleteLog(log.id)} className="p-2 text-slate-400 bg-slate-800/80 hover:text-red-400 hover:bg-slate-700 rounded-full transition" title="삭제"><Icons.Trash /></button>
+                            </div>
+                            <div className="text-right ml-1">
                                 <div className={`font-black text-lg ${log.pain_score > 7 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>{log.pain_score}</div>
-                                <div className="text-[10px] font-bold text-slate-500">점</div>
+                                <div className="text-[10px] font-bold text-slate-500 mt-[-2px]">점</div>
                             </div>
                         </div>
                     </div>) 
