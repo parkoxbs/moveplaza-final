@@ -25,7 +25,7 @@ const ADMIN_EMAILS = ['agricb83@gmail.com'];
 
 const Icons = {
   Activity: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
-  AlertCircle: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
+  AlertCircle: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
   Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><path d="M12 5v14M5 12h14"/></svg>,
   X: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><path d="M18 6 6 18M6 6l12 12"/></svg>,
   Share: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>,
@@ -453,62 +453,48 @@ export default function Dashboard() {
     else setSelectedParts([...selectedParts, part])
   }
 
-  // 🚨 궁극의 우회 방법: 외부 프록시 서버를 통해 강제로 CORS를 해제하고 Base64로 변환!
+  // 🚨 [최종 병기] 1. Double Render Hack (아이폰 캐시 깨우기) + 2. Native Share API (아이폰 전용 공유창 띄우기)
   const handleShareClick = async (log: any) => {
     const t = toast.loading("카드 디자인 중... 🎨");
-    let safeImageUrl = log.image_url; // 기본값은 원본
+    
+    // 복잡한 변환 다 버리고, 원본 URL 그대로 사용 (가장 빠름)
+    setShareData(log);
 
-    if (log.image_url) {
-        try {
-            // Supabase 설정을 건드릴 수 없으므로, 모든 접근을 허용해주는 'CORS 프록시 서버'를 한 번 거쳐서 가져옵니다.
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(log.image_url)}`;
-            const response = await fetch(proxyUrl);
-            const blob = await response.blob();
-            
-            safeImageUrl = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        } catch (e) {
-            console.error("이미지 우회 다운로드 실패:", e);
-        }
-    }
-
-    setShareData({ ...log, image_url: safeImageUrl });
-
-    // 화면에 그려질 시간 확보 후 캡처
+    // 모달이 화면에 뜨고 안정화될 시간 0.5초 부여
     setTimeout(async () => {
       if (shareCardRef.current) {
         try {
+          // 🚨 [꼼수 1] 첫 번째 캡처는 그냥 버림! (이때 아이폰이 몰래 사진을 불러와서 캐싱함)
+          await toPng(shareCardRef.current, { cacheBust: false, pixelRatio: 2 });
+          
+          // 🚨 두 번째 캡처가 진짜! (이미지가 완벽하게 로드된 상태에서 찍힘)
           const dataUrl = await toPng(shareCardRef.current, { 
-              cacheBust: true, 
+              cacheBust: false, 
               pixelRatio: 2, 
               backgroundColor: '#0f172a'
           });
 
-          // 🚨 iOS/모바일 호환성 극대화: Web Share API 사용
+          // 🚨 [꼼수 2] 아이폰(Safari)은 강제 다운로드(link.click)를 막기 때문에, 네이티브 공유창을 띄워줌!
           if (navigator.share) {
-              try {
-                  const blob = await (await fetch(dataUrl)).blob();
-                  const file = new File([blob], 'moveplaza_card.png', { type: 'image/png' });
-                  await navigator.share({
-                      files: [file],
-                      title: 'MOVEPLAZA Activity',
-                  });
-                  toast.success("공유창이 열렸습니다! 📸", { id: t });
-              } catch (err) {
-                  // 사용자가 공유를 취소한 경우 에러로 처리하지 않음
-                  toast.dismiss(t);
-              }
+            try {
+              const blob = await (await fetch(dataUrl)).blob();
+              const file = new File([blob], 'moveplaza_card.png', { type: 'image/png' });
+              toast.dismiss(t);
+              await navigator.share({
+                files: [file],
+                title: 'MOVEPLAZA Activity',
+              });
+            } catch (err) {
+              // 유저가 공유창을 그냥 닫은 경우 (에러 아님)
+              toast.dismiss(t);
+            }
           } else {
-              // PC 등 Share API 지원 안 하는 경우 기본 다운로드
-              const link = document.createElement('a'); 
-              link.download = `moveplaza_magazine_${Date.now()}.png`; 
-              link.href = dataUrl; 
-              link.click();
-              toast.success("저장 완료! 📸", { id: t });
+            // PC나 안드로이드 등은 원래대로 즉시 다운로드
+            const link = document.createElement('a'); 
+            link.download = `moveplaza_magazine_${Date.now()}.png`; 
+            link.href = dataUrl; 
+            link.click();
+            toast.success("저장 완료! 📸", { id: t });
           }
         } catch (error: any) { 
           console.error("캡처 에러: ", error);
@@ -516,10 +502,10 @@ export default function Dashboard() {
         }
         setShareData(null); 
       }
-    }, 1000); 
+    }, 500); 
   }
 
-  // 🚨 리포트 다운로드 기능에도 동일하게 Web Share API 적용
+  // 데이터 리포트 다운로드도 동일하게 공유창 띄우기로 호환성 확보
   const handleDownloadImage = async () => {
     if (!dataReportRef.current) return; 
     const t = toast.loading("활동 데이터 리포트 생성 중... 📸");
@@ -527,24 +513,26 @@ export default function Dashboard() {
       try {
         if(!dataReportRef.current) return;
         const element = dataReportRef.current;
-        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff', width: element.scrollWidth, height: element.scrollHeight, style: { padding: '20px', background: '#ffffff' }, fetchRequestInit: { cache: 'no-cache' } });
+        
+        await toPng(element, { cacheBust: false, pixelRatio: 2, backgroundColor: '#ffffff' }); // 더블 렌더링 꼼수
+        const dataUrl = await toPng(element, { cacheBust: false, pixelRatio: 2, backgroundColor: '#ffffff', width: element.scrollWidth, height: element.scrollHeight, style: { padding: '20px', background: '#ffffff' } });
         
         if (navigator.share) {
             try {
                 const blob = await (await fetch(dataUrl)).blob();
                 const file = new File([blob], 'moveplaza_report.png', { type: 'image/png' });
+                toast.dismiss(t);
                 await navigator.share({
                     files: [file],
                     title: 'MOVEPLAZA Report',
                 });
-                toast.dismiss(t);
             } catch (err) { toast.dismiss(t); }
         } else {
             const link = document.createElement('a'); link.download = `${userName}_Activity_Report_${Date.now()}.png`; link.href = dataUrl; document.body.appendChild(link); link.click(); document.body.removeChild(link);
             toast.success("데이터 리포트 저장 완료! 📊", { id: t });
         }
       } catch (e) { toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t, duration: 5000 }); }
-    }, 1000);
+    }, 500);
   }
 
   const getFilteredRehabLogs = () => {
@@ -665,8 +653,16 @@ export default function Dashboard() {
           <div ref={shareCardRef} className="w-[450px] h-[650px] relative bg-slate-950 overflow-hidden font-sans">
             {shareData.image_url ? (
               <>
-                {/* 🚨 렌더링 엔진 안정화를 위해 crossOrigin 속성 완전 제거 */}
-                <img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" alt="배경" />
+                {/* 🚨 img 태그 대신 <div>의 backgroundImage로 변경 (아이폰 Safari 렌더링 호환성 200% 상승) */}
+                <div 
+                  className="absolute inset-0 w-full h-full z-0" 
+                  style={{
+                    backgroundImage: `url('${shareData.image_url}')`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                  }}
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0"></div>
               </>
             ) : (
