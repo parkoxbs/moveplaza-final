@@ -453,18 +453,18 @@ export default function Dashboard() {
     else setSelectedParts([...selectedParts, part])
   }
 
-  // 🚨 완벽 수정본: 브라우저 내장 fetch를 이용해 사진을 파일로 직접 받아온 뒤, 텍스트(Base64)로 변환!
+  // 🚨 궁극의 우회 방법: 외부 프록시 서버를 통해 강제로 CORS를 해제하고 Base64로 변환!
   const handleShareClick = async (log: any) => {
     const t = toast.loading("카드 디자인 중... 🎨");
-    let safeImageUrl = null;
+    let safeImageUrl = log.image_url; // 기본값은 원본
 
     if (log.image_url) {
         try {
-            // 1. 브라우저 내장 기능(fetch)으로 원본 사진을 파일(Blob) 형태로 다운로드
-            const response = await fetch(log.image_url);
+            // Supabase 설정을 건드릴 수 없으므로, 모든 접근을 허용해주는 'CORS 프록시 서버'를 한 번 거쳐서 가져옵니다.
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(log.image_url)}`;
+            const response = await fetch(proxyUrl);
             const blob = await response.blob();
             
-            // 2. 다운로드한 파일을 완벽한 텍스트(Base64) 데이터로 둔갑시킴
             safeImageUrl = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result as string);
@@ -472,28 +472,44 @@ export default function Dashboard() {
                 reader.readAsDataURL(blob);
             });
         } catch (e) {
-            console.error("이미지 다운로드 실패:", e);
-            safeImageUrl = log.image_url; // 혹시 실패하면 원본 링크라도 넣어둠
+            console.error("이미지 우회 다운로드 실패:", e);
         }
     }
 
-    // 상태 업데이트 (아이폰이 텍스트로 변환된 사진을 화면에 띄우도록 지시)
     setShareData({ ...log, image_url: safeImageUrl });
 
-    // 🚨 아이폰 렌더링 엔진이 화면을 충분히 다 그릴 수 있도록 1초 기다린 후 캡처 진행!
+    // 화면에 그려질 시간 확보 후 캡처
     setTimeout(async () => {
       if (shareCardRef.current) {
         try {
           const dataUrl = await toPng(shareCardRef.current, { 
               cacheBust: true, 
               pixelRatio: 2, 
-              backgroundColor: '#0f172a' // 배경색을 깔끔하게 지정 (아이폰 에러 방지)
+              backgroundColor: '#0f172a'
           });
-          const link = document.createElement('a'); 
-          link.download = `moveplaza_magazine_${Date.now()}.png`; 
-          link.href = dataUrl; 
-          link.click();
-          toast.success("저장 완료! 📸", { id: t });
+
+          // 🚨 iOS/모바일 호환성 극대화: Web Share API 사용
+          if (navigator.share) {
+              try {
+                  const blob = await (await fetch(dataUrl)).blob();
+                  const file = new File([blob], 'moveplaza_card.png', { type: 'image/png' });
+                  await navigator.share({
+                      files: [file],
+                      title: 'MOVEPLAZA Activity',
+                  });
+                  toast.success("공유창이 열렸습니다! 📸", { id: t });
+              } catch (err) {
+                  // 사용자가 공유를 취소한 경우 에러로 처리하지 않음
+                  toast.dismiss(t);
+              }
+          } else {
+              // PC 등 Share API 지원 안 하는 경우 기본 다운로드
+              const link = document.createElement('a'); 
+              link.download = `moveplaza_magazine_${Date.now()}.png`; 
+              link.href = dataUrl; 
+              link.click();
+              toast.success("저장 완료! 📸", { id: t });
+          }
         } catch (error: any) { 
           console.error("캡처 에러: ", error);
           toast.error("저장 실패 ㅠ 다시 시도해주세요.", { id: t }); 
@@ -503,6 +519,7 @@ export default function Dashboard() {
     }, 1000); 
   }
 
+  // 🚨 리포트 다운로드 기능에도 동일하게 Web Share API 적용
   const handleDownloadImage = async () => {
     if (!dataReportRef.current) return; 
     const t = toast.loading("활동 데이터 리포트 생성 중... 📸");
@@ -511,8 +528,21 @@ export default function Dashboard() {
         if(!dataReportRef.current) return;
         const element = dataReportRef.current;
         const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff', width: element.scrollWidth, height: element.scrollHeight, style: { padding: '20px', background: '#ffffff' }, fetchRequestInit: { cache: 'no-cache' } });
-        const link = document.createElement('a'); link.download = `${userName}_Activity_Report_${Date.now()}.png`; link.href = dataUrl; document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        toast.success("데이터 리포트가 갤러리에 저장되었습니다! 📊", { id: t });
+        
+        if (navigator.share) {
+            try {
+                const blob = await (await fetch(dataUrl)).blob();
+                const file = new File([blob], 'moveplaza_report.png', { type: 'image/png' });
+                await navigator.share({
+                    files: [file],
+                    title: 'MOVEPLAZA Report',
+                });
+                toast.dismiss(t);
+            } catch (err) { toast.dismiss(t); }
+        } else {
+            const link = document.createElement('a'); link.download = `${userName}_Activity_Report_${Date.now()}.png`; link.href = dataUrl; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            toast.success("데이터 리포트 저장 완료! 📊", { id: t });
+        }
       } catch (e) { toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t, duration: 5000 }); }
     }, 1000);
   }
@@ -635,7 +665,7 @@ export default function Dashboard() {
           <div ref={shareCardRef} className="w-[450px] h-[650px] relative bg-slate-950 overflow-hidden font-sans">
             {shareData.image_url ? (
               <>
-                {/* 🚨 원본 이미지 그대로 렌더링 (CORS 및 블러 문제 모두 우회됨) */}
+                {/* 🚨 렌더링 엔진 안정화를 위해 crossOrigin 속성 완전 제거 */}
                 <img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" alt="배경" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0"></div>
               </>
@@ -651,7 +681,6 @@ export default function Dashboard() {
               </div>
             )}
             
-            {/* 🚨 아이폰 캡처 에러의 주범인 backdrop-blur 제거 후 반투명 배경(bg-slate-900/60)으로 교체 */}
             <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-10">
                 <div className="flex items-center gap-2">
                     <div className="bg-slate-900/60 p-1.5 rounded-lg border border-white/10">
