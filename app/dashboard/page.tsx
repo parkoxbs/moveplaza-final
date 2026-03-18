@@ -160,9 +160,6 @@ export default function Dashboard() {
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreview, setMediaPreview] = useState<string | null>(null)
 
-  // 🚨 추가: 이미지가 완전히 로드되었는지 확인하는 상태
-  const [isImageReady, setIsImageReady] = useState(false)
-
   const bodyParts = ["목", "승모근", "어깨", "가슴", "등", "복근", "허리", "삼두", "이두", "전완근", "손목", "손", "엉덩이", "고관절", "허벅지(앞)", "허벅지(뒤)(햄스트링)", "무릎", "종아리", "발목", "발"]
 
   useEffect(() => { 
@@ -456,76 +453,67 @@ export default function Dashboard() {
     else setSelectedParts([...selectedParts, part])
   }
 
-  // 🚨 캡처 함수 수정: 이미지가 완벽하게 화면에 그려진 후(onLoad) 캡처 진행
+  // 🚨 궁극의 해결책: fetch 대신 Image 객체와 Canvas를 사용해 완벽한 Base64 텍스트로 변환 (아이폰 Safari 차단 회피)
   const handleShareClick = async (log: any) => {
     const t = toast.loading("카드 디자인 중... 🎨");
-    
     let safeImageUrl = null;
-    
-    // 이미지가 있다면 Base64로 우선 변환
+
     if (log.image_url) {
         try {
-            const response = await fetch(log.image_url + '?t=' + new Date().getTime(), {
-                cache: 'no-store'
-            });
-            const blob = await response.blob();
-            
             safeImageUrl = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
+                const img = new Image();
+                img.crossOrigin = "anonymous"; // CORS 차단 우회
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext("2d");
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0);
+                        // 이미지를 완전한 텍스트 데이터(Base64)로 뽑아냄
+                        resolve(canvas.toDataURL("image/jpeg", 0.9)); 
+                    } else {
+                        resolve(null);
+                    }
+                };
+                img.onerror = () => {
+                    console.error("이미지 로드 실패 (CORS 문제)");
+                    resolve(null);
+                };
+                // 캐시 방지용 쿼리 추가 (아이폰에서 캐시된 이미지를 쓰면 에러날 때가 많음)
+                img.src = log.image_url + "?nocache=" + new Date().getTime();
             });
         } catch (e) {
-            console.error("이미지 변환 실패", e);
+            console.error(e);
         }
     }
 
-    // 상태 업데이트 (모달 열기)
+    // 상태 업데이트
     setShareData({ ...log, image_url: safeImageUrl });
-    
-    // 이미지가 없으면 바로 캡처 진행
-    if (!safeImageUrl) {
-        setIsImageReady(true);
-    } else {
-        setIsImageReady(false); // 이미지가 있다면 img 태그의 onLoad에서 true로 바꿔줄 예정
-    }
 
-    // 약간의 딜레이 후 캡처 실행을 위한 로직 (isImageReady를 감지하는 useEffect로 넘김)
-    // 에러 방지를 위해 toast id 저장
-    sessionStorage.setItem('currentToast', t);
-  }
-
-  // 🚨 isImageReady가 true가 되면 캡처를 실행하는 useEffect
-  useEffect(() => {
-      if (shareData && isImageReady && shareCardRef.current) {
-          const t = sessionStorage.getItem('currentToast') || "loading";
-          
-          setTimeout(async () => {
-              try {
-                  if (shareCardRef.current) { // ref 다시 확인
-                      const dataUrl = await toPng(shareCardRef.current, { 
-                          cacheBust: true, 
-                          pixelRatio: 2, 
-                          backgroundColor: '#0f172a', 
-                          skipAutoScale: true 
-                      });
-                      const link = document.createElement('a'); 
-                      link.download = `moveplaza_magazine_${Date.now()}.png`; 
-                      link.href = dataUrl; 
-                      link.click();
-                      toast.success("저장 완료! 📸", { id: t });
-                  }
-              } catch (error: any) { 
-                  console.error(error);
-                  toast.error("저장 실패 ㅠ 다시 시도해주세요.", { id: t }); 
-              }
-              setShareData(null); 
-              setIsImageReady(false);
-              sessionStorage.removeItem('currentToast');
-          }, 300); // 렌더링 후 아주 짧은 지연시간
+    // 🚨 렌더링 엔진 안정화를 위해 0.8초의 여유 시간을 줌
+    setTimeout(async () => {
+      if (shareCardRef.current) {
+        try {
+          const dataUrl = await toPng(shareCardRef.current, { 
+              cacheBust: true, 
+              pixelRatio: 2, 
+              backgroundColor: '#0f172a', 
+              skipAutoScale: true 
+          });
+          const link = document.createElement('a'); 
+          link.download = `moveplaza_magazine_${Date.now()}.png`; 
+          link.href = dataUrl; 
+          link.click();
+          toast.success("저장 완료! 📸", { id: t });
+        } catch (error: any) { 
+          console.error("캡처 에러: ", error);
+          toast.error("저장 실패 ㅠ 다시 시도해주세요.", { id: t }); 
+        }
+        setShareData(null); 
       }
-  }, [isImageReady, shareData]);
+    }, 800); 
+  }
 
   const handleDownloadImage = async () => {
     if (!dataReportRef.current) return; 
@@ -659,16 +647,11 @@ export default function Dashboard() {
           <div ref={shareCardRef} className="w-[450px] h-[650px] relative bg-slate-950 overflow-hidden font-sans">
             {shareData.image_url ? (
               <>
-                {/* 🚨 이미지가 로드되면 onLoad 이벤트를 통해 isImageReady를 true로 변경 */}
-                <img 
-                    src={shareData.image_url} 
-                    onLoad={() => setIsImageReady(true)}
-                    className="absolute inset-0 w-full h-full object-cover z-0" 
-                    alt="배경" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30 z-0"></div>
+                <img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" alt="배경" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0"></div>
               </>
             ) : (
+              // 🚨 아이폰 렌더링 엔진을 터뜨리던 복잡한 SVG 필터 제거 후 깔끔한 그라데이션으로 교체
               <div className={`absolute inset-0 w-full h-full bg-gradient-to-br ${shareData.log_type === 'match' ? 'from-yellow-900 to-slate-950' : (shareData.log_type === 'rehab' ? 'from-red-900 to-slate-950' : 'from-blue-900 to-slate-950')} z-0`}>
                   <div className="absolute inset-0 flex flex-col justify-center items-center opacity-10 select-none">
                       {[...Array(5)].map((_, i) => (
@@ -677,22 +660,23 @@ export default function Dashboard() {
                           </span>
                       ))}
                   </div>
-                  <svg className="absolute inset-0 w-full h-full opacity-20 mix-blend-overlay" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noise)"/></svg>
               </div>
             )}
+            
+            {/* 🚨 아이폰 캡처 에러의 주범인 backdrop-blur 제거 후 반투명 배경(bg-slate-900/60)으로 교체 */}
             <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-10">
                 <div className="flex items-center gap-2">
-                    <div className="bg-white/20 backdrop-blur-md p-1.5 rounded-lg border border-white/10">
+                    <div className="bg-slate-900/60 p-1.5 rounded-lg border border-white/10">
                         <span className="font-black text-white text-lg">M</span>
                     </div>
                     <span className="font-black text-white tracking-widest text-xs drop-shadow-md">MOVEPLAZA</span>
                 </div>
-                <span className="text-white/90 font-bold text-sm bg-black/30 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
+                <span className="text-white/90 font-bold text-sm bg-slate-900/60 px-3 py-1 rounded-full border border-white/10">
                     {new Date(shareData.created_at).toLocaleDateString()}
                 </span>
             </div>
             <div className="absolute bottom-0 left-0 w-full p-8 z-10 flex flex-col gap-2">
-                <div className="self-start px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-[10px] font-black text-white uppercase tracking-widest mb-2 shadow-lg">
+                <div className="self-start px-4 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-[10px] font-black text-white uppercase tracking-widest mb-2 shadow-lg">
                     {shareData.log_type === 'workout' ? '⚡ TRAINING SESSION' : (shareData.log_type === 'match' ? '⚽ MATCH DAY' : '❤️‍🩹 RECOVERY')}
                 </div>
                 <div className="mb-4">
