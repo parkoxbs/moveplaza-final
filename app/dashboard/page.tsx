@@ -453,55 +453,39 @@ export default function Dashboard() {
     else setSelectedParts([...selectedParts, part])
   }
 
-  // 🚨 [최종 병기 적용] 아이폰 사파리 강제 이미지 렌더링 우회 시스템
-  const handleShareClick = async (log: any) => {
-    const t = toast.loading("카드 디자인 중... 🎨 (아이폰 최적화 적용)");
-    let safeImageUrl = log.image_url;
+  // 🚨 아이폰(Safari) 여부 판별 함수
+  const checkIsIOS = () => {
+    if (typeof window === 'undefined') return false;
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  };
 
-    if (log.image_url) {
+  // 🚨 [플랜 B 적용] 아이폰은 사진 대신 '프리미엄 우회 디자인'으로 대체!
+  const handleShareClick = async (log: any) => {
+    const t = toast.loading("카드 디자인 중... 🎨");
+    const isIOS = checkIsIOS();
+    let safeImageUrl = null;
+
+    // 아이폰이 아닐 때만 외부 사진 다운로드 (안드로이드, PC 정상 작동)
+    if (log.image_url && !isIOS) {
         try {
-            // 1차 시도: 직접 fetch
-            const response = await fetch(log.image_url + "?t=" + new Date().getTime());
+            const response = await fetch(log.image_url);
             const blob = await response.blob();
             safeImageUrl = await new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result as string);
                 reader.readAsDataURL(blob);
             });
-        } catch (err1) {
-            console.log("1차 직접 가져오기 실패, 프록시 1 우회 시도");
-            try {
-                // 2차 시도: corsproxy 우회
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(log.image_url)}`;
-                const response = await fetch(proxyUrl);
-                const blob = await response.blob();
-                safeImageUrl = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result as string);
-                    reader.readAsDataURL(blob);
-                });
-            } catch (err2) {
-                console.log("프록시 우회 실패", err2);
-                safeImageUrl = log.image_url; // 최종 실패 시 어쩔 수 없이 원본 사용
-            }
+        } catch (e) {
+            console.log("이미지 가져오기 실패");
         }
     }
 
+    // 아이폰이면 safeImageUrl은 null이 됨 -> 프리미엄 디자인이 렌더링됨
     setShareData({ ...log, image_url: safeImageUrl });
 
-    // 🚨 핵심 1: 아이폰 사파리는 DOM이 변경되고 이미지가 화면에 뜰 때까지 남들보다 시간이 더 필요해. 무식하게 1.5초를 기다린다.
     setTimeout(async () => {
       if (shareCardRef.current) {
         try {
-          // 🚨 핵심 2: 아이폰 렌더링 엔진 깨우기 (강제로 화면 흔들기)
-          shareCardRef.current.style.transform = "scale(1.0001)";
-          await new Promise(r => setTimeout(r, 100)); // 0.1초 대기
-          shareCardRef.current.style.transform = "scale(1)";
-
-          // 🚨 핵심 3: 첫 번째 캡처는 그냥 버림! (이때 아이폰이 몰래 사진을 그림)
-          await toPng(shareCardRef.current, { cacheBust: true, pixelRatio: 1 });
-          
-          // 🚨 핵심 4: 진짜 완벽하게 그려진 두 번째 사진을 캡처해서 유저에게 줌
           const dataUrl = await toPng(shareCardRef.current, { 
               cacheBust: true, 
               pixelRatio: 2, 
@@ -532,7 +516,7 @@ export default function Dashboard() {
         }
         setShareData(null); 
       }
-    }, 1500); // 1.5초(1500ms) 대기
+    }, 500); 
   }
 
   const handleDownloadImage = async () => {
@@ -543,7 +527,6 @@ export default function Dashboard() {
         if(!dataReportRef.current) return;
         const element = dataReportRef.current;
         
-        await toPng(element, { cacheBust: true, pixelRatio: 1 }); // 더블 렌더링 꼼수
         const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff', width: element.scrollWidth, height: element.scrollHeight, style: { padding: '20px', background: '#ffffff' } });
         
         if (navigator.share) {
@@ -558,7 +541,7 @@ export default function Dashboard() {
             toast.success("데이터 리포트 저장 완료! 📊", { id: t });
         }
       } catch (e) { toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t, duration: 5000 }); }
-    }, 1500);
+    }, 500);
   }
 
   const getFilteredRehabLogs = () => {
@@ -676,11 +659,9 @@ export default function Dashboard() {
       
       {shareData && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[-50] opacity-100 pointer-events-none">
-          {/* 🚨 아이폰 렌더링 측정을 위해 width, height 스타일을 강제 주입 */}
           <div ref={shareCardRef} className="w-[450px] h-[650px] relative bg-slate-950 overflow-hidden font-sans" style={{ width: '450px', height: '650px' }}>
             {shareData.image_url ? (
               <>
-                {/* 🚨 background-image 대신 무조건 img 태그 사용! (아이폰 호환성 핵심) */}
                 <img 
                     src={shareData.image_url} 
                     className="absolute inset-0 w-full h-full object-cover z-0" 
@@ -690,14 +671,24 @@ export default function Dashboard() {
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0"></div>
               </>
             ) : (
-              <div className={`absolute inset-0 w-full h-full bg-gradient-to-br ${shareData.log_type === 'match' ? 'from-yellow-900 to-slate-950' : (shareData.log_type === 'rehab' ? 'from-red-900 to-slate-950' : 'from-blue-900 to-slate-950')} z-0`}>
-                  <div className="absolute inset-0 flex flex-col justify-center items-center opacity-10 select-none">
-                      {[...Array(5)].map((_, i) => (
-                          <span key={i} className="text-9xl font-black italic tracking-tighter text-white leading-none">
-                              {shareData.log_type === 'match' ? 'MATCH' : (shareData.log_type === 'rehab' ? 'REHAB' : 'WORKOUT')}
-                          </span>
-                      ))}
+              // 🚨 [새로운 아이폰 전용 프리미엄 네온 디자인] 🚨
+              <div className="absolute inset-0 bg-slate-950 z-0 overflow-hidden">
+                  {/* 동적 네온 글로우 효과 */}
+                  <div className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] mix-blend-screen opacity-50 ${shareData.log_type === 'match' ? 'bg-yellow-600' : (shareData.log_type === 'rehab' ? 'bg-red-600' : 'bg-blue-600')} translate-x-1/3 -translate-y-1/3`}></div>
+                  <div className={`absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full blur-[100px] mix-blend-screen opacity-40 ${shareData.log_type === 'match' ? 'bg-orange-600' : (shareData.log_type === 'rehab' ? 'bg-rose-600' : 'bg-indigo-600')} -translate-x-1/3 translate-y-1/3`}></div>
+
+                  {/* 세련된 도트 그리드 패턴 */}
+                  <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+
+                  {/* 초거대 배경 타이포그래피 */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-5 select-none pointer-events-none">
+                      <span className="text-[140px] font-black italic tracking-tighter text-white transform -rotate-12">
+                          {shareData.log_type === 'match' ? 'MATCH' : (shareData.log_type === 'rehab' ? 'REHAB' : 'TRAINING')}
+                      </span>
                   </div>
+                  
+                  {/* 배경 어둡게 깔아주는 그라데이션 */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-0"></div>
               </div>
             )}
             
@@ -713,7 +704,7 @@ export default function Dashboard() {
                 </span>
             </div>
             <div className="absolute bottom-0 left-0 w-full p-8 z-10 flex flex-col gap-2">
-                <div className="self-start px-4 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-[10px] font-black text-white uppercase tracking-widest mb-2 shadow-lg">
+                <div className="self-start px-4 py-1.5 rounded-full bg-slate-900/80 border border-white/20 text-[10px] font-black text-white uppercase tracking-widest mb-2 shadow-lg">
                     {shareData.log_type === 'workout' ? '⚡ TRAINING SESSION' : (shareData.log_type === 'match' ? '⚽ MATCH DAY' : '❤️‍🩹 RECOVERY')}
                 </div>
                 <div className="mb-4">
