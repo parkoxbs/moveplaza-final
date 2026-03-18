@@ -453,53 +453,41 @@ export default function Dashboard() {
     else setSelectedParts([...selectedParts, part])
   }
 
-  // 🚨 궁극의 해결책: fetch 대신 Image 객체와 Canvas를 사용해 완벽한 Base64 텍스트로 변환 (아이폰 Safari 차단 회피)
+  // 🚨 완벽 수정본: 브라우저 내장 fetch를 이용해 사진을 파일로 직접 받아온 뒤, 텍스트(Base64)로 변환!
   const handleShareClick = async (log: any) => {
     const t = toast.loading("카드 디자인 중... 🎨");
     let safeImageUrl = null;
 
     if (log.image_url) {
         try {
+            // 1. 브라우저 내장 기능(fetch)으로 원본 사진을 파일(Blob) 형태로 다운로드
+            const response = await fetch(log.image_url);
+            const blob = await response.blob();
+            
+            // 2. 다운로드한 파일을 완벽한 텍스트(Base64) 데이터로 둔갑시킴
             safeImageUrl = await new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = "anonymous"; // CORS 차단 우회
-                img.onload = () => {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext("2d");
-                    if (ctx) {
-                        ctx.drawImage(img, 0, 0);
-                        // 이미지를 완전한 텍스트 데이터(Base64)로 뽑아냄
-                        resolve(canvas.toDataURL("image/jpeg", 0.9)); 
-                    } else {
-                        resolve(null);
-                    }
-                };
-                img.onerror = () => {
-                    console.error("이미지 로드 실패 (CORS 문제)");
-                    resolve(null);
-                };
-                // 캐시 방지용 쿼리 추가 (아이폰에서 캐시된 이미지를 쓰면 에러날 때가 많음)
-                img.src = log.image_url + "?nocache=" + new Date().getTime();
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
             });
         } catch (e) {
-            console.error(e);
+            console.error("이미지 다운로드 실패:", e);
+            safeImageUrl = log.image_url; // 혹시 실패하면 원본 링크라도 넣어둠
         }
     }
 
-    // 상태 업데이트
+    // 상태 업데이트 (아이폰이 텍스트로 변환된 사진을 화면에 띄우도록 지시)
     setShareData({ ...log, image_url: safeImageUrl });
 
-    // 🚨 렌더링 엔진 안정화를 위해 0.8초의 여유 시간을 줌
+    // 🚨 아이폰 렌더링 엔진이 화면을 충분히 다 그릴 수 있도록 1초 기다린 후 캡처 진행!
     setTimeout(async () => {
       if (shareCardRef.current) {
         try {
           const dataUrl = await toPng(shareCardRef.current, { 
               cacheBust: true, 
               pixelRatio: 2, 
-              backgroundColor: '#0f172a', 
-              skipAutoScale: true 
+              backgroundColor: '#0f172a' // 배경색을 깔끔하게 지정 (아이폰 에러 방지)
           });
           const link = document.createElement('a'); 
           link.download = `moveplaza_magazine_${Date.now()}.png`; 
@@ -512,7 +500,7 @@ export default function Dashboard() {
         }
         setShareData(null); 
       }
-    }, 800); 
+    }, 1000); 
   }
 
   const handleDownloadImage = async () => {
@@ -647,11 +635,11 @@ export default function Dashboard() {
           <div ref={shareCardRef} className="w-[450px] h-[650px] relative bg-slate-950 overflow-hidden font-sans">
             {shareData.image_url ? (
               <>
+                {/* 🚨 원본 이미지 그대로 렌더링 (CORS 및 블러 문제 모두 우회됨) */}
                 <img src={shareData.image_url} className="absolute inset-0 w-full h-full object-cover z-0" alt="배경" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0"></div>
               </>
             ) : (
-              // 🚨 아이폰 렌더링 엔진을 터뜨리던 복잡한 SVG 필터 제거 후 깔끔한 그라데이션으로 교체
               <div className={`absolute inset-0 w-full h-full bg-gradient-to-br ${shareData.log_type === 'match' ? 'from-yellow-900 to-slate-950' : (shareData.log_type === 'rehab' ? 'from-red-900 to-slate-950' : 'from-blue-900 to-slate-950')} z-0`}>
                   <div className="absolute inset-0 flex flex-col justify-center items-center opacity-10 select-none">
                       {[...Array(5)].map((_, i) => (
