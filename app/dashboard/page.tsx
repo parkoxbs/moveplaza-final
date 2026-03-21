@@ -25,7 +25,7 @@ const ADMIN_EMAILS = ['agricb83@gmail.com'];
 
 const Icons = {
   Activity: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
-  AlertCircle: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
+  AlertCircle: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
   Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><path d="M12 5v14M5 12h14"/></svg>,
   X: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><path d="M18 6 6 18M6 6l12 12"/></svg>,
   Share: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>,
@@ -459,13 +459,13 @@ export default function Dashboard() {
     return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   };
 
-  // 🚨 [플랜 B 적용] 아이폰은 사진 대신 '프리미엄 우회 디자인'으로 대체!
+  // 🚨 [플랜 B 적용] 갤럭시는 꽉 찬 사진 + 다이렉트 갤러리 저장 / 아이폰은 공유창 띄우기
   const handleShareClick = async (log: any) => {
     const t = toast.loading("카드 디자인 중... 🎨");
     const isIOS = checkIsIOS();
     let safeImageUrl = null;
 
-    // 아이폰이 아닐 때만 외부 사진 다운로드 (안드로이드, PC 정상 작동)
+    // 아이폰이 아닐 때만 외부 사진 다운로드 (갤럭시, PC 정상 작동)
     if (log.image_url && !isIOS) {
         try {
             const response = await fetch(log.image_url);
@@ -480,7 +480,6 @@ export default function Dashboard() {
         }
     }
 
-    // 아이폰이면 safeImageUrl은 null이 됨 -> 프리미엄 디자인이 렌더링됨
     setShareData({ ...log, image_url: safeImageUrl });
 
     setTimeout(async () => {
@@ -493,7 +492,8 @@ export default function Dashboard() {
               style: { margin: '0', padding: '0' }
           });
 
-          if (navigator.share) {
+          // 🚨 분기 처리: 아이폰이면 공유창 / 갤럭시면 다이렉트 다운로드
+          if (isIOS && navigator.share) {
             try {
               const blob = await (await fetch(dataUrl)).blob();
               const file = new File([blob], 'moveplaza_card.png', { type: 'image/png' });
@@ -522,6 +522,8 @@ export default function Dashboard() {
   const handleDownloadImage = async () => {
     if (!dataReportRef.current) return; 
     const t = toast.loading("활동 데이터 리포트 생성 중... 📸");
+    const isIOS = checkIsIOS();
+    
     setTimeout(async () => {
       try {
         if(!dataReportRef.current) return;
@@ -529,7 +531,8 @@ export default function Dashboard() {
         
         const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff', width: element.scrollWidth, height: element.scrollHeight, style: { padding: '20px', background: '#ffffff' } });
         
-        if (navigator.share) {
+        // 🚨 분기 처리: 아이폰이면 공유창 / 갤럭시면 다이렉트 다운로드
+        if (isIOS && navigator.share) {
             try {
                 const blob = await (await fetch(dataUrl)).blob();
                 const file = new File([blob], 'moveplaza_report.png', { type: 'image/png' });
@@ -671,23 +674,18 @@ export default function Dashboard() {
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0"></div>
               </>
             ) : (
-              // 🚨 [새로운 아이폰 전용 프리미엄 네온 디자인] 🚨
               <div className="absolute inset-0 bg-slate-950 z-0 overflow-hidden">
-                  {/* 동적 네온 글로우 효과 */}
                   <div className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] mix-blend-screen opacity-50 ${shareData.log_type === 'match' ? 'bg-yellow-600' : (shareData.log_type === 'rehab' ? 'bg-red-600' : 'bg-blue-600')} translate-x-1/3 -translate-y-1/3`}></div>
                   <div className={`absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full blur-[100px] mix-blend-screen opacity-40 ${shareData.log_type === 'match' ? 'bg-orange-600' : (shareData.log_type === 'rehab' ? 'bg-rose-600' : 'bg-indigo-600')} -translate-x-1/3 translate-y-1/3`}></div>
 
-                  {/* 세련된 도트 그리드 패턴 */}
                   <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
 
-                  {/* 초거대 배경 타이포그래피 */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-5 select-none pointer-events-none">
                       <span className="text-[140px] font-black italic tracking-tighter text-white transform -rotate-12">
                           {shareData.log_type === 'match' ? 'MATCH' : (shareData.log_type === 'rehab' ? 'REHAB' : 'TRAINING')}
                       </span>
                   </div>
                   
-                  {/* 배경 어둡게 깔아주는 그라데이션 */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-0"></div>
               </div>
             )}

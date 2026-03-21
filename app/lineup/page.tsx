@@ -184,6 +184,12 @@ const getPositionInfo = (topPercent: string, leftPercent: string, matchType: str
   return { label: 'ST', color: 'bg-red-500 text-white' };
 };
 
+// 🚨 아이폰(Safari) 여부 판별 함수
+const checkIsIOS = () => {
+    if (typeof window === 'undefined') return false;
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
 export default function LineupPage() {
   const router = useRouter();
   const fieldRef = useRef<HTMLDivElement>(null);
@@ -264,20 +270,47 @@ export default function LineupPage() {
     }
   };
 
+  // 🚨 [최종 적용] 갤럭시는 갤러리 다이렉트 저장 / 아이폰은 공유창 띄우기
   const handleSaveImage = async () => {
     if (!fieldRef.current) return;
-    const t = toast.loading("이미지 생성 중... 🎨");
-    try {
-      // 🚨 backgroundColor 옵션 완전 삭제 (이것 때문에 배경이 까맣게 나왔었음!)
-      const dataUrl = await toPng(fieldRef.current, { cacheBust: true, pixelRatio: 2 });
-      const link = document.createElement('a');
-      link.download = `moveplaza_lineup_${Date.now()}.png`;
-      link.href = dataUrl;
-      link.click();
-      toast.success("저장 완료! 인스타에 자랑하세요 📸", { id: t });
-    } catch (e) {
-      toast.error("저장 실패 ㅠ", { id: t });
-    }
+    const t = toast.loading("전술판 캡처 중... 📸");
+    const isIOS = checkIsIOS();
+
+    setTimeout(async () => {
+      try {
+        if (!fieldRef.current) return;
+
+        // 🚨 핵심 1: 아이폰 사파리 렌더링 버그 방지를 위한 더블 렌더링 꼼수
+        await toPng(fieldRef.current, { cacheBust: true, pixelRatio: 1 });
+        
+        const dataUrl = await toPng(fieldRef.current, { 
+            cacheBust: true, 
+            pixelRatio: 2,
+            style: { margin: '0', padding: '0' }
+        });
+
+        // 🚨 핵심 2: 분기 처리
+        if (isIOS && navigator.share) {
+            try {
+                const blob = await (await fetch(dataUrl)).blob();
+                const file = new File([blob], 'moveplaza_lineup.png', { type: 'image/png' });
+                toast.dismiss(t);
+                await navigator.share({
+                    files: [file],
+                    title: 'MOVEPLAZA Lineup',
+                });
+            } catch (err) { toast.dismiss(t); }
+        } else {
+            const link = document.createElement('a');
+            link.download = `moveplaza_lineup_${Date.now()}.png`;
+            link.href = dataUrl;
+            link.click();
+            toast.success("저장 완료! 갤러리를 확인하세요 📸", { id: t });
+        }
+      } catch (e) {
+        toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t });
+      }
+    }, 500); // 0.5초 대기 후 캡처
   };
 
   const handleSaveLineupDB = async () => {
@@ -395,7 +428,7 @@ export default function LineupPage() {
                 key={player.id}
                 className={`absolute flex flex-col items-center justify-center cursor-grab active:cursor-grabbing ${isDragging ? 'scale-110 z-50' : 'z-20 transition-all duration-100'}`}
                 style={{ 
-                    top: player.position.top, left: player.position.left, transform: 'translate(-50%, -50%)', width: '70px', touchAction: 'none' 
+                  top: player.position.top, left: player.position.left, transform: 'translate(-50%, -50%)', width: '70px', touchAction: 'none' 
                 }} 
                 onPointerDown={(e) => {
                     e.currentTarget.setPointerCapture(e.pointerId);
