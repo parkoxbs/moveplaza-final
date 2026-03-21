@@ -4,17 +4,17 @@ import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
-// 👇 메타데이터 (SEO + PWA + 썸네일 설정)
+// 👇 메타데이터 (SEO + PWA + 썸네일 설정) - 한글 '무브플라자' 검색 최적화 완료!
 export const metadata: Metadata = {
   title: {
-    template: '%s | Moveplaza',
-    default: 'Moveplaza | 선수 퍼포먼스 관리 시스템',
+    template: '%s | 무브플라자 (Moveplaza)',
+    default: '무브플라자 (Moveplaza) | 선수 퍼포먼스 관리 시스템',
   },
-  description: '물리치료학과 학생이 만든 운동 선수 부상 관리 및 기록 분석 플랫폼. 부상 없이 득근하세요!',
+  description: '물리치료학과 학생이 만든 축구 전술 및 선수 부상 관리 앱 무브플라자(Moveplaza). 부상 없이 득근하세요!',
   generator: 'Next.js',
-  applicationName: 'Moveplaza',
+  applicationName: '무브플라자 (Moveplaza)',
   referrer: 'origin-when-cross-origin',
-  keywords: ['운동기록', '재활', '물리치료', '부상방지', '선수관리', '오운완', '축구'],
+  keywords: ['무브플라자', 'MOVEPLAZA', '축구 전술판', '운동기록', '재활', '물리치료', '부상방지', '선수관리', '오운완', '축구'],
   authors: [{ name: 'Moveplaza Dev' }],
   creator: 'Moveplaza Dev',
   publisher: 'Moveplaza Dev',
@@ -28,17 +28,17 @@ export const metadata: Metadata = {
   
   // 👇 카톡/슬랙/디스코드 공유 미리보기 설정
   openGraph: {
-    title: 'Moveplaza | 선수 퍼포먼스 관리 시스템',
-    description: '부상 없이 득근하자! 📉 컨디션 분석부터 AI 부상 리포트까지.',
+    title: '무브플라자 (Moveplaza) | 선수 퍼포먼스 관리 시스템',
+    description: '부상 없이 득근하자! 📉 축구 전술부터 AI 부상 리포트까지 무브플라자.',
     url: 'https://moveplaza-final.vercel.app', 
-    siteName: 'Moveplaza',
+    siteName: '무브플라자 (Moveplaza)',
     locale: 'ko_KR',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Moveplaza | 선수 퍼포먼스 관리 시스템',
-    description: '부상 없이 득근하자! 📉 컨디션 분석부터 AI 부상 리포트까지.',
+    title: '무브플라자 (Moveplaza) | 선수 퍼포먼스 관리 시스템',
+    description: '부상 없이 득근하자! 📉 축구 전술부터 AI 부상 리포트까지 무브플라자.',
   },
   robots: {
     index: true,
