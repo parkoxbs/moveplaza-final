@@ -346,7 +346,12 @@ export default function LineupPage() {
       setMatchType(loadedType);
       setTeamName(lineup.team_name); 
       setFormation(lineup.formation); 
-      setKitColor(lineup.kit_color); 
+      
+      // 🚨 유니폼 증발 버그 해결!
+      // 옛날 DB 데이터(svgFill 없는 데이터)를 불러올 때, 현재 최신 KIT_COLORS에서 같은 색상을 찾아 매칭
+      const matchedColor = KIT_COLORS.find(c => c.name === lineup.kit_color?.name) || KIT_COLORS[0];
+      setKitColor(matchedColor); 
+      
       setPlayers(lineup.players);
       setIsLoadModalOpen(false); 
       toast.success(`${lineup.save_name} 불러오기 완료! 🔄`);
@@ -472,7 +477,6 @@ export default function LineupPage() {
                     }
                 }}
               >
-                {/* 🚨 원형 아이콘에서 예쁜 유니폼 SVG로 교체 완료! */}
                 <div className={`relative w-12 h-12 pointer-events-none flex flex-col items-center justify-center`}>
                    {/* 👕 유니폼 SVG */}
                    <svg 

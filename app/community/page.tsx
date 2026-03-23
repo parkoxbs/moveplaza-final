@@ -3,13 +3,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { createBrowserClient } from "@supabase/ssr"; 
 import { useRouter } from 'next/navigation';
-import toast, { Toaster } from 'react-hot-toast'; // 🚨 토스트 알림 추가!
+import toast, { Toaster } from 'react-hot-toast'; 
 
 const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
 const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
 const supabase = createBrowserClient(supabaseUrl, supabaseKey)
 
-// ✅ [설정] 관리자 이메일 (구단주님 이메일 확인!)
+// ✅ [설정] 관리자 이메일
 const ADMIN_EMAIL = "agricb83@gmail.com"; 
 
 // 🚫 [설정] 차단할 단어 리스트
@@ -19,6 +19,7 @@ const BAD_WORDS = [
 ];
 
 const containsBadWord = (text: string) => {
+  if (!text) return false;
   return BAD_WORDS.some(word => text.includes(word));
 };
 
@@ -31,7 +32,7 @@ const Icons = {
   More: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>,
   Bell: () => <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-blue-400 transition-colors"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>,
   Flag: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
-  Hammer: () => <span className="text-sm">🔨</span> // 철퇴 아이콘
+  Hammer: () => <span className="text-sm">🔨</span> 
 }
 
 type Profile = { id: string; username: string; sport: string; position: string; avatar_url?: string; level?: string; emoji?: string; color?: string; };
@@ -48,14 +49,16 @@ const getLevel = (count: number) => {
   return { name: 'Rookie', emoji: '🐣', color: 'bg-green-500 text-white' };
 };
 
+// 🚨 에러 수정 파트 1: 내용이 아예 없는 빈값일 때 앱이 터지지 않게 방어 코드 추가
 const formatContent = (rawContent: string) => {
-  const match = rawContent.match(/^\[(.*?)\]\s*([\s\S]*)/);
+  if (!rawContent) return { tags: [], text: '' }; // 글 내용이 없으면 안전하게 빈 값 리턴
+  const match = String(rawContent).match(/^\[(.*?)\]\s*([\s\S]*)/);
   if (match) {
     const tags = match[1].split(',').map(t => t.trim()).filter(Boolean);
     const text = match[2];
     return { tags, text };
   }
-  return { tags: [], text: rawContent };
+  return { tags: [], text: String(rawContent) };
 };
 
 export default function CommunityPage() {
@@ -170,7 +173,6 @@ export default function CommunityPage() {
     setLoading(false);
   }
 
-  // 🚨 신고하기 실행 함수
   const handleReport = async (logId: string) => {
       if (!currentUser) return alert("로그인이 필요합니다.");
       if (confirm("이 게시물이 부적절한가요?\n신고가 3회 누적되면 자동으로 숨김 처리됩니다.")) {
@@ -186,7 +188,6 @@ export default function CommunityPage() {
       }
   };
 
-  // 👑 어드민 전용 즉시 삭제(철퇴) 함수!
   const handleAdminForceDelete = async (logId: string) => {
       if (!confirm('🚨 [CEO 권한] 이 게시물을 즉시 영구 삭제하시겠습니까?')) return;
       
@@ -194,7 +195,7 @@ export default function CommunityPage() {
       if (!error) { 
           toast.success('관리자 권한으로 게시물을 삭제했습니다! 🔨'); 
           setActiveDropdown(null);
-          setLogs(prev => prev.filter(l => l.id !== logId)); // 화면에서도 즉시 지우기
+          setLogs(prev => prev.filter(l => l.id !== logId)); 
       } else {
           toast.error('삭제 실패! (Supabase 권한 확인 필요)');
       }
@@ -283,11 +284,12 @@ export default function CommunityPage() {
       else fetchData(); 
   };
 
+  // 🚨 에러 수정 파트 2: 데이터가 비어있을 때 터지지 않도록 옵셔널 체이닝 및 빈 문자열 대체 적용!
   const filteredLogs = logs.filter(log => {
-    const term = searchTerm.toLowerCase();
-    const titleMatch = log.title?.toLowerCase().includes(term);
-    const contentMatch = log.content.toLowerCase().includes(term);
-    const userMatch = log.profile?.username.toLowerCase().includes(term);
+    const term = (searchTerm || '').toLowerCase();
+    const titleMatch = (log.title || '').toLowerCase().includes(term);
+    const contentMatch = (log.content || '').toLowerCase().includes(term);
+    const userMatch = (log.profile?.username || '').toLowerCase().includes(term);
     return titleMatch || contentMatch || userMatch;
   });
 
@@ -412,12 +414,12 @@ export default function CommunityPage() {
                     <div className="grid grid-cols-3 gap-2 md:gap-4 items-end w-full">
                         {ranking[1] && (
                             <div className="flex flex-col items-center gap-1.5 pb-2 md:pb-4 w-full">
-                                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-slate-500 overflow-hidden bg-slate-700 shadow-md">
+                                <div className="w-12 h-12 md:w-16 h-16 rounded-full border-2 border-slate-500 overflow-hidden bg-slate-700 shadow-md">
                                     {ranking[1].avatar_url ? <img src={ranking[1].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
                                 </div>
                                 <div className="flex flex-col items-center w-full px-1">
                                     <span className="bg-slate-600 text-white text-[8px] md:text-[9px] font-black px-1.5 py-0.5 rounded-full mb-0.5">2ND</span>
-                                    <p className="font-bold text-[10px] md:text-sm text-center truncate w-full">{ranking[1].username}</p>
+                                    <p className="font-bold text-[10px] md:text-sm text-center truncate w-full">{ranking[1].username || '익명'}</p>
                                 </div>
                             </div>
                         )}
@@ -430,7 +432,7 @@ export default function CommunityPage() {
                                 </div>
                                 <div className="flex flex-col items-center w-full px-1 mt-1">
                                     <span className="bg-yellow-400 text-yellow-950 text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded-full mb-0.5 shadow-sm">1ST</span>
-                                    <p className="font-black text-xs md:text-base text-yellow-100 text-center truncate w-full">{ranking[0].username}</p>
+                                    <p className="font-black text-xs md:text-base text-yellow-100 text-center truncate w-full">{ranking[0].username || '익명'}</p>
                                     <p className="text-[8px] md:text-[10px] text-yellow-500/80 font-bold">{ranking[0].logCount}회</p>
                                 </div>
                             </div>
@@ -438,12 +440,12 @@ export default function CommunityPage() {
                         
                         {ranking[2] && (
                             <div className="flex flex-col items-center gap-1.5 pb-2 md:pb-4 w-full">
-                                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-orange-700 overflow-hidden bg-slate-700 shadow-md">
+                                <div className="w-12 h-12 md:w-16 h-16 rounded-full border-2 border-orange-700 overflow-hidden bg-slate-700 shadow-md">
                                     {ranking[2].avatar_url ? <img src={ranking[2].avatar_url} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
                                 </div>
                                 <div className="flex flex-col items-center w-full px-1">
                                     <span className="bg-orange-800 text-white text-[8px] md:text-[9px] font-black px-1.5 py-0.5 rounded-full mb-0.5">3RD</span>
-                                    <p className="font-bold text-[10px] md:text-sm text-center truncate w-full">{ranking[2].username}</p>
+                                    <p className="font-bold text-[10px] md:text-sm text-center truncate w-full">{ranking[2].username || '익명'}</p>
                                 </div>
                             </div>
                         )}
