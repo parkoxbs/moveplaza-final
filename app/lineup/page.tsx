@@ -6,12 +6,12 @@ import { toPng } from 'html-to-image';
 import toast, { Toaster } from 'react-hot-toast';
 import { createBrowserClient } from "@supabase/ssr"; 
 
-const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co";
-const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t";
-const supabase = createBrowserClient(supabaseUrl, supabaseKey);
+const supabaseUrl = "https://okckpesbufkqhmzcjiab.supabase.co"
+const supabaseKey = "sb_publishable_G_y2dTmNj9nGIvu750MlKQ_jjjgxu-t"
+const supabase = createBrowserClient(supabaseUrl, supabaseKey)
 
 // ==========================================
-// 🎨 1. 각종 아이콘 팩 (UI를 깔끔하게 해줄 요소들)
+// 🎨 아이콘 팩 (기본 기능만 남김)
 // ==========================================
 const Icons = {
   ArrowLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
@@ -19,16 +19,11 @@ const Icons = {
   Save: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
   Folder: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
   X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
-  Pointer: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg>,
-  Pen: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
-  ArrowRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>,
-  Line: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  Undo: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+  Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
 };
 
 // ==========================================
-// 📍 2. 데이터: 포메이션 & 컬러 설정
+// 📍 포메이션 좌표 데이터
 // ==========================================
 const FORMATIONS: any = {
   '11v11': {
@@ -57,6 +52,25 @@ const FORMATIONS: any = {
       { top: '50%', left: '10%' }, { top: '50%', left: '30%' }, { top: '55%', left: '50%' }, { top: '50%', left: '70%' }, { top: '50%', left: '90%' },
       { top: '25%', left: '35%' }, { top: '25%', left: '65%' }
     ],
+    '3-4-3': [
+      { top: '90%', left: '50%' },
+      { top: '75%', left: '20%' }, { top: '75%', left: '50%' }, { top: '75%', left: '80%' },
+      { top: '52%', left: '10%' }, { top: '52%', left: '35%' }, { top: '52%', left: '65%' }, { top: '52%', left: '90%' },
+      { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }
+    ],
+    '5-2-3': [
+      { top: '92%', left: '50%' },
+      { top: '78%', left: '10%' }, { top: '78%', left: '30%' }, { top: '78%', left: '50%' }, { top: '78%', left: '70%' }, { top: '78%', left: '90%' },
+      { top: '52%', left: '35%' }, { top: '52%', left: '65%' },
+      { top: '25%', left: '20%' }, { top: '22%', left: '50%' }, { top: '25%', left: '80%' }
+    ],
+    '4-1-4-1': [
+      { top: '92%', left: '50%' },
+      { top: '80%', left: '15%' }, { top: '80%', left: '38%' }, { top: '80%', left: '62%' }, { top: '80%', left: '85%' },
+      { top: '62%', left: '50%' },
+      { top: '42%', left: '12%' }, { top: '42%', left: '35%' }, { top: '42%', left: '65%' }, { top: '42%', left: '88%' },
+      { top: '22%', left: '50%' }
+    ]
   },
   '6v6': {
     '2-2-1': [
@@ -71,6 +85,18 @@ const FORMATIONS: any = {
       { top: '50%', left: '50%' },
       { top: '28%', left: '30%' }, { top: '28%', left: '70%' }
     ],
+    '1-3-1': [
+      { top: '90%', left: '50%' },
+      { top: '75%', left: '50%' },
+      { top: '50%', left: '20%' }, { top: '50%', left: '50%' }, { top: '50%', left: '80%' },
+      { top: '25%', left: '50%' }
+    ],
+    '3-1-1': [
+      { top: '90%', left: '50%' },
+      { top: '70%', left: '20%' }, { top: '72%', left: '50%' }, { top: '70%', left: '80%' },
+      { top: '45%', left: '50%' },
+      { top: '25%', left: '50%' }
+    ]
   },
   '5v5': {
     '1-2-1': [
@@ -84,6 +110,12 @@ const FORMATIONS: any = {
       { top: '65%', left: '30%' }, { top: '65%', left: '70%' },
       { top: '35%', left: '30%' }, { top: '35%', left: '70%' }
     ],
+    '2-1-1': [
+      { top: '90%', left: '50%' },
+      { top: '70%', left: '30%' }, { top: '70%', left: '70%' },
+      { top: '48%', left: '50%' },
+      { top: '25%', left: '50%' }
+    ]
   }
 };
 
@@ -94,17 +126,9 @@ const KIT_COLORS = [
   { name: 'Black', bg: 'bg-slate-900', text: 'text-white', svgFill: 'text-slate-900', stroke: 'stroke-slate-950' },
   { name: 'Yellow', bg: 'bg-yellow-400', text: 'text-black', svgFill: 'text-yellow-400', stroke: 'stroke-yellow-600' },
   { name: 'Green', bg: 'bg-green-600', text: 'text-white', svgFill: 'text-green-600', stroke: 'stroke-green-800' },
+  { name: 'Sky', bg: 'bg-sky-400', text: 'text-white', svgFill: 'text-sky-400', stroke: 'stroke-sky-600' },
 ];
 
-const DRAWING_COLORS = [
-  { name: 'Yellow', hex: '#fde047' },
-  { name: 'Red', hex: '#f87171' },
-  { name: 'Blue', hex: '#60a5fa' },
-  { name: 'White', hex: '#ffffff' },
-  { name: 'Black', hex: '#000000' },
-];
-
-// 🚨 매치 타입에 따라 포지션 이름을 다르게 출력하는 스마트 계산기
 const getPositionInfo = (topPercent: string, leftPercent: string, matchType: string) => {
   const y = parseFloat(topPercent);
   const x = parseFloat(leftPercent);
@@ -157,25 +181,11 @@ const checkIsIOS = () => {
     return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 };
 
-// SVG 그리기 캔버스 비율 고정 (이걸로 터치 오차 해결!)
-const SVG_WIDTH = 1000;
-const SVG_HEIGHT = 1333;
-
 export default function LineupPage() {
   const router = useRouter();
   const fieldRef = useRef<HTMLDivElement>(null);
   
   const [currentUser, setCurrentUser] = useState<any>(null);
-  
-  // 🚨 앱 모드: lineup(선수 배치) vs tactic(작전판 그리기)
-  const [appMode, setAppMode] = useState<'lineup' | 'tactic'>('lineup');
-  
-  // 🚨 작전판 드로잉 관련 상태
-  const [drawTool, setDrawTool] = useState<'select' | 'pen' | 'arrow' | 'line'>('select');
-  const [drawColor, setDrawColor] = useState(DRAWING_COLORS[0].hex);
-  const [drawings, setDrawings] = useState<any[]>([]);
-  const [currentPath, setCurrentPath] = useState<any>(null);
-
   const [matchType, setMatchType] = useState<'11v11' | '6v6' | '5v5'>('11v11'); 
   const [formation, setFormation] = useState('4-3-3');
   const [kitColor, setKitColor] = useState(KIT_COLORS[0]);
@@ -215,6 +225,7 @@ export default function LineupPage() {
       setMatchType(type);
       const defaultFmt = type === '11v11' ? '4-3-3' : (type === '6v6' ? '2-2-1' : '1-2-1');
       setFormation(defaultFmt);
+      
       const playerNum = type === '11v11' ? 11 : (type === '6v6' ? 6 : 5);
       setPlayers(Array.from({ length: playerNum }, (_, i) => ({
           id: i, 
@@ -225,7 +236,6 @@ export default function LineupPage() {
           goals: 0, 
           position: FORMATIONS[type][defaultFmt][i]
       })));
-      setDrawings([]); // 필드 바뀌면 그림 초기화
   };
 
   const handleFormationChange = (fmt: string) => {
@@ -236,8 +246,8 @@ export default function LineupPage() {
     })));
   };
 
-  const handlePlayerClick = (player: any) => { 
-      if(appMode === 'lineup') setEditingPlayer(player); 
+  const handlePlayerClick = (player: any) => {
+    setEditingPlayer(player);
   };
 
   const updatePlayer = (key: string, value: any) => {
@@ -258,42 +268,49 @@ export default function LineupPage() {
     setTimeout(async () => {
       try {
         if (!fieldRef.current) return;
+
         await toPng(fieldRef.current, { cacheBust: true, pixelRatio: 1 });
-        const dataUrl = await toPng(fieldRef.current, { cacheBust: true, pixelRatio: 2, style: { margin: '0', padding: '0' } });
-        
+        const dataUrl = await toPng(fieldRef.current, { 
+            cacheBust: true, 
+            pixelRatio: 2,
+            style: { margin: '0', padding: '0' }
+        });
+
         if (isIOS && navigator.share) {
             try {
                 const blob = await (await fetch(dataUrl)).blob();
-                const file = new File([blob], 'moveplaza_tactics.png', { type: 'image/png' });
-                toast.dismiss(t); 
-                await navigator.share({ files: [file], title: 'MOVEPLAZA Tactics' });
+                const file = new File([blob], 'moveplaza_lineup.png', { type: 'image/png' });
+                toast.dismiss(t);
+                await navigator.share({
+                    files: [file],
+                    title: 'MOVEPLAZA Lineup',
+                });
             } catch (err) { toast.dismiss(t); }
         } else {
-            const link = document.createElement('a'); 
-            link.download = `moveplaza_tactics_${Date.now()}.png`; 
-            link.href = dataUrl; 
+            const link = document.createElement('a');
+            link.download = `moveplaza_lineup_${Date.now()}.png`;
+            link.href = dataUrl;
             link.click();
             toast.success("저장 완료! 갤러리를 확인하세요 📸", { id: t });
         }
-      } catch (e) { 
-          toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t }); 
+      } catch (e) {
+        toast.error("저장 실패 ㅠ 화면 캡처를 이용해주세요.", { id: t });
       }
-    }, 500);
+    }, 500); 
   };
 
   const handleSaveLineupDB = async () => {
       if (!currentUser) return toast.error("로그인이 필요합니다.");
       if (!saveName.trim()) return toast.error("저장할 이름을 입력해주세요!");
-      
+
       const t = toast.loading("전술 저장 중...");
       const { error } = await supabase.from('lineups').insert({
-          user_id: currentUser.id, 
-          save_name: saveName, 
-          team_name: teamName, 
-          formation: formation, 
-          kit_color: kitColor, 
-          players: players,
-          drawings: drawings // 작전판 그림 데이터도 함께 저장
+          user_id: currentUser.id,
+          save_name: saveName,
+          team_name: teamName,
+          formation: formation,
+          kit_color: kitColor,
+          players: players
       });
 
       if (error) toast.error("저장 실패: " + error.message, { id: t });
@@ -316,18 +333,18 @@ export default function LineupPage() {
   const loadLineup = (lineup: any) => {
       const numPlayers = lineup.players.length;
       let loadedType: '11v11' | '6v6' | '5v5' = '11v11';
-      if (numPlayers === 5) loadedType = '5v5'; 
+      if (numPlayers === 5) loadedType = '5v5';
       else if (numPlayers === 6) loadedType = '6v6';
-      
-      setMatchType(loadedType); 
+
+      setMatchType(loadedType);
       setTeamName(lineup.team_name); 
       setFormation(lineup.formation); 
       
+      // 유니폼 색상 불러오기 픽스 적용
       const matchedColor = KIT_COLORS.find(c => c.name === lineup.kit_color?.name) || KIT_COLORS[0];
       setKitColor(matchedColor); 
-      setPlayers(lineup.players);
-      setDrawings(lineup.drawings || []); 
       
+      setPlayers(lineup.players);
       setIsLoadModalOpen(false); 
       toast.success(`${lineup.save_name} 불러오기 완료! 🔄`);
   };
@@ -342,224 +359,83 @@ export default function LineupPage() {
       }
   };
 
-  // ==========================================
-  // 🚨 캔버스 드로잉 핸들러 (오차 없는 완벽한 좌표 계산)
-  // ==========================================
-  const getCoordinates = (e: React.PointerEvent<SVGSVGElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * SVG_WIDTH;
-      const y = ((e.clientY - rect.top) / rect.height) * SVG_HEIGHT;
-      return { x, y };
-  };
-
-  const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-      if (appMode !== 'tactic' || drawTool === 'select') return;
-      e.currentTarget.setPointerCapture(e.pointerId);
-      const coords = getCoordinates(e);
-      setCurrentPath({ type: drawTool, color: drawColor, points: [coords] });
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-      if (!currentPath || appMode !== 'tactic' || drawTool === 'select') return;
-      const coords = getCoordinates(e);
-      setCurrentPath((prev: any) => ({ 
-          ...prev, 
-          points: [...prev.points, coords] 
-      }));
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
-      if (!currentPath) return;
-      e.currentTarget.releasePointerCapture(e.pointerId);
-      setDrawings(prev => [...prev, currentPath]);
-      setCurrentPath(null);
-  };
-
-  const undoDrawing = () => setDrawings(prev => prev.slice(0, -1));
-  const clearDrawings = () => { 
-      if(confirm("그려둔 작전을 모두 지우시겠습니까?")) setDrawings([]); 
-  };
-
   const fieldStyle = matchType === '11v11' 
     ? { backgroundColor: '#2d6a35', backgroundImage: `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%), repeating-linear-gradient(to bottom, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 25px, transparent 25px, transparent 50px)` }
     : { backgroundColor: '#1e3a8a', backgroundImage: `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.5) 100%), linear-gradient(0deg, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`, backgroundSize: '40px 40px' };
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-white pb-32">
+    <div className="min-h-screen bg-slate-950 font-sans text-white pb-24">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
-      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-white/5 p-4 flex items-center justify-between shadow-sm">
-        <button onClick={() => router.back()} className="text-slate-400 hover:text-white transition p-2">
+      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-white/5 p-4 flex items-center justify-between">
+        <button onClick={() => router.back()} className="text-slate-400 hover:text-white p-2 transition">
             <Icons.ArrowLeft />
         </button>
-        
-        {/* 🚨 모드 전환 스위치 (가운데 고정) */}
-        <div className="flex bg-slate-800 p-1.5 rounded-xl border border-white/10 shadow-inner">
-            <button 
-                onClick={() => { setAppMode('lineup'); setDrawTool('select'); }} 
-                className={`px-4 py-2 text-sm font-black rounded-lg transition ${appMode === 'lineup' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400 hover:text-white'}`}
-            >
-                선수 배치
-            </button>
-            <button 
-                onClick={() => setAppMode('tactic')} 
-                className={`px-4 py-2 text-sm font-black rounded-lg transition flex items-center gap-1.5 ${appMode === 'tactic' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
-            >
-                ✍️ 작전판
-            </button>
-        </div>
-
-        <button onClick={fetchSavedLineups} className="text-slate-400 hover:text-white transition p-2">
+        <span className="font-black text-lg">LINEUP BUILDER ⚽</span>
+        <button onClick={fetchSavedLineups} className="text-slate-400 hover:text-white p-2 transition">
             <Icons.Folder />
         </button>
       </header>
 
       <main className="max-w-md mx-auto p-4 space-y-5">
         
-        {/* 🚨 큼직하게 분리한 팀 이름 & 설정 영역 */}
-        {appMode === 'lineup' && (
-            <div className="space-y-4 animate-fade-in">
-                
-                {/* 팀 이름 크게 입력 */}
-                <div className="bg-slate-900 p-5 rounded-2xl border border-white/10 shadow-sm">
-                    <label className="text-xs font-bold text-slate-400 mb-2 block text-center">나의 팀 이름</label>
-                    <input 
-                        type="text" 
-                        value={teamName} 
-                        onChange={(e) => setTeamName(e.target.value)} 
-                        className="w-full bg-slate-950 text-white font-black text-xl text-center py-4 px-4 rounded-xl border border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition shadow-inner" 
-                        placeholder="팀 이름을 입력하세요"
-                    />
-                </div>
+        {/* 🚨 크게 빼놓은 팀 이름 입력칸 */}
+        <div className="bg-slate-900 p-5 rounded-2xl border border-white/10 shadow-sm">
+            <label className="text-xs font-bold text-slate-400 mb-2 block text-center">나의 팀 이름</label>
+            <input 
+                type="text" 
+                value={teamName} 
+                onChange={(e) => setTeamName(e.target.value)} 
+                className="w-full bg-slate-950 text-white font-black text-xl text-center py-4 px-4 rounded-xl border border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition shadow-inner" 
+                placeholder="팀 이름을 입력하세요"
+            />
+        </div>
 
-                {/* 기타 세팅 */}
-                <div className="bg-slate-900 p-5 rounded-2xl border border-white/10 space-y-5 shadow-sm">
-                    <div className="flex bg-slate-950 p-1.5 rounded-xl border border-white/5">
-                        <button onClick={() => handleMatchTypeChange('11v11')} className={`flex-1 py-3 text-xs font-black rounded-lg transition ${matchType === '11v11' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>⚽ 11인조</button>
-                        <button onClick={() => handleMatchTypeChange('6v6')} className={`flex-1 py-3 text-xs font-black rounded-lg transition ${matchType === '6v6' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>🥅 6인조</button>
-                        <button onClick={() => handleMatchTypeChange('5v5')} className={`flex-1 py-3 text-xs font-black rounded-lg transition ${matchType === '5v5' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>🥅 5인조</button>
-                    </div>
-
-                    <div>
-                        <label className="text-xs font-bold text-slate-400 mb-2 block">포메이션</label>
-                        <div className="grid grid-cols-4 gap-2">
-                            {Object.keys(FORMATIONS[matchType]).map(fmt => (
-                                <button key={fmt} onClick={() => handleFormationChange(fmt)} className={`py-2.5 text-xs font-bold rounded-xl transition active:scale-95 ${formation === fmt ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
-                                    {fmt}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-xs font-bold text-slate-400 mb-2 block">유니폼 컬러</label>
-                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                            {KIT_COLORS.map(color => ( 
-                                <button key={color.name} onClick={() => setKitColor(color)} className={`w-10 h-10 rounded-full border-[3px] shrink-0 transition active:scale-90 ${color.bg} ${kitColor.name === color.name ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-50 hover:opacity-100'}`} /> 
-                            ))}
-                        </div>
-                    </div>
-                </div>
+        <div className="bg-slate-900 p-5 rounded-2xl border border-white/10 space-y-5 shadow-sm">
+            <div className="flex bg-slate-950 p-1.5 rounded-xl border border-white/5">
+                <button onClick={() => handleMatchTypeChange('11v11')} className={`flex-1 py-3 text-xs font-black rounded-lg transition ${matchType === '11v11' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>⚽ 11인조</button>
+                <button onClick={() => handleMatchTypeChange('6v6')} className={`flex-1 py-3 text-xs font-black rounded-lg transition ${matchType === '6v6' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>🥅 6인조</button>
+                <button onClick={() => handleMatchTypeChange('5v5')} className={`flex-1 py-3 text-xs font-black rounded-lg transition ${matchType === '5v5' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>🥅 5인조</button>
             </div>
-        )}
 
-        {/* 🚨 작전판 모드 툴바 (예쁘고 직관적이게!) */}
-        {appMode === 'tactic' && (
-            <div className="bg-slate-900 p-3 rounded-2xl border border-blue-500/30 shadow-[0_0_20px_rgba(37,99,235,0.15)] flex justify-between items-center animate-slide-up-modal">
-                <div className="flex gap-2">
-                    <button onClick={() => setDrawTool('select')} className={`p-3 rounded-xl transition ${drawTool === 'select' ? 'bg-white text-black shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`} title="선수 이동"><Icons.Pointer /></button>
-                    <button onClick={() => setDrawTool('pen')} className={`p-3 rounded-xl transition ${drawTool === 'pen' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`} title="자유롭게 그리기"><Icons.Pen /></button>
-                    <button onClick={() => setDrawTool('arrow')} className={`p-3 rounded-xl transition ${drawTool === 'arrow' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`} title="침투/패스 화살표"><Icons.ArrowRight /></button>
-                    <button onClick={() => setDrawTool('line')} className={`p-3 rounded-xl transition ${drawTool === 'line' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`} title="수비 라인 긋기"><Icons.Line /></button>
-                </div>
-                <div className="flex gap-2 border-l border-white/10 pl-3">
-                    {DRAWING_COLORS.map(color => (
-                        <button key={color.name} onClick={() => setDrawColor(color.hex)} className={`w-8 h-8 rounded-full border-2 transition ${drawColor === color.hex ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-40 hover:opacity-100'}`} style={{ backgroundColor: color.hex }}></button>
+            <div>
+                <label className="text-xs font-bold text-slate-400 mb-2 block">포메이션</label>
+                <div className="grid grid-cols-4 gap-2">
+                    {Object.keys(FORMATIONS[matchType]).map(fmt => (
+                        <button key={fmt} onClick={() => handleFormationChange(fmt)} className={`py-2.5 text-xs font-bold rounded-xl transition active:scale-95 ${formation === fmt ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                            {fmt}
+                        </button>
                     ))}
                 </div>
             </div>
-        )}
 
-        {/* ⚽ 그라운드 (필드) 영역 */}
+            <div>
+                <label className="text-xs font-bold text-slate-400 mb-2 block">유니폼 컬러</label>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {KIT_COLORS.map(color => (
+                        <button 
+                            key={color.name} 
+                            onClick={() => setKitColor(color)} 
+                            className={`w-10 h-10 rounded-full border-[3px] shrink-0 transition active:scale-90 ${color.bg} ${kitColor.name === color.name ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-50 hover:opacity-100'}`} 
+                        />
+                    ))}
+                </div>
+            </div>
+        </div>
+
         <div ref={fieldRef} className="relative w-full aspect-[3/4] rounded-xl overflow-hidden shadow-2xl border-[3px] border-white/30" style={fieldStyle}>
           
-          {/* 센터서클, 하프라인 등 페인트 */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white/70 rounded-full pointer-events-none"></div>
           <div className="absolute top-1/2 left-0 w-full h-[2px] bg-white/70 -translate-y-1/2 pointer-events-none"></div>
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full bg-transparent pointer-events-none"></div>
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-t-0 border-white/70 pointer-events-none"></div>
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-b-0 border-white/70 pointer-events-none"></div>
 
-          {/* 그라운드 위 팀 이름 */}
           <div className="absolute top-6 left-0 w-full text-center z-10 pointer-events-none">
             <h2 className="text-3xl font-black text-white drop-shadow-lg italic tracking-tighter uppercase">{teamName}</h2>
             <p className="text-white/80 text-xs font-bold tracking-widest">{formation}</p>
           </div>
 
-          {/* 🚨 작전판 드로잉 레이어 (SVG) - 터치 오류 해결 적용 완료! */}
-          <svg 
-            viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} 
-            preserveAspectRatio="none"
-            className={`absolute inset-0 w-full h-full z-30 touch-none ${appMode === 'tactic' && drawTool !== 'select' ? 'cursor-crosshair' : 'pointer-events-none'}`} 
-            onPointerDown={handlePointerDown} 
-            onPointerMove={handlePointerMove} 
-            onPointerUp={handlePointerUp}
-          >
-             <defs>
-                 {DRAWING_COLORS.map(color => (
-                     <marker key={`arrow-${color.hex}`} id={`arrow-${color.hex}`} viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                         <path d="M 0 2 L 10 5 L 0 8 z" fill={color.hex} />
-                     </marker>
-                 ))}
-             </defs>
-             
-             {/* 저장된 그림 렌더링 */}
-             {drawings.map((draw, i) => {
-                 // 자유형(Pen) 렌더링 - 둥근 선 처리(strokeLinecap/join)로 부드럽게!
-                 if (draw.type === 'pen' && draw.points.length > 1) {
-                     const pointsStr = draw.points.map((p:any) => `${p.x},${p.y}`).join(' ');
-                     return <polyline key={i} points={pointsStr} fill="none" stroke={draw.color} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-md opacity-90" />;
-                 }
-                 // 화살표(Arrow) & 라인(Line) 렌더링
-                 if ((draw.type === 'arrow' || draw.type === 'line') && draw.points.length > 1) {
-                     const start = draw.points[0]; 
-                     const end = draw.points[draw.points.length - 1];
-                     return (
-                         <line 
-                             key={i} 
-                             x1={start.x} y1={start.y} 
-                             x2={end.x} y2={end.y} 
-                             stroke={draw.color} strokeWidth="12" strokeLinecap="round" 
-                             markerEnd={draw.type === 'arrow' ? `url(#arrow-${draw.color})` : ''} 
-                             strokeDasharray={draw.type === 'line' ? '20, 20' : 'none'} 
-                             className="drop-shadow-md opacity-90" 
-                         />
-                     );
-                 }
-                 return null;
-             })}
-
-             {/* 현재 그리고 있는 라이브 그림 렌더링 */}
-             {currentPath && currentPath.points.length > 0 && (
-                 currentPath.type === 'pen' ? (
-                     <polyline 
-                         points={currentPath.points.map((p:any) => `${p.x},${p.y}`).join(' ')} 
-                         fill="none" stroke={currentPath.color} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" className="opacity-90" 
-                     />
-                 ) : (
-                     <line 
-                         x1={currentPath.points[0].x} y1={currentPath.points[0].y} 
-                         x2={currentPath.points[currentPath.points.length - 1].x} y2={currentPath.points[currentPath.points.length - 1].y} 
-                         stroke={currentPath.color} strokeWidth="12" strokeLinecap="round" 
-                         markerEnd={currentPath.type === 'arrow' ? `url(#arrow-${currentPath.color})` : ''} 
-                         strokeDasharray={currentPath.type === 'line' ? '20, 20' : 'none'} 
-                         className="opacity-90" 
-                     />
-                 )
-             )}
-          </svg>
-
-          {/* ⚽ 선수 배치 렌더링 */}
           {players.map((player, index) => {
             const isDragging = draggingId === player.id;
             const posInfo = getPositionInfo(player.position.top, player.position.left, matchType);
@@ -567,39 +443,50 @@ export default function LineupPage() {
             return (
               <div 
                 key={player.id}
-                className={`absolute flex flex-col items-center justify-center ${appMode === 'tactic' && drawTool !== 'select' ? 'pointer-events-none' : 'cursor-grab active:cursor-grabbing'} ${isDragging ? 'scale-110 z-50' : 'z-20 transition-all duration-100'}`}
-                style={{ top: player.position.top, left: player.position.left, transform: 'translate(-50%, -50%)', width: '70px', touchAction: 'none' }} 
+                className={`absolute flex flex-col items-center justify-center cursor-grab active:cursor-grabbing ${isDragging ? 'scale-110 z-50' : 'z-20 transition-all duration-100'}`}
+                style={{ 
+                  top: player.position.top, 
+                  left: player.position.left, 
+                  transform: 'translate(-50%, -50%)', 
+                  width: '70px', 
+                  touchAction: 'none' 
+                }} 
                 onPointerDown={(e) => {
-                    if (appMode === 'tactic' && drawTool !== 'select') return;
-                    e.currentTarget.setPointerCapture(e.pointerId); 
-                    setDraggingId(player.id); 
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDraggingId(player.id);
                     isDraggingRef.current = false;
                     dragStartPos.current = { x: e.clientX, y: e.clientY };
                     initialPlayerPos.current = { top: parseFloat(player.position.top), left: parseFloat(player.position.left) };
                 }}
                 onPointerMove={(e) => {
                     if (draggingId !== player.id) return;
-                    const dx = e.clientX - dragStartPos.current.x; 
-                    const dy = e.clientY - dragStartPos.current.y;
-                    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) isDraggingRef.current = true;
                     
+                    const dx = e.clientX - dragStartPos.current.x;
+                    const dy = e.clientY - dragStartPos.current.y;
+                    
+                    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) isDraggingRef.current = true;
+
                     if (isDraggingRef.current && fieldRef.current) {
                         const rect = fieldRef.current.getBoundingClientRect();
-                        const dxPercent = (dx / rect.width) * 100; 
+                        const dxPercent = (dx / rect.width) * 100;
                         const dyPercent = (dy / rect.height) * 100;
-                        let newLeft = Math.max(0, Math.min(100, initialPlayerPos.current.left + dxPercent));
-                        let newTop = Math.max(0, Math.min(100, initialPlayerPos.current.top + dyPercent));
-                        
+
+                        let newLeft = initialPlayerPos.current.left + dxPercent;
+                        let newTop = initialPlayerPos.current.top + dyPercent;
+
+                        newLeft = Math.max(0, Math.min(100, newLeft));
+                        newTop = Math.max(0, Math.min(100, newTop));
+
                         const step = 2.5; 
-                        newLeft = Math.round(newLeft / step) * step; 
+                        newLeft = Math.round(newLeft / step) * step;
                         newTop = Math.round(newTop / step) * step;
-                        
+
                         setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, position: { top: `${newTop}%`, left: `${newLeft}%` } } : p));
                     }
                 }}
                 onPointerUp={(e) => {
                     if (draggingId === player.id) {
-                        e.currentTarget.releasePointerCapture(e.pointerId); 
+                        e.currentTarget.releasePointerCapture(e.pointerId);
                         setDraggingId(null);
                         if (!isDraggingRef.current) handlePlayerClick(player);
                         isDraggingRef.current = false;
@@ -607,10 +494,24 @@ export default function LineupPage() {
                 }}
               >
                 <div className={`relative w-12 h-12 pointer-events-none flex flex-col items-center justify-center`}>
-                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" className={`absolute inset-0 w-full h-full drop-shadow-md z-10 transition-colors duration-200 ${index === 0 ? 'text-yellow-400 stroke-yellow-600' : `${kitColor.svgFill} ${kitColor.stroke}`}`}>
+                   {/* 👕 유니폼 SVG */}
+                   <svg 
+                     xmlns="http://www.w3.org/2000/svg" 
+                     viewBox="0 0 24 24" 
+                     fill="currentColor" 
+                     stroke="currentColor"
+                     strokeWidth="1"
+                     className={`absolute inset-0 w-full h-full drop-shadow-md z-10 transition-colors duration-200 ${index === 0 ? 'text-yellow-400 stroke-yellow-600' : `${kitColor.svgFill} ${kitColor.stroke}`}`}
+                   >
                      <path d="M20.33 6.06l-4.22-1.76A2.92 2.92 0 0015 4H9a2.92 2.92 0 00-1.11.22L3.67 6.06a1 1 0 00-.5.81v3.25a1 1 0 001 1h1.83v8.38a1 1 0 001 1h10a1 1 0 001-1V11.12h1.83a1 1 0 001-1V6.87a1 1 0 00-.5-.81z" />
                    </svg>
-                   <span className={`relative z-20 font-black text-sm mt-1 ${index === 0 ? 'text-black' : kitColor.text}`}>{player.number}</span>
+                   
+                   {/* 등번호 */}
+                   <span className={`relative z-20 font-black text-sm mt-1 ${index === 0 ? 'text-black' : kitColor.text}`}>
+                     {player.number}
+                   </span>
+                   
+                   {/* 주장 마크, MOM, 골 표시 */}
                    {player.isCaptain && <span className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 border border-black rounded-full flex items-center justify-center text-[10px] font-black text-black shadow-md z-30">C</span>}
                    {player.isMOM && <span className="absolute -top-2 -left-2 text-lg drop-shadow-md animate-bounce z-30">⭐</span>}
                    {player.goals > 0 && (
@@ -620,6 +521,7 @@ export default function LineupPage() {
                        </div>
                    )}
                 </div>
+                
                 <div className="mt-1 px-1.5 py-0.5 bg-black/60 rounded-md backdrop-blur-sm border border-white/10 flex items-center justify-center gap-1 w-max min-w-[50px] pointer-events-none shadow-md whitespace-nowrap z-30">
                   <span className={`text-[8px] font-black px-1 rounded-sm ${posInfo.color}`}>{posInfo.label}</span>
                   <p className="text-[10px] font-bold text-white">{player.name}</p>
@@ -627,52 +529,36 @@ export default function LineupPage() {
               </div>
             );
           })}
-          
+
           <div className="absolute bottom-4 right-4 opacity-50 pointer-events-none">
-              <p className="text-[10px] font-black text-white italic">MOVEPLAZA</p>
+            <p className="text-[10px] font-black text-white italic">MOVEPLAZA</p>
           </div>
         </div>
 
-        {/* 🚨 하단 작전 지우기 버튼 (작전판 모드일 때만 부드럽게 등장) */}
-        {appMode === 'tactic' && drawings.length > 0 && (
-            <div className="flex gap-3 animate-fade-in pt-2">
-                <button onClick={undoDrawing} className="flex-1 py-4 bg-slate-800 text-slate-300 font-extrabold rounded-xl hover:bg-slate-700 transition flex items-center justify-center gap-2 border border-white/10 shadow-sm">
-                    <Icons.Undo /> 되돌리기
-                </button>
-                <button onClick={clearDrawings} className="flex-1 py-4 bg-red-600/20 text-red-400 font-extrabold rounded-xl hover:bg-red-600/30 transition flex items-center justify-center gap-2 border border-red-500/20 shadow-sm">
-                    <Icons.Trash /> 전체 지우기
-                </button>
-            </div>
-        )}
-
-        {/* 저장 및 캡처 버튼 (라인업 모드이거나, 작전판인데 그림이 없을 때) */}
-        {(appMode === 'lineup' || drawings.length === 0) && (
-            <div className="flex gap-3 pt-2">
-                <button onClick={() => setIsSaveModalOpen(true)} className="flex-1 py-4 bg-slate-800 text-slate-300 font-extrabold rounded-xl hover:bg-slate-700 transition flex items-center justify-center gap-2 border border-white/10 shadow-sm">
-                    <Icons.Save /> 전술 저장
-                </button>
-                <button onClick={handleSaveImage} className="flex-[2] py-4 bg-blue-600 text-white font-extrabold rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition flex items-center justify-center gap-2">
-                    <Icons.Download /> 이미지 캡처
-                </button>
-            </div>
-        )}
+        <div className="flex gap-3 pt-2">
+            <button onClick={() => setIsSaveModalOpen(true)} className="flex-1 py-4 bg-slate-800 text-slate-300 font-extrabold rounded-xl hover:bg-slate-700 transition flex items-center justify-center gap-2 border border-white/10 shadow-sm">
+                <Icons.Save /> 전술 저장
+            </button>
+            <button onClick={handleSaveImage} className="flex-[2] py-4 bg-blue-600 text-white font-extrabold rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition flex items-center justify-center gap-2">
+                <Icons.Download /> 이미지 캡처
+            </button>
+        </div>
       </main>
 
-      {/* 👤 선수 정보 수정 모달 */}
-      {editingPlayer && appMode === 'lineup' && (
+      {/* 선수 정보 수정 모달 */}
+      {editingPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setEditingPlayer(null)}>
           <div className="bg-slate-900 border border-white/10 w-full max-w-xs rounded-3xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black text-white text-lg mb-4 text-center">선수 정보 수정</h3>
             <div className="space-y-4">
               <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">선수 이름</label>
-                  <input type="text" value={editingPlayer.name} onChange={(e) => updatePlayer('name', e.target.value)} className="w-full p-4 bg-slate-800 text-white font-bold rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
+                <label className="text-xs font-bold text-slate-400 block mb-1">선수 이름</label>
+                <input type="text" value={editingPlayer.name} onChange={(e) => updatePlayer('name', e.target.value)} className="w-full p-4 bg-slate-800 text-white font-bold rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
               </div>
               <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">등번호</label>
-                  <input type="number" value={editingPlayer.number} onChange={(e) => updatePlayer('number', e.target.value)} className="w-full p-4 bg-slate-800 text-white font-bold rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
+                <label className="text-xs font-bold text-slate-400 block mb-1">등번호</label>
+                <input type="number" value={editingPlayer.number} onChange={(e) => updatePlayer('number', e.target.value)} className="w-full p-4 bg-slate-800 text-white font-bold rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
               </div>
-              
               <div className="pt-4 border-t border-white/10 space-y-3 mt-2">
                 <div className="grid grid-cols-2 gap-2">
                     <button onClick={() => updatePlayer('isCaptain', !editingPlayer.isCaptain)} className={`py-4 rounded-xl text-sm font-black border transition active:scale-95 ${editingPlayer.isCaptain ? 'bg-yellow-500 text-black border-yellow-400 shadow-md' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>© 주장 선임</button>
@@ -693,20 +579,20 @@ export default function LineupPage() {
         </div>
       )}
 
-      {/* 💾 저장 모달 */}
+      {/* 저장 모달 */}
       {isSaveModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsSaveModalOpen(false)}>
           <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
             <button onClick={() => setIsSaveModalOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white p-2"><Icons.X /></button>
             <h3 className="font-black text-white text-xl mb-2">전술 저장하기 💾</h3>
-            <p className="text-sm text-slate-400 font-bold mb-6">현재 선수 배치와 작전판(그림)을 모두 저장합니다.</p>
-            <input type="text" value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="예: 주말 리그 선발, 하프스페이스 공략" className="w-full p-4 bg-slate-800 text-white font-bold rounded-xl border border-slate-700 outline-none focus:border-blue-500 mb-6 transition" />
+            <p className="text-sm text-slate-400 font-bold mb-6">현재 세팅된 포메이션과 선수 배치를 그대로 저장합니다.</p>
+            <input type="text" value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="예: 주말 리그 선발, FC무브 1쿼터" className="w-full p-4 bg-slate-800 text-white font-bold rounded-xl border border-slate-700 outline-none focus:border-blue-500 mb-6 transition" />
             <button onClick={handleSaveLineupDB} className="w-full py-4 bg-blue-600 text-white font-black text-lg rounded-xl hover:bg-blue-500 transition shadow-lg">저장 완료</button>
           </div>
         </div>
       )}
 
-      {/* 📂 불러오기 모달 */}
+      {/* 불러오기 모달 */}
       {isLoadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm sm:p-4 animate-fade-in" onClick={() => setIsLoadModalOpen(false)}>
           <div className="bg-slate-900 border border-white/10 w-full max-w-md h-[80vh] sm:h-auto sm:max-h-[80vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
@@ -724,10 +610,7 @@ export default function LineupPage() {
                     savedLineups.map(lineup => (
                         <div key={lineup.id} onClick={() => loadLineup(lineup)} className="bg-slate-800 p-5 rounded-2xl border border-white/5 hover:border-blue-500 hover:bg-slate-800/80 transition cursor-pointer flex justify-between items-center group shadow-sm">
                             <div>
-                                <h4 className="font-black text-white text-lg mb-1.5 flex items-center gap-2">
-                                    {lineup.save_name} 
-                                    {lineup.drawings && lineup.drawings.length > 0 && <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-md shadow-sm">✍️ 작전 포함</span>}
-                                </h4>
+                                <h4 className="font-black text-white text-lg mb-1.5">{lineup.save_name}</h4>
                                 <div className="flex gap-2 text-xs font-bold text-slate-400">
                                     <span className="bg-slate-950 px-2.5 py-1 rounded-md">{lineup.team_name}</span>
                                     <span className="bg-slate-950 px-2.5 py-1 rounded-md">{lineup.formation}</span>
