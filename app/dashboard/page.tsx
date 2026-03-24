@@ -65,10 +65,23 @@ const REHAB_TIPS = [
   "🔄 재활의 완성은 '통증이 없는 것'이 아니라 '부상 이전의 퍼포먼스를 내는 것'입니다. 점진적으로 부하를 올리세요."
 ];
 
-// 🚨 매치 일지 옵션 상수
+// 🚨 매치 일지 옵션 상수 (포지션별 추가!)
 const PITCH_OPTIONS = ['인조잔디', '천연잔디', '흙/맨땅', '실내/풋살장'];
 const WEATHER_OPTIONS = ['맑음', '흐림', '비', '눈', '실내'];
-const DEF_CHECKLIST_OPTIONS = ['수비 라인 컨트롤 유지', '위기탈출/클리어링', '공중볼 경합 우위', '대인 마크 성공', '안정적 후방 빌드업'];
+
+const POSITIONS = [
+    { id: 'FW', label: '공격수', color: 'bg-red-600', text: 'text-red-400' },
+    { id: 'MF', label: '미드필더', color: 'bg-emerald-600', text: 'text-emerald-400' },
+    { id: 'DF', label: '수비수', color: 'bg-blue-600', text: 'text-blue-400' },
+    { id: 'GK', label: '골키퍼', color: 'bg-yellow-500', text: 'text-yellow-500' }
+];
+
+const CHECKLISTS: any = {
+    'FW': ['유효슈팅 및 마무리 집중력', '오프더볼 (공간 창출 움직임)', '적극적인 전방 압박 가담', '포스트플레이 및 연계', '드리블 및 돌파 성공'],
+    'MF': ['안정적인 볼 소유 및 키핑', '전진 패스 및 찬스 메이킹', '공수 전환 (트랜지션 속도)', '중원 경합 및 볼 탈취', '전체적인 경기 템포 조절'],
+    'DF': ['수비 라인 컨트롤 유지', '위기탈출 및 확실한 클리어링', '공중볼 경합 우위', '대인 마크 및 태클 성공', '안정적인 후방 빌드업 전개'],
+    'GK': ['결정적인 슈팅 선방 (세이브)', '안정적인 공중볼/크로스 처리', '수비 라인 리딩 (콜 플레이)', '정확한 골킥 및 빌드업 시작', '1대1 단독 찬스 방어']
+};
 
 const getLevel = (count: number) => {
   for (let i = LEVEL_SYSTEM.length - 1; i >= 0; i--) {
@@ -153,12 +166,15 @@ export default function Dashboard() {
   const [playTime, setPlayTime] = useState('');
   const [passScore, setPassScore] = useState(3);
   const [runScore, setRunScore] = useState(3);
-  const [defChecklist, setDefChecklist] = useState<string[]>([]);
   const [tacticalScore, setTacticalScore] = useState(5);
   const [kptGood, setKptGood] = useState('');
   const [kptBad, setKptBad] = useState('');
   const [kptTry, setKptTry] = useState('');
   const [recoveryMemo, setRecoveryMemo] = useState('');
+
+  // 🚨 포지션별 체크리스트를 위한 새로운 상태
+  const [selectedPosition, setSelectedPosition] = useState('DF');
+  const [matchChecklist, setMatchChecklist] = useState<string[]>([]);
 
   const [selectedParts, setSelectedParts] = useState<string[]>([])
   const [isPublic, setIsPublic] = useState(false)
@@ -342,10 +358,10 @@ export default function Dashboard() {
     }
   }
 
-  // 🚨 매치 일지 수비 체크리스트 토글 함수
-  const toggleDefChecklist = (item: string) => {
-      if (defChecklist.includes(item)) setDefChecklist(defChecklist.filter(i => i !== item));
-      else setDefChecklist([...defChecklist, item]);
+  // 🚨 픽스: onClick에서 이 함수를 호출하여 완벽하게 작동하게 함!
+  const toggleMatchChecklist = (item: string) => {
+      if (matchChecklist.includes(item)) setMatchChecklist(matchChecklist.filter(i => i !== item));
+      else setMatchChecklist([...matchChecklist, item]);
   }
 
   const handleAddLog = async () => {
@@ -394,7 +410,6 @@ export default function Dashboard() {
             mediaUrl = data.publicUrl; mediaType = fileToUpload.type.startsWith('video') ? 'video' : 'image';
         }
         
-        // 🚨 V2 매치 일지 전용: 새로운 입력값들을 예쁘게 텍스트로 합치기
         let finalContent = content;
         if (logType === 'match') {
             const extraData = [];
@@ -402,14 +417,16 @@ export default function Dashboard() {
             if (myFormation || oppFormation) extraData.push(`⚔️ 전술: 우리 [${myFormation || '미입력'}] vs 상대 [${oppFormation || '미입력'}]`);
             if (playTime) extraData.push(`⏱️ 출전: ${playTime}분`);
             extraData.push(`📊 폼: 패스 ${passScore}/5점 | 활동량 ${runScore}/5점`);
-            if (defChecklist.length > 0) extraData.push(`🛡️ 체크: ${defChecklist.join(', ')}`);
+            
+            // 🚨 선택한 포지션의 체크리스트 데이터 저장
+            if (matchChecklist.length > 0) extraData.push(`🛡️ [${selectedPosition}] 폼 체크: ${matchChecklist.join(', ')}`);
+            
             extraData.push(`🧠 팀 전술 수행도: ${tacticalScore}/10점`);
             if (kptGood) extraData.push(`👍 Good: ${kptGood}`);
             if (kptBad) extraData.push(`🤔 Bad: ${kptBad}`);
             if (kptTry) extraData.push(`🎯 Next: ${kptTry}`);
             if (recoveryMemo) extraData.push(`🩹 회복: ${recoveryMemo}`);
 
-            // 기존 일반 메모가 있으면 마지막에 합쳐줌
             finalContent = extraData.join('\n') + (content ? `\n\n📝 일반 메모:\n${content}` : '');
         }
 
@@ -426,7 +443,7 @@ export default function Dashboard() {
         setIsModalOpen(false); setTitle(''); setContent(''); setScore(5); setSelectedParts([]); setMediaFile(null); setMediaPreview(null); 
         setGoals(0); setAssists(0); setMatchResult('none'); setLogType('workout'); setSelectedGearId(null);
         setPitchStatus('인조잔디'); setWeather('맑음'); setMyFormation(''); setOppFormation(''); setPlayTime(''); setPassScore(3); setRunScore(3);
-        setDefChecklist([]); setTacticalScore(5); setKptGood(''); setKptBad(''); setKptTry(''); setRecoveryMemo('');
+        setMatchChecklist([]); setTacticalScore(5); setKptGood(''); setKptBad(''); setKptTry(''); setRecoveryMemo(''); setSelectedPosition('DF');
         
         fetchData(false)
       } catch (e: any) { toast.error("저장 실패: " + e.message) }
@@ -1231,13 +1248,31 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        {/* 3. 개인 스탯 및 수비 체크리스트 */}
+                        {/* 3. 포지션별 폼 스탯 & 맞춤형 체크리스트 */}
                         <div className="bg-slate-800/40 border border-white/5 p-5 rounded-2xl space-y-5">
-                            <h4 className="text-sm font-black text-emerald-400 flex items-center gap-1.5"><Icons.Shield /> 플레이 스탯 & 체크</h4>
+                            <h4 className="text-sm font-black text-emerald-400 flex items-center gap-1.5"><Icons.Shield /> 포지션 스탯 & 폼 체크</h4>
+                            
+                            {/* 포지션 선택기 */}
+                            <div className="mb-2">
+                                <label className="block text-xs font-bold text-slate-400 mb-2">오늘 내가 뛰었던 포지션</label>
+                                <div className="flex gap-2">
+                                    {POSITIONS.map(pos => (
+                                        <button 
+                                            key={pos.id} 
+                                            onClick={() => { setSelectedPosition(pos.id); setMatchChecklist([]); }} 
+                                            className={`flex-1 py-2.5 rounded-xl font-black text-[11px] border-2 transition active:scale-95 ${selectedPosition === pos.id ? `${pos.color} text-white border-transparent shadow-lg` : 'bg-slate-900/50 text-slate-400 border-white/5 hover:border-slate-600'}`}
+                                        >
+                                            {pos.id}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-xs font-bold text-slate-400 mb-2">출전 시간 (분)</label>
                                 <input type="number" value={playTime} onChange={e => setPlayTime(e.target.value)} placeholder="예: 90" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white font-bold placeholder-slate-600" />
                             </div>
+
                             <div className="flex gap-4">
                                 <div className="flex-1">
                                     <label className="block text-xs font-bold text-slate-400 mb-2 text-center">패스 정확도</label>
@@ -1256,16 +1291,24 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* 선택된 포지션 맞춤 체크리스트 */}
                             <div className="pt-2 border-t border-slate-700/50">
-                                <label className="block text-xs font-bold text-slate-400 mb-3">수비/빌드업 핵심 체크리스트</label>
+                                <label className="block text-xs font-bold text-slate-400 mb-3 flex items-center gap-1">
+                                    <span className={`${POSITIONS.find(p => p.id === selectedPosition)?.text} font-black`}>[{selectedPosition}]</span> 맞춤형 폼 체크리스트
+                                </label>
                                 <div className="flex flex-col gap-2">
-                                    {DEF_CHECKLIST_OPTIONS.map(item => (
-                                        <label key={item} className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer ${defChecklist.includes(item) ? 'bg-emerald-600/20 border-emerald-500' : 'bg-slate-900 border-slate-700 hover:border-slate-500'}`}>
-                                            <div className={`w-5 h-5 rounded flex items-center justify-center border transition ${defChecklist.includes(item) ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-slate-800 border-slate-600 text-transparent'}`}>
+                                    {CHECKLISTS[selectedPosition].map((item: string) => (
+                                        <div 
+                                            key={item} 
+                                            onClick={() => toggleMatchChecklist(item)}
+                                            className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer ${matchChecklist.includes(item) ? 'bg-emerald-600/20 border-emerald-500' : 'bg-slate-900 border-slate-700 hover:border-slate-500'}`}
+                                        >
+                                            <div className={`w-5 h-5 rounded flex items-center justify-center border transition ${matchChecklist.includes(item) ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-slate-800 border-slate-600 text-transparent'}`}>
                                                 <Icons.Check />
                                             </div>
-                                            <span className={`text-sm font-bold ${defChecklist.includes(item) ? 'text-emerald-400' : 'text-slate-300'}`}>{item}</span>
-                                        </label>
+                                            <span className={`text-sm font-bold ${matchChecklist.includes(item) ? 'text-emerald-400' : 'text-slate-300'}`}>{item}</span>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
@@ -1284,15 +1327,15 @@ export default function Dashboard() {
                             <div className="space-y-3">
                                 <div>
                                     <label className="block text-xs font-black text-blue-400 mb-1">👍 KEEP (유지할 점 / 잘한 점)</label>
-                                    <textarea value={kptGood} onChange={e => setKptGood(e.target.value)} placeholder="예: 수비 간격 유지가 완벽했음" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white font-bold placeholder-slate-600 h-20 resize-none" />
+                                    <textarea value={kptGood} onChange={e => setKptGood(e.target.value)} placeholder="예: 전방 압박 타이밍이 좋았음" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white font-bold placeholder-slate-600 h-20 resize-none" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black text-red-400 mb-1">🤔 PROBLEM (아쉬운 점 / 뚫린 장면)</label>
-                                    <textarea value={kptBad} onChange={e => setKptBad(e.target.value)} placeholder="예: 후반 체력 저하시 윙백 뒷공간 커버 늦음" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white font-bold placeholder-slate-600 h-20 resize-none" />
+                                    <textarea value={kptBad} onChange={e => setKptBad(e.target.value)} placeholder="예: 후반 체력 저하 시 수비 전환 속도 느림" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white font-bold placeholder-slate-600 h-20 resize-none" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black text-green-400 mb-1">🎯 TRY (다음 경기 목표)</label>
-                                    <textarea value={kptTry} onChange={e => setKptTry(e.target.value)} placeholder="예: 전환 속도 높이는 러닝 훈련 집중" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white font-bold placeholder-slate-600 h-20 resize-none" />
+                                    <textarea value={kptTry} onChange={e => setKptTry(e.target.value)} placeholder="예: 트랜지션 훈련 및 체력 보강" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white font-bold placeholder-slate-600 h-20 resize-none" />
                                 </div>
                             </div>
                         </div>
