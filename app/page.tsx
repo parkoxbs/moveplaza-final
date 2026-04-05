@@ -46,9 +46,10 @@ export default function LandingPage() {
               엘리트 축구선수 출신 물리치료 전공생이 직접 개발 👨‍⚕️⚽
             </span>
 
-            <h1 className="text-5xl md:text-7xl font-black leading-tight mb-6 tracking-tighter uppercase italic">
+            {/* 🚨 글자 잘림 해결: py-2 추가 및 span 태그에 inline-block, pb-2, pr-4 적용 */}
+            <h1 className="text-5xl md:text-7xl font-black leading-tight mb-6 tracking-tighter uppercase italic py-2">
               당신의 축구는 <br className="md:hidden"/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">기록으로 완성된다.</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500 pb-2 pr-4 inline-block">기록으로 완성된다.</span>
             </h1>
             <p className="text-lg md:text-xl text-slate-400 font-bold mb-10 max-w-2xl mx-auto leading-relaxed">
               단순한 득점 기록을 넘어 그라운드 위 당신의 모든 움직임을 데이터로 만드세요. <br/>
@@ -82,7 +83,8 @@ export default function LandingPage() {
                 🩺
               </div>
               <div className="text-center md:text-left">
-                <h2 className="text-2xl md:text-3xl font-black mb-3 text-white italic tracking-tight">
+                {/* 🚨 글자 잘림 방지용 pr-2 추가 */}
+                <h2 className="text-2xl md:text-3xl font-black mb-3 text-white italic tracking-tight pr-2">
                   "선수의 마음은 선수가 가장 잘 압니다."
                 </h2>
                 <p className="text-slate-400 font-bold leading-relaxed mb-6 text-sm md:text-base">
