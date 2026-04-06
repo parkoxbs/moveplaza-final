@@ -23,8 +23,8 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  // 👇 PWA 매니페스트 파일 연결
-  manifest: '/manifest.webmanifest',
+  // 🚨👇 핵심 수정! 확장자를 .json으로 맞췄습니다! 👇🚨
+  manifest: '/manifest.json',
   
   // 👇 카톡/슬랙/디스코드 공유 미리보기 설정
   openGraph: {
