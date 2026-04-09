@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+
+// 🚨 핵심 수정! 경로를 한 칸 밖으로(../) 꺼냈습니다! 🚨
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  // 🚨👇 핵심 수정! 확장자를 .json으로 맞췄습니다! 👇🚨
+  // 👇 PWA 매니페스트 파일 연결 (어제 json으로 완벽하게 고친 부분!)
   manifest: '/manifest.json',
   
   // 👇 카톡/슬랙/디스코드 공유 미리보기 설정
